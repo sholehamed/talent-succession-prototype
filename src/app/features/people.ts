@@ -183,7 +183,12 @@ import { Chart } from "../shared/chart";
             }
           </mat-card>
           <mat-card class="panel">
-            <h2>برنامه‌های توسعه فردی</h2>
+            <div class="panel-head">
+              <h2>برنامه‌های توسعه فردی</h2>
+              <a [routerLink]="['/development']" [queryParams]="{ person: p.id, job: target() }">
+                برنامه‌های این شغل ←
+              </a>
+            </div>
             @for (d of plans(); track d.id) {
               <div class="metric-line">
                 <a class="grow" [routerLink]="['/development/idp', d.id]">{{
