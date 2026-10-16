@@ -86,13 +86,13 @@ import { UI } from "./shared/ui";
           >اطلاعات کمکی برای تصمیم انسانی؛ بدون تصمیم‌گیری خودکار</span
         >
       </footer>
-    </mat-sidenav-content>
     @if (s.notice()) {
       <div class="toast" role="status">
         {{ s.notice()
         }}<button mat-button aria-label="بستن پیام" (click)="s.notice.set('')">×</button>
       </div>
     }
+    </mat-sidenav-content>
   </mat-sidenav-container>`,
 })
 export class App {
