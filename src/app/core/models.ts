@@ -90,8 +90,18 @@ export interface Plan {
   id: string;
   personId: string;
   jobId: string;
+  /** Published evaluation source; omitted for plans created directly from a profile. */
   cycleId?: string;
   period: string;
+  /** Optional for plans saved in older versions of the browser store. */
+  version?: number;
+  createdAt?: string;
+  /** Immutable competency baseline captured when this version was created. */
+  baseline?: {
+    expected: number[];
+    observed: number[];
+    gaps: number[];
+  };
   actions: Action[];
 }
 export interface Knowledge {

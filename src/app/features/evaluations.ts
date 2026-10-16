@@ -391,7 +391,7 @@ import { Chart } from "../shared/chart";
                     class="primary"
                     (click)="createPlan(c.subjectId, c.jobId, c.id)"
                   >
-                    ایجاد / مشاهده برنامه توسعه سه‌اقدامی
+                    {{ planForCycle() ? "مشاهده برنامه توسعه نسخه " + s.planVersion(planForCycle()!) : "ایجاد برنامه توسعه این دوره" }}
                   </button>
                 }
                 <a mat-button [routerLink]="['/people', c.subjectId]"
@@ -488,6 +488,10 @@ export default class Evaluations {
     return this.s.state().people[0]?.id ?? "";
   }
   cycle = computed(() => this.s.cycle(this.id() ?? ""));
+  /** This report only opens or creates the plan linked to this exact cycle. */
+  planForCycle = computed(() =>
+    this.s.state().plans.find((p) => p.cycleId === this.id()),
+  );
   report = computed(() =>
     this.cycle() ? this.s.aggregate(this.cycle()!) : { rows: [], scores: null },
   );
