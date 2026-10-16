@@ -67,30 +67,15 @@ import { Chart } from "../shared/chart";
       <mat-card class="panel">
         <h2>افراد خانه انتخاب‌شده</h2>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>فرد</th>
-              <th>واحد</th>
-              <th>عملکرد</th>
-              <th>پتانسیل</th>
-              <th>شواهد</th>
-            </tr>
-            @for (p of selectedPeople(); track p.id) {
-              <tr>
-                <td>
-                  <a [routerLink]="['/people', p.id]">{{ p.name }}</a>
-                </td>
-                <td>{{ p.unit }}</td>
-                <td>{{ bands[p.performance] }}</td>
-                <td>{{ bands[p.potential] }}</td>
-                <td>{{ p.evidence }}</td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="5" class="empty">فردی در این خانه نیست.</td>
-              </tr>
-            }
-          </table>
+          <table mat-table [dataSource]="selectedPeople()" class="royesh-table">
+ <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>فرد</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/people', p.id]">{{ p.name }}</a></td></ng-container>
+ <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>واحد</th><td mat-cell *matCellDef="let p">{{ p.unit }}</td></ng-container>
+ <ng-container matColumnDef="performance"><th mat-header-cell *matHeaderCellDef>عملکرد</th><td mat-cell *matCellDef="let p">{{ bandLabel(p.performance) }}</td></ng-container>
+ <ng-container matColumnDef="potential"><th mat-header-cell *matHeaderCellDef>پتانسیل</th><td mat-cell *matCellDef="let p">{{ bandLabel(p.potential) }}</td></ng-container>
+ <ng-container matColumnDef="evidence"><th mat-header-cell *matHeaderCellDef>شواهد</th><td mat-cell *matCellDef="let p">{{ p.evidence }}</td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="talentColumns"></tr><tr mat-row *matRowDef="let row; columns: talentColumns"></tr>
+ </table>
+ @if (!selectedPeople().length) {<div class="empty">فردی در این خانه نیست.</div>}
         </div>
       </mat-card>
     } @else {
@@ -248,6 +233,8 @@ import { Chart } from "../shared/chart";
 })
 export default class Talent {
   s = inject(Store);
+  readonly talentColumns = ["person","unit","performance","potential","evidence"];
+  bandLabel(value: string) { return bands[value as Band] ?? "—"; }
   route = inject(ActivatedRoute);
   nine = !!this.route.snapshot.data["nine"];
   unit = signal("");
