@@ -211,47 +211,19 @@ import { competencies } from "../core/models";
           >
         </div>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>فرد / شغل هدف</th>
-              <th>اقدام تکمیل‌شده</th>
-              <th>پیشرفت</th>
-              <th>جزئیات</th>
-            </tr>
-            @for (p of plans().slice(0, 5); track p.id) {
-              <tr>
-                <td>
-                  <div class="person-cell">
-                    <span class="avatar small">{{
-                      s.person(p.personId).name.slice(0, 1)
-                    }}</span>
-                    <div>
-                      {{ s.person(p.personId).name
-                      }}<small>{{ s.job(p.jobId).title }}</small>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  {{ completed(p.id) | fa }} از {{ p.actions.length | fa }}
-                </td>
-                <td>
-                  <div class="progress-cell">
-                    <div class="bar">
-                      <span [style.width.%]="s.progress(p)"></span>
-                    </div>
-                    {{ s.progress(p) | fa }}٪
-                  </div>
-                </td>
-                <td><a [routerLink]="['/development/idp', p.id]">←</a></td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="4" class="empty">
-                  برنامه‌ای برای این دوره و واحد ثبت نشده است.
-                </td>
-              </tr>
-            }
-          </table>
+          <table mat-table [dataSource]="plans().slice(0, 5)" class="royesh-table">
+ <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>فرد / شغل هدف</th><td mat-cell *matCellDef="let p">
+   <div class="person-cell"><span class="avatar small">{{ s.person(p.personId).name.slice(0, 1) }}</span>
+    <div>{{ s.person(p.personId).name }}<small>{{ s.job(p.jobId).title }}</small></div></div>
+ </td></ng-container>
+ <ng-container matColumnDef="done"><th mat-header-cell *matHeaderCellDef>اقدام تکمیل‌شده</th><td mat-cell *matCellDef="let p">{{ completed(p.id) | fa }} از {{ p.actions.length | fa }}</td></ng-container>
+ <ng-container matColumnDef="progress"><th mat-header-cell *matHeaderCellDef>پیشرفت</th><td mat-cell *matCellDef="let p">
+  <div class="progress-cell"><div class="bar"><span [style.width.%]="s.progress(p)"></span></div>{{ s.progress(p) | fa }}٪</div>
+ </td></ng-container>
+ <ng-container matColumnDef="link"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/development/idp', p.id]">پیگیری ←</a></td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="developmentColumns"></tr><tr mat-row *matRowDef="let row; columns: developmentColumns"></tr>
+ </table>
+ @if (!plans().length) { <div class="empty">برنامه‌ای برای این دوره و واحد ثبت نشده است.</div> }
         </div>
       </mat-card>
       <mat-card class="panel">
@@ -299,34 +271,18 @@ import { competencies } from "../core/models";
       <mat-card class="panel">
         <h2>جدول منشأ شاخص‌ها و شکاف فردی</h2>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>فرد</th>
-              <th>واحد</th>
-              @for (c of competencies; track c) {
-                <th>{{ c }}</th>
-              }
-              <th>منشأ</th>
-            </tr>
-            @for (p of people(); track p.id) {
-              <tr>
-                <td>
-                  <a [routerLink]="['/people', p.id]">{{ p.name }}</a>
-                </td>
-                <td>{{ p.unit }}</td>
-                @for (g of s.gaps(p.id, p.jobId); track $index) {
-                  <td
-                    [style.background]="
-                      g > 1 ? '#fff4df' : g > 0 ? '#f4f8ed' : '#ecf7f2'
-                    "
-                  >
-                    {{ g | fa }}
-                  </td>
-                }
-                <td>گزارش منتشرشده / شواهد نمونه</td>
-              </tr>
-            }
-          </table>
+          <table mat-table [dataSource]="people()" class="royesh-table">
+ <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>فرد</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/people', p.id]">{{ p.name }}</a></td></ng-container>
+ <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>واحد</th><td mat-cell *matCellDef="let p">{{ p.unit }}</td></ng-container>
+ @for (comp of competencies; track comp; let i = $index) {
+  <ng-container [matColumnDef]="'gap' + i"><th mat-header-cell *matHeaderCellDef>{{ comp }}</th>
+  <td mat-cell *matCellDef="let p" [style.background]="s.gaps(p.id, p.jobId)[i] > 1 ? '#fff4df' : s.gaps(p.id, p.jobId)[i] > 0 ? '#f4f8ed' : '#ecf7f2'">
+    {{ s.gaps(p.id, p.jobId)[i] | fa }}
+  </td></ng-container>
+ }
+ <ng-container matColumnDef="source"><th mat-header-cell *matHeaderCellDef>منشأ</th><td mat-cell *matCellDef="let p">گزارش منتشرشده / شواهد نمونه</td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="gapColumns"></tr><tr mat-row *matRowDef="let row; columns: gapColumns"></tr>
+ </table>
         </div>
       </mat-card>
       <div class="info">
@@ -338,6 +294,8 @@ import { competencies } from "../core/models";
 })
 export default class Dashboard {
   s = inject(Store);
+  readonly developmentColumns = ["person","done","progress","link"];
+  readonly gapColumns = ["person","unit",...competencies.map((_, i) => "gap" + i),"source"];
   route = inject(ActivatedRoute);
   reports = !!this.route.snapshot.data["reports"];
   view = signal(this.route.snapshot.paramMap.get("view") ?? "hr");
