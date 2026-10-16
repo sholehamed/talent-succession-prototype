@@ -395,7 +395,7 @@ import { Chart } from "../shared/chart";
                   </button>
                 }
                 <a mat-button [routerLink]="['/people', c.subjectId]"
-                  >پروفایل فرد ←</a
+                  [queryParams]="{ job: c.jobId }">پروفایل و شکاف فرد ←</a
                 >
               </div>
             </mat-card>
