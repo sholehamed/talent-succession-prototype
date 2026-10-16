@@ -1,4 +1,6 @@
 import { Component, computed, inject, input, signal } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
+import { ActivatedRoute } from "@angular/router";
 import { Store } from "../core/store";
 import { Action, competencies } from "../core/models";
 import { UI } from "../shared/ui";
@@ -16,6 +18,13 @@ import { UI } from "../shared/ui";
       >
     </div>
     @if (!id()) {
+      @if (jobFilter() || personFilter()) {
+        <div class="info">
+          @if (jobFilter()) { برنامه‌های شغل «{{ s.job(jobFilter()).title }}» }
+          @if (personFilter()) { · فرد: {{ s.person(personFilter()).name }} }
+          <a routerLink="/development">نمایش همه برنامه‌ها</a>
+        </div>
+      }
       <div class="panel">
         <div class="filterbar">
           <mat-form-field appearance="outline" class="search"
@@ -56,7 +65,7 @@ import { UI } from "../shared/ui";
           </div>
           <mat-progress-bar [value]="s.progress(p)" />
           <div class="actions" style="margin-top:15px">
-            <a [routerLink]="['/people', p.personId]">پروفایل و تحلیل شکاف ←</a>
+            <a [routerLink]="['/people', p.personId]" [queryParams]="{ job: p.jobId }">پروفایل و تحلیل شکاف ←</a>
             @if (p.cycleId) {
               <a [routerLink]="['/evaluations/reports', p.cycleId]"
                 >گزارش ارزیابی ←</a
@@ -124,6 +133,18 @@ import { UI } from "../shared/ui";
 })
 export default class Development {
   s = inject(Store);
+  readonly route = inject(ActivatedRoute);
+  readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+  readonly jobFilter = computed(() => {
+    const job = this.queryParams().get("job");
+    return job && this.s.state().jobs.some((j) => j.id === job) ? job : "";
+  });
+  readonly personFilter = computed(() => {
+    const person = this.queryParams().get("person");
+    return person && this.s.state().people.some((p) => p.id === person) ? person : "";
+  });
   readonly developmentColumns = ["person","job","actions","progress","action"];
   id = input<string>();
   search = signal("");
@@ -137,6 +158,8 @@ export default class Development {
       .plans.filter(
         (p) =>
           this.s.allowedPerson(p.personId) &&
+          (!this.jobFilter() || p.jobId === this.jobFilter()) &&
+          (!this.personFilter() || p.personId === this.personFilter()) &&
           this.s.person(p.personId).name.includes(this.search()),
       ),
   );
