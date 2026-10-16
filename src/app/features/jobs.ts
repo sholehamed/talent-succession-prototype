@@ -70,11 +70,16 @@ import { UI } from "../shared/ui";
           >
         </div>
       </div>
-      <div class="flow-steps">
-        <b><span class="step-number">۱</span>انتخاب شغل</b><span>←</span
-        ><a routerLink="/evaluations/cycles" [queryParams]="{ job: j.id }">۲ ارزیابی فرد</a><span>←</span
-        ><a routerLink="/people" [queryParams]="{ job: j.id }">۳ تحلیل شکاف افراد</a><span>←</span
-        ><a routerLink="/development" [queryParams]="{ job: j.id }">۴ برنامه‌های توسعه</a>
+      <div class="actions" style="margin-bottom:22px">
+        <a mat-stroked-button routerLink="/evaluations/cycles" [queryParams]="{ job: j.id }">
+          دوره‌های ارزیابی این شغل
+        </a>
+        <a mat-stroked-button routerLink="/people" [queryParams]="{ job: j.id }">
+          افراد و تحلیل شکاف
+        </a>
+        <a mat-stroked-button routerLink="/development" [queryParams]="{ job: j.id }">
+          برنامه‌های توسعه این شغل
+        </a>
       </div>
       @if (s.canReport()) {
         <mat-card class="panel" style="margin-bottom:22px">
