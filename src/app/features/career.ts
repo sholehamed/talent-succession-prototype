@@ -14,7 +14,7 @@ import { UI } from "../shared/ui";
     <div class="grid two">
       @for (p of s.state().paths; track p.from + p.to) {
         <div class="panel">
-          <div class="eyebrow">مسیر ارتقا · نمونه پیشنهادی</div>
+          <div class="eyebrow">مسیر ارتقای شغلی</div>
           <h2>
             <a [routerLink]="['/jobs', p.from]">{{ s.job(p.from).title }}</a> ←
             <a [routerLink]="['/jobs', p.to]">{{ s.job(p.to).title }}</a>
