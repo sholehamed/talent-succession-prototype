@@ -209,31 +209,17 @@ import { Chart } from "../shared/chart";
             "
           />
           <div class="table-wrap">
-            <table>
-              <tr>
-                <th>ارزیاب ساختگی</th>
-                <th>گروه</th>
-                <th>وضعیت</th>
-                <th></th>
-              </tr>
-              @for (a of c.assignments; track a.id) {
-                <tr>
-                  <td>{{ s.person(a.personId).name }}</td>
-                  <td>{{ groups[a.group] }}</td>
-                  <td>{{ a.scores ? "ثبت‌شده" : "در انتظار پاسخ" }}</td>
-                  <td>
-                    @if (c.status === "preparing" && s.role() === "hr") {
-                      <button
-                        mat-button
-                        (click)="s.removeEvaluator(c.id, a.id)"
-                      >
-                        حذف
-                      </button>
-                    }
-                  </td>
-                </tr>
-              }
-            </table>
+            <table mat-table [dataSource]="c.assignments" class="royesh-table">
+ <ng-container matColumnDef="evaluator"><th mat-header-cell *matHeaderCellDef>ارزیاب ساختگی</th><td mat-cell *matCellDef="let a">{{ s.person(a.personId).name }}</td></ng-container>
+ <ng-container matColumnDef="group"><th mat-header-cell *matHeaderCellDef>گروه</th><td mat-cell *matCellDef="let a">{{ groupLabel(a.group) }}</td></ng-container>
+ <ng-container matColumnDef="state"><th mat-header-cell *matHeaderCellDef>وضعیت</th><td mat-cell *matCellDef="let a">{{ a.scores ? "ثبت‌شده" : "در انتظار پاسخ" }}</td></ng-container>
+ <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>عملیات</th><td mat-cell *matCellDef="let a">
+   @if (c.status === "preparing" && s.role() === "hr") {
+     <button mat-button (click)="s.removeEvaluator(c.id, a.id)">حذف</button>
+   }
+ </td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="evaluatorColumns"></tr><tr mat-row *matRowDef="let row; columns: evaluatorColumns"></tr>
+ </table>
           </div>
           @if (c.status === "preparing" && s.role() === "hr") {
             <div class="filterbar">
@@ -340,26 +326,14 @@ import { Chart } from "../shared/chart";
             </mat-card>
             <mat-card class="panel">
               <h2>شکاف نسبت به شغل هدف</h2>
-              <table>
-                <tr>
-                  <th>شایستگی</th>
-                  <th>انتظار</th>
-                  <th>مشاهده</th>
-                  <th>شکاف</th>
-                </tr>
-                @for (comp of competencies; track comp; let i = $index) {
-                  <tr>
-                    <td>{{ comp }}</td>
-                    <td>{{ s.job(c.jobId).expected[i] | fa }}</td>
-                    <td>{{ report().scores?.[i] | fa }}</td>
-                    <td>
-                      <span class="badge" [class.amber]="reportGap(i) > 0">{{
-                        reportGap(i) | fa
-                      }}</span>
-                    </td>
-                  </tr>
-                }
-              </table>
+              <table mat-table [dataSource]="competencies" class="royesh-table">
+ <ng-container matColumnDef="competency"><th mat-header-cell *matHeaderCellDef>شایستگی</th><td mat-cell *matCellDef="let comp">{{ comp }}</td></ng-container>
+ <ng-container matColumnDef="expected"><th mat-header-cell *matHeaderCellDef>انتظار</th><td mat-cell *matCellDef="let comp; let i = index">{{ s.job(c.jobId).expected[i] | fa }}</td></ng-container>
+ <ng-container matColumnDef="observed"><th mat-header-cell *matHeaderCellDef>مشاهده</th><td mat-cell *matCellDef="let comp; let i = index">{{ report().scores?.[i] | fa }}</td></ng-container>
+ <ng-container matColumnDef="gap"><th mat-header-cell *matHeaderCellDef>شکاف</th><td mat-cell *matCellDef="let comp; let i = index">
+ <span class="badge" [class.amber]="reportGap(i) > 0">{{ reportGap(i) | fa }}</span></td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="competencyColumns"></tr><tr mat-row *matRowDef="let row; columns: competencyColumns"></tr>
+ </table>
               <p class="report-note">
                 نقاط رشد: {{ growth() }}. نمره ۴ یا بالاتر صرفاً شاهد رفتاری
                 مثبت در داده نمونه است.
@@ -369,26 +343,16 @@ import { Chart } from "../shared/chart";
           <mat-card class="panel">
             <h2>بازخورد گروهی بدون هویت ارزیاب</h2>
             <div class="table-wrap">
-              <table>
-                <tr>
-                  <th>گروه</th>
-                  <th>پاسخ</th>
-                  @for (comp of competencies; track comp) {
-                    <th>{{ comp }}</th>
-                  }
-                </tr>
-                @for (row of report().rows; track row.group) {
-                  <tr>
-                    <td>{{ groups[row.group] }}</td>
-                    <td>{{ row.count | fa }}</td>
-                    @for (comp of competencies; track comp; let i = $index) {
-                      <td>
-                        {{ row.scores ? (row.scores[i] | fa) : "نمونه ناکافی" }}
-                      </td>
-                    }
-                  </tr>
-                }
-              </table>
+              <table mat-table [dataSource]="report().rows" class="royesh-table">
+ <ng-container matColumnDef="group"><th mat-header-cell *matHeaderCellDef>گروه</th><td mat-cell *matCellDef="let row">{{ groupLabel(row.group) }}</td></ng-container>
+ <ng-container matColumnDef="count"><th mat-header-cell *matHeaderCellDef>پاسخ</th><td mat-cell *matCellDef="let row">{{ row.count | fa }}</td></ng-container>
+ @for (comp of competencies; track comp; let i = $index) {
+  <ng-container [matColumnDef]="'score' + i"><th mat-header-cell *matHeaderCellDef>{{ comp }}</th><td mat-cell *matCellDef="let row">
+    {{ row.scores ? (row.scores[i] | fa) : "نمونه ناکافی" }}
+  </td></ng-container>
+ }
+ <tr mat-header-row *matHeaderRowDef="groupColumns"></tr><tr mat-row *matRowDef="let row; columns: groupColumns"></tr>
+ </table>
             </div>
           </mat-card>
           @if (view === "calibration" && s.role() === "hr") {
@@ -438,6 +402,10 @@ import { Chart } from "../shared/chart";
 })
 export default class Evaluations {
   s = inject(Store);
+  readonly evaluatorColumns = ["evaluator","group","state","action"];
+  readonly competencyColumns = ["competency","expected","observed","gap"];
+  readonly groupColumns = ["group","count",...competencies.map((_, i) => "score" + i)];
+  groupLabel(value: string) { return groups[value as Group] ?? "—"; }
   router = inject(Router);
   route = inject(ActivatedRoute);
   id = input<string>();
