@@ -18,55 +18,29 @@ import { UI } from "../shared/ui";
     @if (!id()) {
       <div class="panel">
         <div class="filterbar">
-          <label class="search"
-            >جستجوی فرد<input
+          <mat-form-field appearance="outline" class="search"
+            ><mat-label>جستجوی فرد</mat-label><input matInput
               [ngModel]="search()"
               (ngModelChange)="search.set($event)"
               placeholder="نام فرد…"
-          /></label>
+          /></mat-form-field>
         </div>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>فرد</th>
-              <th>شغل هدف</th>
-              <th>اقدام‌ها</th>
-              <th>پیشرفت</th>
-              <th></th>
-            </tr>
-            @for (p of plans(); track p.id) {
-              <tr>
-                <td>{{ s.person(p.personId).name }}</td>
-                <td>{{ s.job(p.jobId).title }}</td>
-                <td>{{ p.actions.length | fa }}</td>
-                <td>
-                  <div class="progress-cell">
-                    <span>{{ s.progress(p) | fa }}٪</span>
-                    <div class="bar">
-                      <span [style.width.%]="s.progress(p)"></span>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <a [routerLink]="['/development/idp', p.id]"
-                    >پیگیری برنامه ←</a
-                  >
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="5" class="empty">
-                  برنامه‌ای یافت نشد؛ از پروفایل فرد یا گزارش ارزیابی یک برنامه
-                  ایجاد کنید.
-                </td>
-              </tr>
-            }
-          </table>
+          <table mat-table [dataSource]="plans()" class="royesh-table">
+    <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>فرد</th><td mat-cell *matCellDef="let p">{{ s.person(p.personId).name }}</td></ng-container>
+    <ng-container matColumnDef="job"><th mat-header-cell *matHeaderCellDef>شغل هدف</th><td mat-cell *matCellDef="let p">{{ s.job(p.jobId).title }}</td></ng-container>
+    <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>اقدام‌ها</th><td mat-cell *matCellDef="let p">{{ p.actions.length | fa }}</td></ng-container>
+    <ng-container matColumnDef="progress"><th mat-header-cell *matHeaderCellDef>پیشرفت</th><td mat-cell *matCellDef="let p"><div class="progress-cell"><span>{{ s.progress(p) | fa }}٪</span><div class="bar"><span [style.width.%]="s.progress(p)"></span></div></div></td></ng-container>
+    <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/development/idp', p.id]">پیگیری برنامه ←</a></td></ng-container>
+    <tr mat-header-row *matHeaderRowDef="developmentColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: developmentColumns"></tr>
+  </table>
+  @if (!plans().length) { <div class="empty">برنامه‌ای یافت نشد؛ از پروفایل فرد یا گزارش ارزیابی برنامه ایجاد کنید.</div> }
         </div>
       </div>
     } @else if (plan(); as p) {
       @if (s.allowedPerson(p.personId)) {
-        <section class="panel">
+        <mat-card class="panel">
           <div class="panel-head">
             <div>
               <h2>
@@ -89,10 +63,10 @@ import { UI } from "../shared/ui";
               >
             }
           </div>
-        </section>
+        </mat-card>
         <div class="grid three">
           @for (a of p.actions; track a.id; let i = $index) {
-            <section class="panel">
+            <mat-card class="panel">
               <div class="panel-head">
                 <span class="eyebrow"
                   >اقدام {{ i + 1 | fa }} · {{ a.kind }}</span
@@ -114,35 +88,28 @@ import { UI } from "../shared/ui";
                   ویرایش و پیگیری
                 </button>
               }
-            </section>
+            </mat-card>
           }
         </div>
         @if (draft) {
-          <section class="panel">
+          <mat-card class="panel">
             <h2>پیگیری اقدام</h2>
             <div class="form-grid">
-              <label>عنوان اقدام<input [(ngModel)]="draft.title" /></label
-              ><label>مسئول<input [(ngModel)]="draft.owner" /></label
-              ><label
-                >مهلت (انتخاب تاریخ میلادی؛ نمایش شمسی)<input
-                  type="date"
-                  [(ngModel)]="draft.due" /></label
-              ><label
-                >وضعیت<select [(ngModel)]="draft.status">
+              <mat-form-field appearance="outline"><mat-label>عنوان اقدام</mat-label><input matInput [(ngModel)]="draft.title" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مسئول</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><app-date-field
+                 label="مهلت (انتخاب تاریخ میلادی؛ نمایش شمسی)" [(ngModel)]="draft.due" /><mat-form-field appearance="outline"
+                ><mat-label>وضعیت</mat-label><mat-select [(ngModel)]="draft.status">
                   @for (st of statuses; track st) {
-                    <option [value]="st">{{ st | status }}</option>
+                    <mat-option [value]="st">{{ st | status }}</mat-option>
                   }
-                </select></label
-              ><label class="full"
-                >شاخص موفقیت<textarea [(ngModel)]="draft.indicator"></textarea>
-              </label>
+                </mat-select></mat-form-field><mat-form-field appearance="outline" class="full"
+                ><mat-label>شاخص موفقیت</mat-label><textarea matInput [(ngModel)]="draft.indicator"></textarea></mat-form-field>
             </div>
             <div class="actions">
               <button mat-button class="primary" (click)="save()">
                 ذخیره اقدام</button
               ><button mat-button (click)="draft = undefined">انصراف</button>
             </div>
-          </section>
+          </mat-card>
         }
         <div class="info">
           درصد پیشرفت از تعداد اقدام‌های انجام‌شده محاسبه می‌شود؛ تکمیل فعالیت
@@ -157,6 +124,7 @@ import { UI } from "../shared/ui";
 })
 export default class Development {
   s = inject(Store);
+  readonly developmentColumns = ["person","job","actions","progress","action"];
   id = input<string>();
   search = signal("");
   draft?: Action;
