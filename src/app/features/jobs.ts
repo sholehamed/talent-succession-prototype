@@ -72,10 +72,42 @@ import { UI } from "../shared/ui";
       </div>
       <div class="flow-steps">
         <b><span class="step-number">۱</span>انتخاب شغل</b><span>←</span
-        ><a routerLink="/evaluations/cycles">۲ ارزیابی فرد</a><span>←</span
-        ><a routerLink="/people/p1">۳ تحلیل شکاف</a><span>←</span
-        ><a routerLink="/development">۴ برنامه توسعه</a>
+        ><a routerLink="/evaluations/cycles" [queryParams]="{ job: j.id }">۲ ارزیابی فرد</a><span>←</span
+        ><a routerLink="/people" [queryParams]="{ job: j.id }">۳ تحلیل شکاف افراد</a><span>←</span
+        ><a routerLink="/development" [queryParams]="{ job: j.id }">۴ برنامه‌های توسعه</a>
       </div>
+      @if (s.canReport()) {
+        <mat-card class="panel" style="margin-bottom:22px">
+          <div class="panel-head">
+            <div>
+              <h2>افراد مرتبط با شغل</h2>
+              <small>شاغلان، افراد مسیر رشد و نامزدهای جانشینی این شغل</small>
+            </div>
+            <a mat-button [routerLink]="['/people']" [queryParams]="{ job: j.id }">
+              مشاهده همه افراد مرتبط ←
+            </a>
+          </div>
+          @for (person of relatedPeople().slice(0, 5); track person.id) {
+            <div class="metric-line">
+              <div class="grow">
+                <strong>{{ person.name }}</strong>
+                <small>{{ s.job(person.jobId).title }} · {{ person.unit }}</small>
+              </div>
+              <a [routerLink]="['/people', person.id]" [queryParams]="{ job: j.id }">
+                تحلیل شکاف ←
+              </a>
+              @if (s.role() === "hr") {
+                <a [routerLink]="['/evaluations/cycles']"
+                  [queryParams]="{ job: j.id, person: person.id }">
+                  ارزیابی ←
+                </a>
+              }
+            </div>
+          } @empty {
+            <div class="empty">فرد مرتبطی برای این شغل یافت نشد.</div>
+          }
+        </mat-card>
+      }
       @if (j.draft) {
         <div class="warning">
           نسخه منتشرشده تا تأیید مالک ثابت می‌ماند. وضعیت پیش‌نویس:
@@ -320,6 +352,7 @@ export default class Jobs {
     { key: "owner", label: "مالک شاخص" },
   ];
   job = computed(() => this.s.state().jobs.find((j) => j.id === this.id()));
+  relatedPeople = computed(() => this.s.relatedPeople(this.id() ?? ""));
   filtered = computed(() =>
     this.s
       .state()
