@@ -33,21 +33,18 @@ import { UI } from "../shared/ui";
       <div class="panel">
         <h2>تعریف یا به‌روزرسانی مسیر</h2>
         <div class="form-grid">
-          <label
-            >مبدأ<select [(ngModel)]="from">
+          <mat-form-field appearance="outline"
+            ><mat-label>مبدأ</mat-label><mat-select [(ngModel)]="from">
               @for (j of s.state().jobs; track j.id) {
-                <option [value]="j.id">{{ j.title }}</option>
+                <mat-option [value]="j.title">{{ j.title }}</mat-option>
               }
-            </select></label
-          ><label
-            >مقصد<select [(ngModel)]="to">
+            </mat-select></mat-form-field><mat-form-field appearance="outline"
+            ><mat-label>مقصد</mat-label><mat-select [(ngModel)]="to">
               @for (j of s.state().jobs; track j.id) {
-                <option [value]="j.id">{{ j.title }}</option>
+                <mat-option [value]="j.title">{{ j.title }}</mat-option>
               }
-            </select></label
-          ><label class="full"
-            >معیارهای ارتقا<textarea [(ngModel)]="criteria"></textarea>
-          </label>
+            </mat-select></mat-form-field><mat-form-field appearance="outline" class="full"
+            ><mat-label>معیارهای ارتقا</mat-label><textarea matInput [(ngModel)]="criteria"></textarea></mat-form-field>
         </div>
         <button
           mat-button
