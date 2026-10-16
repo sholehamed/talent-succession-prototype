@@ -11,7 +11,7 @@ import { UI } from "./shared/ui";
 @Component({
   selector: "app-root",
   imports: [...UI, RouterOutlet, RouterLink, RouterLinkActive],
-  template: ` <mat-sidenav-container [autosize]="true" class="app-shell" [class.collapsed]="collapsed()">
+  template: ` <mat-sidenav-container [autosize]="true" class="app-shell" [class.collapsed]="collapsed() && !handset()">
     <mat-sidenav class="sidebar" position="start" [mode]="handset() ? 'over' : 'side'" [opened]="!handset() || mobile()">
       <a routerLink="/dashboard/hr" class="brand"
         ><span class="brand-icon">ر</span
