@@ -36,12 +36,12 @@ import { UI } from "../shared/ui";
           <mat-form-field appearance="outline"
             ><mat-label>مبدأ</mat-label><mat-select [(ngModel)]="from">
               @for (j of s.state().jobs; track j.id) {
-                <mat-option [value]="j.title">{{ j.title }}</mat-option>
+                <mat-option [value]="j.id">{{ j.title }}</mat-option>
               }
             </mat-select></mat-form-field><mat-form-field appearance="outline"
             ><mat-label>مقصد</mat-label><mat-select [(ngModel)]="to">
               @for (j of s.state().jobs; track j.id) {
-                <mat-option [value]="j.title">{{ j.title }}</mat-option>
+                <mat-option [value]="j.id">{{ j.title }}</mat-option>
               }
             </mat-select></mat-form-field><mat-form-field appearance="outline" class="full"
             ><mat-label>معیارهای ارتقا</mat-label><textarea matInput [(ngModel)]="criteria"></textarea></mat-form-field>
