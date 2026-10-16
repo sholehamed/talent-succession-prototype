@@ -59,12 +59,12 @@ import { UI } from "../shared/ui";
               (ngModelChange)="draft.taskId = s.job(draft.jobId).tasks[0].id"
             >
               @for (j of s.state().jobs; track j.id) {
-                <mat-option [value]="j.title">{{ j.title }}</mat-option>
+                <mat-option [value]="j.id">{{ j.title }}</mat-option>
               }
             </mat-select></mat-form-field><mat-form-field appearance="outline"
             ><mat-label>وظیفه مرتبط</mat-label><mat-select [(ngModel)]="draft.taskId">
               @for (t of s.job(draft.jobId).tasks; track t.id) {
-                <mat-option [value]="t.title">{{ t.title }}</mat-option>
+                <mat-option [value]="t.id">{{ t.title }}</mat-option>
               }
             </mat-select></mat-form-field><mat-form-field appearance="outline"><mat-label>کلیدواژه‌ها</mat-label><input matInput [(ngModel)]="draft.tags" /></mat-form-field><mat-form-field appearance="outline"><mat-label>صاحب محتوا</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><app-date-field
              label="تاریخ بازنگری (ورودی میلادی)" [(ngModel)]="draft.revision" /><mat-form-field appearance="outline"
@@ -273,7 +273,7 @@ import { UI } from "../shared/ui";
             ><mat-label>شغل</mat-label><mat-select [ngModel]="job()" (ngModelChange)="job.set($event)">
               <mat-option value="">همه مشاغل</mat-option>
               @for (j of s.state().jobs; track j.id) {
-                <mat-option [value]="j.title">{{ j.title }}</mat-option>
+                <mat-option [value]="j.id">{{ j.title }}</mat-option>
               }
             </mat-select></mat-form-field><mat-form-field appearance="outline"
             ><mat-label>وضعیت</mat-label><mat-select
