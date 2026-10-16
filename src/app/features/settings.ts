@@ -124,24 +124,14 @@ import { UI } from "../shared/ui";
           </button>
         </div>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>موجودیت</th>
-              <th>کلید مرجع</th>
-              <th>مالک داده</th>
-              <th>نسخه قرارداد</th>
-              <th>تغییر قابل مشاهده</th>
-            </tr>
-            <tr>
-              <td>PerformanceSnapshot</td>
-              <td>personId + period</td>
-              <td>HR نمونه</td>
-              <td>۱</td>
-              <td>
-                تغییر عملکرد نیما روشن در پروفایل و ۹ خانه؛ آمادگی جانشینی ثابت
-              </td>
-            </tr>
-          </table>
+          <table mat-table [dataSource]="syncContract" class="royesh-table">
+ <ng-container matColumnDef="entity"><th mat-header-cell *matHeaderCellDef>موجودیت</th><td mat-cell *matCellDef="let row">{{ row.entity }}</td></ng-container>
+ <ng-container matColumnDef="key"><th mat-header-cell *matHeaderCellDef>کلید مرجع</th><td mat-cell *matCellDef="let row">{{ row.key }}</td></ng-container>
+ <ng-container matColumnDef="source"><th mat-header-cell *matHeaderCellDef>مالک داده</th><td mat-cell *matCellDef="let row">{{ row.source }}</td></ng-container>
+ <ng-container matColumnDef="version"><th mat-header-cell *matHeaderCellDef>نسخه قرارداد</th><td mat-cell *matCellDef="let row">{{ row.version }}</td></ng-container>
+ <ng-container matColumnDef="change"><th mat-header-cell *matHeaderCellDef>تغییر قابل مشاهده</th><td mat-cell *matCellDef="let row">{{ row.change }}</td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="syncColumns"></tr><tr mat-row *matRowDef="let row; columns: syncColumns"></tr>
+ </table>
         </div>
         @for (run of s.state().syncs; track run.at) {
           <div class="metric-line">
@@ -159,34 +149,26 @@ import { UI } from "../shared/ui";
           <small>۲۵۰ رویداد آخر · محلی و غیرامنیتی</small>
         </div>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>زمان</th>
-              <th>نقش</th>
-              <th>عملیات</th>
-              <th>شناسه مرجع</th>
-            </tr>
-            @for (e of s.state().audit; track e.id) {
-              <tr>
-                <td>{{ e.at | faDate }}</td>
-                <td>{{ roles[e.role] }}</td>
-                <td>{{ e.action }}</td>
-                <td>{{ e.entity }}</td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="4" class="empty">
-                  با اولین تغییر، رویداد ثبت می‌شود.
-                </td>
-              </tr>
-            }
-          </table>
+          <table mat-table [dataSource]="s.state().audit" class="royesh-table">
+ <ng-container matColumnDef="at"><th mat-header-cell *matHeaderCellDef>زمان</th><td mat-cell *matCellDef="let e">{{ e.at | faDate }}</td></ng-container>
+ <ng-container matColumnDef="role"><th mat-header-cell *matHeaderCellDef>نقش</th><td mat-cell *matCellDef="let e">{{ roleLabel(e.role) }}</td></ng-container>
+ <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>عملیات</th><td mat-cell *matCellDef="let e">{{ e.action }}</td></ng-container>
+ <ng-container matColumnDef="entity"><th mat-header-cell *matHeaderCellDef>شناسه مرجع</th><td mat-cell *matCellDef="let e">{{ e.entity }}</td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="auditColumns"></tr><tr mat-row *matRowDef="let row; columns: auditColumns"></tr>
+ </table>
+ @if (!s.state().audit.length) {<div class="empty">با اولین تغییر، رویداد ثبت می‌شود.</div>}
         </div>
       </mat-card>
     }`,
 })
 export default class Settings {
   s = inject(Store);
+  readonly syncColumns = ["entity","key","source","version","change"];
+  readonly auditColumns = ["at","role","action","entity"];
+  readonly syncContract = [{ entity: "PerformanceSnapshot", key: "personId + period",
+    source: "HR نمونه", version: "۱",
+    change: "تغییر عملکرد نیما روشن در پروفایل و ۹ خانه؛ آمادگی جانشینی ثابت" }];
+  roleLabel(value: string) { return Object.entries(roles).find(([key]) => key === value)?.[1] ?? value; }
   roles = roles;
   confirm = false;
 }
