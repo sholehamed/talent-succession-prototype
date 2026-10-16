@@ -103,6 +103,41 @@ test("application shows product UI without presentation labels", async ({ page }
   await expect(page).toHaveURL(/\/settings$/);
 });
 
+test("job to person to evaluation navigation preserves selected context for different jobs", async ({ page }) => {
+  await nav(page, "/jobs/j1");
+  await expect(page.getByRole("heading", { name: "افراد مرتبط با شغل" })).toBeVisible();
+  await page.getByRole("link", { name: "افراد و تحلیل شکاف", exact: true }).click();
+  await expect(page).toHaveURL(/\/people\?job=j1$/);
+  await expect(page.getByRole("row").filter({ hasText: "آرمان راد" })).toBeVisible();
+  await page.getByRole("row").filter({ hasText: "آرمان راد" })
+    .getByRole("link", { name: "پروفایل" }).click();
+  await expect(page).toHaveURL(/\/people\/p1\?job=j1$/);
+  await expect(page.getByRole("combobox", { name: "شغل هدف" })).toContainText("مدیر پروژه");
+  await page.getByRole("link", { name: "ارزیابی فرد برای این شغل" }).click();
+  await expect(page).toHaveURL(/\/evaluations\/cycles\?job=j1&person=p1$/);
+  await expect(page.getByRole("combobox", { name: "ارزیابی‌شونده" })).toContainText("آرمان راد");
+  await expect(page.getByRole("combobox", { name: "شغل هدف" })).toContainText("مدیر پروژه");
+
+  await nav(page, "/jobs/j2");
+  await page.getByRole("link", { name: "افراد و تحلیل شکاف", exact: true }).click();
+  await expect(page).toHaveURL(/\/people\?job=j2$/);
+  await expect(page.getByRole("row").filter({ hasText: "سارا مهر" })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "آرمان راد" })).toHaveCount(0);
+  await page.getByRole("row").filter({ hasText: "سارا مهر" })
+    .getByRole("link", { name: "پروفایل" }).click();
+  await expect(page).toHaveURL(/\/people\/p2\?job=j2$/);
+  await expect(page.getByRole("combobox", { name: "شغل هدف" })).toContainText("سرپرست عملیات");
+  await page.getByRole("link", { name: "برنامه‌های این شغل" }).click();
+  await expect(page).toHaveURL(/\/development\?person=p2&job=j2$/);
+  await expect(page.getByRole("row").filter({ hasText: "سارا مهر" })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "آرمان راد" })).toHaveCount(0);
+
+  await nav(page, "/people/p2");
+  await expect(page.getByRole("combobox", { name: "شغل هدف" })).toContainText("سرپرست عملیات");
+  await nav(page, "/people/p2?job=nonexistent");
+  await expect(page.getByRole("combobox", { name: "شغل هدف" })).toContainText("سرپرست عملیات");
+});
+
 test("job approval preserves publication until approved and persists", async ({
   page,
 }) => {
