@@ -89,7 +89,7 @@ import { Chart } from "../shared/chart";
               "
             >
               @for (p of critical(); track p.id) {
-                <mat-option [value]="p.title">{{ p.title }}</mat-option>
+                <mat-option [value]="p.id">{{ p.title }}</mat-option>
               }
             </mat-select></mat-form-field>
         </div>
@@ -205,7 +205,7 @@ import { Chart } from "../shared/chart";
               <mat-form-field appearance="outline"
                 ><mat-label>فرد</mat-label><mat-select [(ngModel)]="draft.personId">
                   @for (p of s.state().people; track p.id) {
-                    <mat-option [value]="p.name">{{ p.name }}</mat-option>
+                    <mat-option [value]="p.id">{{ p.name }}</mat-option>
                   }
                 </mat-select></mat-form-field><mat-form-field appearance="outline"
                 ><mat-label>آمادگی برای همین پست</mat-label><mat-select [(ngModel)]="draft.readiness">
