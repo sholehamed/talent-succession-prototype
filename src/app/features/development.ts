@@ -38,6 +38,11 @@ import { UI } from "../shared/ui";
           <table mat-table [dataSource]="plans()" class="royesh-table">
     <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>فرد</th><td mat-cell *matCellDef="let p">{{ s.person(p.personId).name }}</td></ng-container>
     <ng-container matColumnDef="job"><th mat-header-cell *matHeaderCellDef>شغل هدف</th><td mat-cell *matCellDef="let p">{{ s.job(p.jobId).title }}</td></ng-container>
+    <ng-container matColumnDef="source"><th mat-header-cell *matHeaderCellDef>نسخه و مبنا</th><td mat-cell *matCellDef="let p">
+      <strong>نسخه {{ s.planVersion(p) | fa }}</strong>
+      <small style="display:block">{{ sourceTitle(p.cycleId) }} · {{ p.period }}</small>
+      @if (!s.isCurrentPlan(p)) { <span class="badge">سوابق</span> }
+    </td></ng-container>
     <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>اقدام‌ها</th><td mat-cell *matCellDef="let p">{{ p.actions.length | fa }}</td></ng-container>
     <ng-container matColumnDef="progress"><th mat-header-cell *matHeaderCellDef>پیشرفت</th><td mat-cell *matCellDef="let p"><div class="progress-cell"><span>{{ s.progress(p) | fa }}٪</span><div class="bar"><span [style.width.%]="s.progress(p)"></span></div></div></td></ng-container>
     <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/development/idp', p.id]">پیگیری برنامه ←</a></td></ng-container>
@@ -55,11 +60,15 @@ import { UI } from "../shared/ui";
               <h2>
                 {{ s.person(p.personId).name }} ← {{ s.job(p.jobId).title }}
               </h2>
-              <small
-                >مدیر مستقیم:
-                {{ s.person(s.person(p.personId).managerId).name }} · ۳ اقدام
-                اولیه بر اساس بیشترین شکاف‌ها</small
-              >
+              <small>
+                مدیر مستقیم: {{ s.person(s.person(p.personId).managerId).name }}
+                · نسخه {{ s.planVersion(p) | fa }}
+                · {{ sourceTitle(p.cycleId) }}
+                · دوره {{ p.period }}
+              </small>
+              @if (!s.isCurrentPlan(p)) {
+                <div class="info">نسخه قبلی برنامه؛ فقط برای مشاهده و بررسی سوابق نگهداری می‌شود.</div>
+              }
             </div>
             <strong>{{ s.progress(p) | fa }}٪</strong>
           </div>
@@ -73,6 +82,38 @@ import { UI } from "../shared/ui";
             }
           </div>
         </mat-card>
+        @if (p.baseline; as baseline) {
+          <mat-card class="panel">
+            <div class="panel-head">
+              <h2>مبنای شایستگی در زمان ایجاد این نسخه</h2>
+              <small>مقادیر تاریخی مستقل از تغییرات بعدی شغل یا ارزیابی</small>
+            </div>
+            <div class="table-wrap">
+              <table mat-table [dataSource]="competencies" class="royesh-table">
+                <ng-container matColumnDef="competency">
+                  <th mat-header-cell *matHeaderCellDef>شایستگی</th>
+                  <td mat-cell *matCellDef="let c">{{ c }}</td>
+                </ng-container>
+                <ng-container matColumnDef="expected">
+                  <th mat-header-cell *matHeaderCellDef>انتظار شغل</th>
+                  <td mat-cell *matCellDef="let c; let i = index">{{ baseline.expected[i] | fa }}</td>
+                </ng-container>
+                <ng-container matColumnDef="observed">
+                  <th mat-header-cell *matHeaderCellDef>نتیجه ارزیابی</th>
+                  <td mat-cell *matCellDef="let c; let i = index">{{ baseline.observed[i] | fa }}</td>
+                </ng-container>
+                <ng-container matColumnDef="gap">
+                  <th mat-header-cell *matHeaderCellDef>شکاف مبنا</th>
+                  <td mat-cell *matCellDef="let c; let i = index">{{ baseline.gaps[i] | fa }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="baselineColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: baselineColumns"></tr>
+              </table>
+            </div>
+          </mat-card>
+        } @else {
+          <div class="info">مبنای شایستگی این برنامه پیش از ثبت نسخه‌های تاریخی ایجاد شده است.</div>
+        }
         <div class="grid three">
           @for (a of p.actions; track a.id; let i = $index) {
             <mat-card class="panel">
@@ -92,7 +133,7 @@ import { UI } from "../shared/ui";
                 <span class="grow">مهلت</span><span>{{ a.due | faDate }}</span>
               </div>
               <p style="margin:16px 0">شاخص موفقیت: {{ a.indicator }}</p>
-              @if (s.editable() || s.role() === "employee") {
+              @if (s.isCurrentPlan(p) && (s.editable() || s.role() === "employee")) {
                 <button mat-button class="secondary" (click)="edit(a)">
                   ویرایش و پیگیری
                 </button>
@@ -100,7 +141,7 @@ import { UI } from "../shared/ui";
             </mat-card>
           }
         </div>
-        @if (draft) {
+        @if (draft && s.isCurrentPlan(p)) {
           <mat-card class="panel">
             <h2>پیگیری اقدام</h2>
             <div class="form-grid">
@@ -145,7 +186,13 @@ export default class Development {
     const person = this.queryParams().get("person");
     return person && this.s.state().people.some((p) => p.id === person) ? person : "";
   });
-  readonly developmentColumns = ["person","job","actions","progress","action"];
+  readonly developmentColumns = ["person","job","source","actions","progress","action"];
+  readonly baselineColumns = ["competency", "expected", "observed", "gap"];
+  sourceTitle(cycleId?: string) {
+    return cycleId
+      ? this.s.cycle(cycleId)?.title ?? "دوره ارزیابی ثبت‌شده"
+      : "برنامه مستقل";
+  }
   id = input<string>();
   search = signal("");
   draft?: Action;
