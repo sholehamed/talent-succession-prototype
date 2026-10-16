@@ -116,7 +116,7 @@ import { Chart } from "../shared/chart";
                 (ngModelChange)="target.set($event)"
               >
                 @for (j of s.state().jobs; track j.id) {
-                  <mat-option [value]="j.title">{{ j.title }}</mat-option>
+                  <mat-option [value]="j.id">{{ j.title }}</mat-option>
                 }
               </mat-select></mat-form-field>
           </div>
