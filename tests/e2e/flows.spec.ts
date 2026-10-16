@@ -249,6 +249,7 @@ test("two evaluation cycles create distinct IDP versions with preserved history"
 
   await nav(page, "/evaluations/reports/c0");
   await page.getByRole("button", { name: /مشاهده برنامه توسعه نسخه/ }).click();
+  await expect(page).toHaveURL(/\/development\/idp\/[^/]+$/);
   expect(page.url()).toBe(firstUrl);
 
   // Move the newer seed assessment through the real evaluation workflow.
