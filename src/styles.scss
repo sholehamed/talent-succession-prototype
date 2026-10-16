@@ -979,3 +979,14 @@ mat-nav-list a.nav-item .nav-arrow { margin-right:auto; }
  mat-sidenav.sidebar { width:248px; box-shadow:0 12px 30px #23364b24; }
  mat-toolbar.topbar { min-height:68px; height:68px; }
 }
+
+/* Material mat-list wraps projected nav text; hide labels in collapsed mode. */
+mat-sidenav-container.collapsed mat-nav-list a.nav-item .mdc-list-item__primary-text > span:not(.nav-icon) {
+  display: none;
+}
+mat-sidenav-container.collapsed mat-nav-list a.nav-item .mdc-list-item__primary-text {
+  justify-content: center;
+}
+mat-sidenav-container.collapsed mat-nav-list a.nav-item .nav-icon {
+  flex: none;
+}
