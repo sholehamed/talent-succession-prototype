@@ -72,10 +72,10 @@ import { UI } from "../shared/ui";
               <mat-option [value]="'داخلی'">داخلی</mat-option>
               <mat-option [value]="'واحد مرتبط'">واحد مرتبط</mat-option>
             </mat-select></mat-form-field><div class="upload-field">
-  <span>پیوست متنی نمایشی</span>
+  <span>پیوست متنی</span>
   <input #upload type="file" accept=".txt,.md" (change)="attach($event)" hidden />
   <button mat-stroked-button type="button" (click)="upload.click()">انتخاب پیوست متنی</button>
-  <small>فقط متن تا ۵۰ کیلوبایت؛ داده ساختگی</small>
+  <small>فرمت‌های TXT و MD تا سقف ۵۰ کیلوبایت</small>
 </div><mat-form-field appearance="outline" class="full"
             ><mat-label>شرح محتوا</mat-label><textarea matInput [(ngModel)]="draft.body"></textarea></mat-form-field>
         </div>

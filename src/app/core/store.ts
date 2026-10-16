@@ -65,12 +65,12 @@ export class Store {
         )
           return d;
         this.storageWarning.set(
-          "داده ذخیره‌شده ناسازگار بود؛ داده نمونه بازیابی شد.",
+          "اطلاعات ذخیره‌شده ناسازگار بود؛ وضعیت اولیه بازیابی شد.",
         );
       }
     } catch {
       this.storageWarning.set(
-        "ذخیره مرورگر قابل خواندن نیست؛ با داده نمونه ادامه می‌دهیم.",
+        "اطلاعات مرورگر قابل خواندن نیست؛ وضعیت اولیه بارگذاری شد.",
       );
     }
     return seed();
@@ -429,11 +429,11 @@ export class Store {
   }
   sync() {
     if (this.role() !== "hr") return;
-    this.commit("داده ساختگی همگام شد", "mock-hr", (s) => {
+    this.commit("اطلاعات منابع انسانی به‌روزرسانی شد", "local-hr", (s) => {
       const p = s.people.find((p) => p.id === "p3")!;
       p.performance = p.performance === "high" ? "medium" : "high";
       p.evidence =
-        "به‌روزرسانی ساختگی از قرارداد HR؛ " + new Date().toISOString();
+        "به‌روزرسانی محلی سوابق عملکرد؛ " + new Date().toISOString();
       s.syncs.unshift({
         at: new Date().toISOString(),
         rows: 1,
@@ -449,6 +449,6 @@ export class Store {
     } catch {
       this.storageWarning.set("ذخیره‌سازی در دسترس نیست.");
     }
-    this.notice.set("همه داده‌ها به نمونه اولیه بازگشتند.");
+    this.notice.set("اطلاعات محلی به وضعیت اولیه بازگشتند.");
   }
 }
