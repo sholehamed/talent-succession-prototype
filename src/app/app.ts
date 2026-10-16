@@ -14,8 +14,8 @@ import { UI } from "./shared/ui";
   template: ` <mat-sidenav-container [autosize]="true" class="app-shell" [class.collapsed]="collapsed() && !handset()">
     <mat-sidenav class="sidebar" position="start" [mode]="handset() ? 'over' : 'side'" [opened]="!handset() || mobile()">
       <a routerLink="/dashboard/hr" class="brand"
-        ><span class="brand-icon">ر</span
-        ><span>رویش<small>سرمایه انسانی، آینده سازمان</small></span></a
+        ><span class="brand-icon">ت</span
+        ><span>تلنت<small>سرمایه انسانی، آینده سازمان</small></span></a
       >
       <div class="workspace">
         <span class="workspace-symbol">◈</span
