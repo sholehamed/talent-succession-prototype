@@ -7,7 +7,7 @@ const selectMaterial = async (p: Page, label: string, option: string) => {
   await p.getByRole("combobox", { name: label }).click();
   await p.getByRole("option", { name: option, exact: true }).click();
 };
-const role = async (p: Page, r: string) => selectMaterial(p, "نقش دمو", roleLabels[r]);
+const role = async (p: Page, r: string) => selectMaterial(p, "نقش کاربری", roleLabels[r]);
 const nav = async (p: Page, url: string) => {
   await p.goto(url);
   await expect(p.locator("app-root")).not.toBeEmpty();
@@ -40,7 +40,7 @@ test("all main routes render, RTL, lazy charts and responsive layout", async ({
     "/knowledge/editor",
     "/knowledge/aar",
     "/reports",
-    "/demo/settings",
+    "/settings",
     "/unknown",
   ]) {
     await nav(page, path);
@@ -87,6 +87,22 @@ test("Material sidenav collapses cleanly and opens mobile navigation", async ({ 
   await expect(page.locator("mat-sidenav")).not.toHaveClass(/mat-drawer-opened/);
 });
 
+test("application shows product UI without presentation labels", async ({ page }) => {
+  for (const path of [
+    "/dashboard/hr", "/jobs/j1", "/people/p1", "/evaluations/cycles",
+    "/knowledge", "/talent/succession", "/settings",
+  ]) {
+    await nav(page, path);
+    await expect(page.locator("main")).not.toContainText(
+      /دمو|نسخه نمایشی|نسخه تعاملی ارائه|داده(?:‌| )?ساختگی|فرد ساختگی|راهنمای جلسه ارائه/
+    );
+  }
+  await expect(page.locator("mat-toolbar")).not.toContainText("نسخه نمایشی");
+  await expect(page.locator("mat-sidenav")).toContainText("تنظیمات");
+  await page.goto("/demo/settings");
+  await expect(page).toHaveURL(/\/settings$/);
+});
+
 test("job approval preserves publication until approved and persists", async ({
   page,
 }) => {
@@ -126,7 +142,7 @@ test("full evaluation, calibration, IDP and shared progress", async ({
     .getByRole("button", { name: "ورود به نقش ارزیاب و کارتابل" })
     .click();
   for (const person of ["p2", "p3", "p4", "p5", "p6", "p7"]) {
-    await selectMaterial(page, "شخصیت ارزیاب نمایشی", ({
+    await selectMaterial(page, "انتخاب ارزیاب", ({
       p2: "سارا مهر", p3: "نیما روشن", p4: "مهسا سپهر",
       p5: "علی پارسا", p6: "نازنین آذر", p7: "کیان نیک"
     } as Record<string,string>)[person]);
@@ -230,10 +246,10 @@ test("human readiness changes dashboard; filters, mock sync and reset work", asy
   await expect(page.locator(".stat").nth(3)).toContainText("۴۰");
   await selectMaterial(page, "دوره ارزیابی و توسعه", "تابستان ۱۴۰۵");
   await expect(page.locator(".stat").nth(2)).toContainText("۰");
-  await nav(page, "/demo/settings");
-  await page.getByRole("button", { name: "اجرای همگام‌سازی Mock" }).click();
+  await nav(page, "/settings");
+  await page.getByRole("button", { name: "اجرای همگام‌سازی محلی" }).click();
   await expect(page.locator("main")).toContainText("۱ ردیف");
-  await page.getByRole("button", { name: "بازنشانی دمو", exact: true }).click();
+  await page.getByRole("button", { name: "بازنشانی اطلاعات", exact: true }).click();
   await page.getByRole("button", { name: "بله، بازنشانی شود" }).click();
   await expect(page.locator("main")).toContainText(
     "هنوز همگام‌سازی اجرا نشده است.",
@@ -245,9 +261,9 @@ test("role restrictions, invalid ids and corrupted persistence fail gracefully",
   await nav(page, "/dashboard/hr");
   await role(page, "employee");
   await expect(page).toHaveURL(/people\/p1/);
-  await page.locator('.nav-item[href="/demo/settings"]').click();
-  await page.getByRole("link", { name: "دوره پاییز را شروع کنید" }).click();
-  await expect(page).toHaveURL(/demo\/settings/);
+  await page.locator('.nav-item[href="/settings"]').click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.locator("main")).not.toContainText("سناریوی ۱۰ تا ۱۵ دقیقه‌ای");
   await page.evaluate(() => localStorage.setItem("royesh.demo.v1", "{broken"));
   await page.reload();
   await expect(page.locator("main")).toContainText(
