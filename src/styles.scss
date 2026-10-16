@@ -184,14 +184,6 @@ p {
   font-size: 10px;
   margin: 5px 0;
 }
-.demo-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--green);
-  margin-left: 5px;
-}
 .main-shell {
   margin-right: 248px;
 }
@@ -212,13 +204,6 @@ p {
 .breadcrumb span {
   padding: 0 12px;
   color: #c5cbd1;
-}
-.demo-pill {
-  font-size: 10px;
-  background: #fff7e8;
-  color: #a47924;
-  padding: 4px 12px;
-  border-radius: 20px;
 }
 .role-picker {
   display: flex;
@@ -816,8 +801,8 @@ footer {
   .breadcrumb {
     display: none;
   }
-  .demo-pill {
-    margin-left: auto;
+  .role-picker {
+    margin-inline-start: auto;
   }
   .page-header {
     align-items: flex-start;
@@ -892,10 +877,6 @@ footer {
   }
   .topbar .avatar {
     display: none;
-  }
-  .demo-pill {
-    font-size: 9px;
-    padding: 4px 7px;
   }
   .page-meta {
     font-size: 9px;
