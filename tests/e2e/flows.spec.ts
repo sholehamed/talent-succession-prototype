@@ -222,7 +222,7 @@ test("full evaluation, calibration, IDP and shared progress", async ({
   await expect(page.locator("h1")).toContainText("گزارش ارزیابی");
   await expect(page.locator("main")).not.toContainText("سارا مهر");
   await page
-    .getByRole("button", { name: "ایجاد / مشاهده برنامه توسعه سه‌اقدامی" })
+    .getByRole("button", { name: "ایجاد برنامه توسعه این دوره" })
     .click();
   await page.getByRole("button", { name: "ویرایش و پیگیری" }).first().click();
   await selectMaterial(page, "وضعیت", "انجام‌شده");
@@ -235,6 +235,68 @@ test("full evaluation, calibration, IDP and shared progress", async ({
   await nav(page, "/dashboard/hr");
   await expect(page.locator("main")).toContainText("۱۰۰");
 });
+test("two evaluation cycles create distinct IDP versions with preserved history", async ({ page }) => {
+  // Existing approved summer assessment
+  await nav(page, "/evaluations/reports/c0");
+  await page.getByRole("button", { name: "ایجاد برنامه توسعه این دوره" }).click();
+  const firstUrl = page.url();
+  await expect(page.locator("main")).toContainText("نسخه ۱");
+  await expect(page.locator("main")).toContainText("ارزیابی تابستان ۱۴۰۵");
+  await page.getByRole("button", { name: "ویرایش و پیگیری" }).first().click();
+  await selectMaterial(page, "وضعیت", "انجام‌شده");
+  await page.getByRole("button", { name: "ذخیره اقدام" }).click();
+  await expect(page.locator("main")).toContainText("۳۳٪");
+
+  await nav(page, "/evaluations/reports/c0");
+  await page.getByRole("button", { name: /مشاهده برنامه توسعه نسخه/ }).click();
+  expect(page.url()).toBe(firstUrl);
+
+  // Move the newer seed assessment through the real evaluation workflow.
+  await nav(page, "/evaluations/c1");
+  await page.getByRole("button", { name: "شروع دریافت پاسخ‌ها" }).click();
+  await page.getByRole("button", { name: "ورود به نقش ارزیاب و کارتابل" }).click();
+  for (const evaluator of [
+    "سارا مهر", "نیما روشن", "مهسا سپهر", "علی پارسا", "نازنین آذر", "کیان نیک"
+  ]) {
+    await selectMaterial(page, "انتخاب ارزیاب", evaluator);
+    await page.getByRole("button", { name: "تکمیل پرسشنامه" }).click();
+    for (let i = 0; i < 5; i++)
+      await page.locator(".question").nth(i).getByRole("radio").nth(3).check();
+    await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+  }
+  await role(page, "hr");
+  await nav(page, "/evaluations/c1");
+  await page.getByRole("button", { name: "پایان پاسخ‌گیری و کالیبراسیون" }).click();
+  await page.getByRole("link", { name: "ورود به کالیبراسیون ←" }).click();
+  await page.getByLabel("جمع‌بندی بازبینی").fill("سوابق و شواهد دوره جدید مرور شد");
+  await page.getByRole("button", { name: "تأیید کالیبراسیون و آماده‌سازی بازخورد" }).click();
+  await page.getByRole("button", { name: "ایجاد برنامه توسعه این دوره" }).click();
+  await expect(page.locator("main")).toContainText("نسخه ۲");
+  await expect(page.locator("main")).toContainText("ارزیابی پاییز ۱۴۰۵");
+  await expect(page.locator("main")).toContainText("مبنای شایستگی در زمان ایجاد این نسخه");
+  const secondUrl = page.url();
+  expect(secondUrl).not.toBe(firstUrl);
+
+  await nav(page, "/people/p1?job=j1");
+  await expect(page.getByRole("link", { name: /مدیر پروژه · نسخه/ })).toHaveCount(2);
+  await nav(page, new URL(firstUrl).pathname);
+  await expect(page.locator("main")).toContainText("نسخه قبلی برنامه");
+  await expect(page.getByRole("button", { name: "ویرایش و پیگیری" })).toHaveCount(0);
+  await expect(page.locator("main")).toContainText("۳۳٪");
+
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  const first = state.plans.find((p: any) => p.cycleId === "c0");
+  const second = state.plans.find((p: any) => p.cycleId === "c1");
+  expect(first.version).toBe(1);
+  expect(second.version).toBe(2);
+  expect(first.period).toBe("1405-summer");
+  expect(second.period).toBe("1405-autumn");
+  expect(first.baseline).toBeTruthy();
+  expect(second.baseline).toBeTruthy();
+  await page.reload();
+  await expect(page.locator("main")).toContainText("نسخه قبلی برنامه");
+});
+
 test("AAR review, publication and job linkage", async ({ page }) => {
   await nav(page, "/knowledge/aar");
   await page
