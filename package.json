@@ -1,0 +1,39 @@
+{
+  "name": "talent-succession-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "start": "ng serve --host 127.0.0.1",
+    "build": "ng build",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@angular/core": "22.2.3",
+    "@angular/common": "22.2.3",
+    "@angular/compiler": "22.2.3",
+    "@angular/platform-browser": "22.2.3",
+    "@angular/forms": "22.2.3",
+    "@angular/router": "22.2.3",
+    "@angular/material": "22.2.2",
+    "@angular/cdk": "22.2.2",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.8.1",
+    "apexcharts": "^5.3.6",
+    "@fontsource/vazirmatn": "^5.2.8"
+  },
+  "devDependencies": {
+    "@angular/build": "22.2.3",
+    "@angular/cli": "22.2.3",
+    "@angular/compiler-cli": "22.2.3",
+    "typescript": "~6.0.2",
+    "vitest": "^4.0.18",
+    "@playwright/test": "1.58.2"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=24.19.0 <25",
+    "pnpm": ">=11.25.0 <12"
+  }
+}
