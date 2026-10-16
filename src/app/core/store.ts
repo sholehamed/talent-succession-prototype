@@ -315,22 +315,76 @@ export class Store {
     });
     return true;
   }
+  /** Older browser data may not have explicit version numbers. */
+  planVersion(p: { version?: number }) {
+    return p.version ?? 1;
+  }
+  isCurrentPlan(p: { id: string; personId: string; jobId: string }) {
+    const versions = this.state().plans.filter(
+      (x) => x.personId === p.personId && x.jobId === p.jobId,
+    );
+    return versions[versions.length - 1]?.id === p.id;
+  }
+  latestPublishedCycle(personId: string, jobId: string) {
+    return this.state().cycles
+      .filter(
+        (c) =>
+          c.subjectId === personId &&
+          c.jobId === jobId &&
+          (c.status === "feedback" || c.status === "closed"),
+      )
+      .sort((a, b) => b.created.localeCompare(a.created))[0];
+  }
   createPlan(personId: string, jobId: string, cycleId?: string) {
     if (!this.editable()) return "";
+    if (!this.person(personId) || !this.job(jobId) || !this.allowedPerson(personId))
+      return (this.fail("فرد یا شغل معتبر نیست یا دسترسی کافی ندارید."), "");
+
+    // A published cycle is a unique source. The manual plan has a separate key.
+    const cycle = cycleId ? this.cycle(cycleId) : undefined;
+    if (cycleId && (
+      !cycle ||
+      cycle.subjectId !== personId ||
+      cycle.jobId !== jobId ||
+      !["feedback", "closed"].includes(cycle.status)
+    ))
+      return (this.fail("برای این فرد و شغل، گزارش ارزیابی تأییدشده‌ای با شناسه دوره انتخابی وجود ندارد."), "");
+
     const existing = this.state().plans.find(
-      (p) => p.personId === personId && p.jobId === jobId,
+      (p) => p.personId === personId && p.jobId === jobId &&
+        (p.cycleId ?? null) === (cycleId ?? null),
     );
     if (existing) return existing.id;
+
+    const observed = cycle
+      ? aggregate(cycle).scores
+      : this.scores(personId);
+    if (!observed)
+      return (this.fail("برای ساخت برنامه، نتیجه قابل انتشار ارزیابی موجود نیست."), "");
+
+    const expected = [...this.job(jobId).expected];
+    const baseline = {
+      expected,
+      observed: [...observed],
+      gaps: gap(expected, observed),
+    };
+    const top = [0, 1, 2, 3, 4]
+      .sort((a, b) => baseline.gaps[b] - baseline.gaps[a]).slice(0, 3);
+    const older = this.state().plans.filter(
+      (p) => p.personId === personId && p.jobId === jobId,
+    );
+    const version = older.reduce((max, p) => Math.max(max, this.planVersion(p)), 0) + 1;
     const id = crypto.randomUUID();
-    const gaps = this.gaps(personId, jobId);
-    const top = [0, 1, 2, 3, 4].sort((a, b) => gaps[b] - gaps[a]).slice(0, 3);
-    this.commit("برنامه توسعه سه‌اقدامی ایجاد شد", id, (s) =>
+    this.commit("نسخه جدید برنامه توسعه ایجاد شد", id, (s) =>
       s.plans.push({
         id,
         personId,
         jobId,
-        cycleId,
-        period: "1405-autumn",
+        ...(cycle ? { cycleId: cycle.id } : {}),
+        period: cycle?.period ?? "1405-autumn",
+        version,
+        createdAt: new Date().toISOString(),
+        baseline,
         actions: top.map((c, i) => ({
           id: crypto.randomUUID(),
           competency: c,
@@ -352,8 +406,12 @@ export class Store {
       !(this.editable() || (this.role() === "employee" && p.personId === "p1"))
     )
       return false;
+    if (!this.isCurrentPlan(p))
+      return this.fail("این نسخه از برنامه توسعه آرشیوی است؛ فقط آخرین نسخه قابل ویرایش است.");
     if (!a.title.trim() || !a.owner.trim() || !a.due || !a.indicator.trim())
       return this.fail("عنوان، مسئول، مهلت و شاخص موفقیت را تکمیل کنید.");
+    if (!p.actions.some((x) => x.id === a.id))
+      return this.fail("اقدام موردنظر در این برنامه وجود ندارد.");
     this.commit("اقدام توسعه به‌روزرسانی شد", planId, (s) => {
       const x = s.plans.find((p) => p.id === planId)!;
       x.actions = x.actions.map((v) =>
