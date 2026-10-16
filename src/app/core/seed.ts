@@ -133,7 +133,7 @@ export function seed(): DemoState {
   const people: Person[] = names.map((name, i) => ({
     id: `p${i + 1}`,
     name,
-    code: `DEMO-${1001 + i}`,
+    code: `EMP-${1001 + i}`,
     unit: jobs[i === 0 ? 6 : i % 10].unit,
     jobId: `j${i === 0 ? 7 : (i % 10) + 1}`,
     managerId: i === 10 ? "p21" : "p11",
