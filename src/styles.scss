@@ -933,3 +933,27 @@ footer {
 }
 
 @media(max-width:899px){.sidebar:not(.mobile-open){box-shadow:none}}
+
+/* Angular Material surface and field integration */
+mat-form-field { width: 100%; min-width: 0; }
+mat-form-field.full, app-date-field.full { grid-column: 1 / -1; }
+app-date-field { display: block; min-width: 0; }
+app-date-field .date-field { width: 100%; }
+.filterbar > mat-form-field { flex: 1 1 190px; max-width: 360px; }
+mat-form-field.search { min-width: 210px; }
+.form-grid > mat-form-field, .form-grid > app-date-field { align-self: start; }
+mat-card.panel { display:block; background:#fff; color:var(--ink); border:1px solid var(--line); box-shadow:none; }
+mat-card.panel h2, mat-card.panel h3 { font-family:inherit; }
+.royesh-table { width:100%; background:transparent; }
+.royesh-table .mat-mdc-header-cell { color:var(--muted); font-weight:700; white-space:nowrap; }
+.royesh-table .mat-mdc-cell { color:var(--ink); }
+.royesh-table .mat-mdc-row:hover { background:#f7fbfa; }
+.score-row mat-radio-group { display:flex; flex-wrap:wrap; gap:12px; }
+.role-picker { min-width:185px; }
+.role-picker mat-form-field { width:185px; }
+.role-picker .mat-mdc-form-field-subscript-wrapper { display:none; }
+mat-toolbar.topbar { font-family:Vazirmatn,sans-serif; color:var(--ink); }
+@media(max-width:700px) {
+ .filterbar > mat-form-field, .form-grid > mat-form-field, .form-grid > app-date-field { max-width:100%; min-width:0; }
+ .role-picker, .role-picker mat-form-field { min-width:125px; width:125px; }
+}
