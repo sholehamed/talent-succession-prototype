@@ -1,7 +1,5 @@
 name: Material UI Verification
 on:
-  push:
-    branches: [feat/material-ui-datepicker]
   pull_request:
     branches: [main]
 jobs:
