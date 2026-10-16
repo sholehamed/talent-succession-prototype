@@ -94,7 +94,7 @@ test("application shows product UI without presentation labels", async ({ page }
   ]) {
     await nav(page, path);
     await expect(page.locator("main")).not.toContainText(
-      /دمو|نسخه نمایشی|نسخه تعاملی ارائه|داده(?:‌| )?ساختگی|فرد ساختگی|راهنمای جلسه ارائه/
+      /دمو|نسخه نمایشی|نسخه تعاملی ارائه|سناریوی آماده|راهنمای جلسه ارائه|داده(?:‌| )?ساختگی|فرد ساختگی/
     );
   }
   await expect(page.locator("mat-toolbar")).not.toContainText("نسخه نمایشی");
