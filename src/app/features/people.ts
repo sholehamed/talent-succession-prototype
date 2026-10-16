@@ -38,7 +38,7 @@ import { Chart } from "../shared/chart";
     <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>نام و کد</th><td mat-cell *matCellDef="let p"><div class="person-cell"><span class="avatar">{{ p.name.slice(0, 1) }}</span><div><strong>{{ p.name }}</strong><small>{{ p.code }}</small></div></div></td></ng-container>
     <ng-container matColumnDef="job"><th mat-header-cell *matHeaderCellDef>شغل فعلی</th><td mat-cell *matCellDef="let p">{{ s.job(p.jobId).title }}</td></ng-container>
     <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>واحد</th><td mat-cell *matCellDef="let p">{{ p.unit }}</td></ng-container>
-    <ng-container matColumnDef="talent"><th mat-header-cell *matHeaderCellDef>عملکرد / پتانسیل</th><td mat-cell *matCellDef="let p">{{ bands[p.performance] }} / {{ bands[p.potential] }}</td></ng-container>
+    <ng-container matColumnDef="talent"><th mat-header-cell *matHeaderCellDef>عملکرد / پتانسیل</th><td mat-cell *matCellDef="let p">{{ bandLabel(p.performance) }} / {{ bandLabel(p.potential) }}</td></ng-container>
     <ng-container matColumnDef="progress"><th mat-header-cell *matHeaderCellDef>پیشرفت توسعه</th><td mat-cell *matCellDef="let p">{{ personProgress(p.id) | fa }}٪</td></ng-container>
     <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/people', p.id]">پروفایل ←</a></td></ng-container>
     <tr mat-header-row *matHeaderRowDef="personColumns"></tr>
@@ -212,6 +212,9 @@ export default class People {
   target = signal(this.route.snapshot.queryParamMap.get("job") ?? "j1");
   competencies = competencies;
   bands = bands;
+  bandLabel(value: string) {
+    return bands[value as keyof typeof bands] ?? "—";
+  }
   inc = (n: number) => n + 1;
   dec = (n: number) => n - 1;
   person = computed(() =>
