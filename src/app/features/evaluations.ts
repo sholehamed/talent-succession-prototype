@@ -1,4 +1,5 @@
-import { Component, computed, inject, input, signal } from "@angular/core";
+import { Component, computed, effect, inject, input, signal } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router } from "@angular/router";
 import { Store } from "../core/store";
 import { Group, competencies, groups } from "../core/models";
@@ -31,7 +32,14 @@ import { Chart } from "../shared/chart";
       <div class="grid two">
         <mat-card class="panel">
           <h2>دوره‌های ارزیابی</h2>
-          @for (c of s.state().cycles; track c.id) {
+          @if (jobFilter() || personFilter()) {
+            <div class="info">
+              @if (jobFilter()) { شغل هدف: {{ s.job(jobFilter()).title }} }
+              @if (personFilter()) { · ارزیابی‌شونده: {{ s.person(personFilter()).name }} }
+              <a routerLink="/evaluations/cycles">نمایش همه دوره‌ها</a>
+            </div>
+          }
+          @for (c of filteredCycles(); track c.id) {
             <div class="metric-line">
               <div class="grow">
                 <a [routerLink]="['/evaluations', c.id]"
@@ -49,6 +57,8 @@ import { Chart } from "../shared/chart";
                 {{ c.assignments.length | fa }}</span
               >
             </div>
+          } @empty {
+            <div class="empty">برای این فرد و شغل دوره‌ای ثبت نشده است. می‌توانید دوره جدید ایجاد کنید.</div>
           }
         </mat-card>
         @if (s.role() === "hr") {
@@ -410,9 +420,24 @@ export default class Evaluations {
   route = inject(ActivatedRoute);
   id = input<string>();
   view = this.route.snapshot.data["view"] ?? "detail";
+  readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+  readonly jobFilter = computed(() => {
+    const jobId = this.queryParams().get("job");
+    return jobId && this.s.state().jobs.some((j) => j.id === jobId) ? jobId : "";
+  });
+  readonly personFilter = computed(() => {
+    const personId = this.queryParams().get("person");
+    return personId && this.s.state().people.some((p) => p.id === personId) ? personId : "";
+  });
+  readonly filteredCycles = computed(() => this.s.state().cycles.filter(
+    (c) => (!this.jobFilter() || c.jobId === this.jobFilter()) &&
+      (!this.personFilter() || c.subjectId === this.personFilter()),
+  ));
   title = "";
-  subject = "p1";
-  target = this.route.snapshot.queryParamMap.get("job") ?? "j1";
+  subject = this.initialSubject();
+  target = this.initialJob();
   mode: 360 | 540 = 540;
   evaluator = "p2";
   group: Group = "peer";
@@ -437,6 +462,31 @@ export default class Evaluations {
     "مسئولیت نتیجه و پیگیری تعهدات را می‌پذیرد.",
     "به اعضای تیم بازخورد و فرصت رشد می‌دهد.",
   ];
+  constructor() {
+    effect(() => {
+      const job = this.jobFilter();
+      const person = this.personFilter();
+      if (job) this.target = job;
+      else if (person) this.target = this.s.person(person).jobId;
+      if (person) this.subject = person;
+      else if (job) this.subject = this.s.relatedPeople(job)[0]?.id ?? this.s.state().people[0]?.id ?? "";
+    });
+  }
+  initialJob() {
+    const requested = this.route.snapshot.queryParamMap.get("job");
+    if (requested && this.s.state().jobs.some((j) => j.id === requested)) return requested;
+    const person = this.route.snapshot.queryParamMap.get("person");
+    return this.s.state().people.find((p) => p.id === person)?.jobId
+      ?? this.s.state().jobs[0]?.id ?? "";
+  }
+  initialSubject() {
+    const requested = this.route.snapshot.queryParamMap.get("person");
+    if (requested && this.s.state().people.some((p) => p.id === requested)) return requested;
+    const job = this.route.snapshot.queryParamMap.get("job");
+    if (job && this.s.state().jobs.some((j) => j.id === job))
+      return this.s.relatedPeople(job)[0]?.id ?? this.s.state().people[0]?.id ?? "";
+    return this.s.state().people[0]?.id ?? "";
+  }
   cycle = computed(() => this.s.cycle(this.id() ?? ""));
   report = computed(() =>
     this.cycle() ? this.s.aggregate(this.cycle()!) : { rows: [], scores: null },
