@@ -34,46 +34,16 @@ import { UI } from "../shared/ui";
             </mat-select></mat-form-field>
         </div>
         <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>عنوان شغل</th>
-                <th>خانواده / واحد</th>
-                <th>نسخه</th>
-                <th>وضعیت بازنگری</th>
-                <th>آخرین بازنگری</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (j of filtered(); track j.id) {
-                <tr>
-                  <td>
-                    <strong>{{ j.title }}</strong
-                    ><small style="display:block">{{ j.code }}</small>
-                  </td>
-                  <td>
-                    {{ j.family
-                    }}<small style="display:block">{{ j.unit }}</small>
-                  </td>
-                  <td>{{ j.version | fa }}</td>
-                  <td>
-                    <span class="badge" [class]="'badge ' + j.review">{{
-                      j.review | status
-                    }}</span>
-                  </td>
-                  <td>{{ j.revised | faDate }}</td>
-                  <td>
-                    <a [routerLink]="['/jobs', j.id]">مشاهده شناسنامه ←</a>
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="6" class="empty">شغلی با این فیلتر یافت نشد.</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+          <table mat-table [dataSource]="filtered()" class="royesh-table">
+ <ng-container matColumnDef="title"><th mat-header-cell *matHeaderCellDef>عنوان شغل</th><td mat-cell *matCellDef="let j"><strong>{{ j.title }}</strong><small style="display:block">{{ j.code }}</small></td></ng-container>
+ <ng-container matColumnDef="family"><th mat-header-cell *matHeaderCellDef>خانواده / واحد</th><td mat-cell *matCellDef="let j">{{ j.family }}<small style="display:block">{{ j.unit }}</small></td></ng-container>
+ <ng-container matColumnDef="version"><th mat-header-cell *matHeaderCellDef>نسخه</th><td mat-cell *matCellDef="let j">{{ j.version | fa }}</td></ng-container>
+ <ng-container matColumnDef="review"><th mat-header-cell *matHeaderCellDef>وضعیت بازنگری</th><td mat-cell *matCellDef="let j"><span class="badge" [class]="'badge ' + j.review">{{ j.review | status }}</span></td></ng-container>
+ <ng-container matColumnDef="revised"><th mat-header-cell *matHeaderCellDef>آخرین بازنگری</th><td mat-cell *matCellDef="let j">{{ j.revised | faDate }}</td></ng-container>
+ <ng-container matColumnDef="link"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let j"><a mat-button [routerLink]="['/jobs', j.id]">مشاهده شناسنامه ←</a></td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="jobColumns"></tr><tr mat-row *matRowDef="let row; columns: jobColumns"></tr>
+ </table>
+ @if (!filtered().length) { <div class="empty">شغلی با این فیلتر یافت نشد.</div> }
         </div>
       </div>
     } @else if (job(); as j) {
@@ -244,28 +214,13 @@ import { UI } from "../shared/ui";
             </div></mat-tab
           ><mat-tab label="KPI"
             ><div class="section-body table-wrap">
-              <table>
-                <tr>
-                  <th>شاخص / تعریف</th>
-                  <th>فرمول</th>
-                  <th>واحد / تناوب</th>
-                  <th>منبع / مالک</th>
-                </tr>
-                @for (k of j.kpis; track k.title) {
-                  <tr>
-                    <td>
-                      {{ k.title
-                      }}<small style="display:block">{{ k.definition }}</small>
-                    </td>
-                    <td>{{ k.formula }}</td>
-                    <td>{{ k.unit }} / {{ k.frequency }}</td>
-                    <td>
-                      {{ k.source
-                      }}<small style="display:block">{{ k.owner }}</small>
-                    </td>
-                  </tr>
-                }
-              </table>
+              <table mat-table [dataSource]="j.kpis" class="royesh-table">
+ <ng-container matColumnDef="metric"><th mat-header-cell *matHeaderCellDef>شاخص / تعریف</th><td mat-cell *matCellDef="let k">{{ k.title }}<small style="display:block">{{ k.definition }}</small></td></ng-container>
+ <ng-container matColumnDef="formula"><th mat-header-cell *matHeaderCellDef>فرمول</th><td mat-cell *matCellDef="let k">{{ k.formula }}</td></ng-container>
+ <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>واحد / تناوب</th><td mat-cell *matCellDef="let k">{{ k.unit }} / {{ k.frequency }}</td></ng-container>
+ <ng-container matColumnDef="source"><th mat-header-cell *matHeaderCellDef>منبع / مالک</th><td mat-cell *matCellDef="let k">{{ k.source }}<small style="display:block">{{ k.owner }}</small></td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="kpiColumns"></tr><tr mat-row *matRowDef="let row; columns: kpiColumns"></tr>
+ </table>
             </div></mat-tab
           ><mat-tab label="شایستگی‌ها"
             ><div class="section-body">
@@ -347,6 +302,8 @@ import { UI } from "../shared/ui";
 })
 export default class Jobs {
   s = inject(Store);
+  readonly jobColumns = ["title","family","version","review","revised","link"];
+  readonly kpiColumns = ["metric","formula","unit","source"];
   id = input<string>();
   search = signal("");
   unit = signal("");
