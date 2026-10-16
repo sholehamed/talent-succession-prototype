@@ -110,9 +110,11 @@ test("full evaluation, calibration, IDP and shared progress", async ({
       p2: "سارا مهر", p3: "نیما روشن", p4: "مهسا سپهر",
       p5: "علی پارسا", p6: "نازنین آذر", p7: "کیان نیک"
     } as Record<string,string>)[person]);
-    await page
-      .getByRole("button", { name: "تکمیل پرسشنامه", exact: true })
-      .click();
+    const pending = page.getByRole("button", { name: "تکمیل پرسشنامه", exact: true });
+    console.log("EVALUATOR DEBUG", person, "selector", await page.locator("mat-select").first().innerText(),
+      "pending", await pending.count(), "body", (await page.locator("main").innerText()).slice(0, 480));
+    await expect(pending).toBeVisible();
+    await pending.click();
     if (person === "p2") {
       await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
       await expect(page.getByRole("status")).toContainText("پنج سؤال");
