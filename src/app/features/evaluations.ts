@@ -63,17 +63,17 @@ import { Chart } from "../shared/chart";
               <mat-form-field appearance="outline"
                 ><mat-label>ارزیابی‌شونده</mat-label><mat-select [(ngModel)]="subject">
                   @for (p of s.state().people; track p.id) {
-                    <mat-option [value]="p.name">{{ p.name }}</mat-option>
+                    <mat-option [value]="p.id">{{ p.name }}</mat-option>
                   }
                 </mat-select></mat-form-field><mat-form-field appearance="outline"
                 ><mat-label>شغل هدف</mat-label><mat-select [(ngModel)]="target">
                   @for (j of s.state().jobs; track j.id) {
-                    <mat-option [value]="j.title">{{ j.title }}</mat-option>
+                    <mat-option [value]="j.id">{{ j.title }}</mat-option>
                   }
                 </mat-select></mat-form-field><mat-form-field appearance="outline"
                 ><mat-label>نوع ارزیابی</mat-label><mat-select [(ngModel)]="mode">
-                  <mat-option [value]="'۳۶۰ درجه'">۳۶۰ درجه</mat-option>
-                  <mat-option [value]="'۵۴۰ درجه'">۵۴۰ درجه</mat-option>
+                  <mat-option [value]="360">۳۶۰ درجه</mat-option>
+                  <mat-option [value]="540">۵۴۰ درجه</mat-option>
                 </mat-select></mat-form-field>
             </div>
             <button mat-button class="primary" (click)="create()">
@@ -95,7 +95,7 @@ import { Chart } from "../shared/chart";
               (ngModelChange)="s.actor.set($event); selected.set('')"
             >
               @for (p of evaluators(); track p.id) {
-                <mat-option [value]="p.name">{{ p.name }}</mat-option>
+                <mat-option [value]="p.id">{{ p.name }}</mat-option>
               }
             </mat-select></mat-form-field>
         </div>
@@ -226,7 +226,7 @@ import { Chart } from "../shared/chart";
               <mat-form-field appearance="outline" class="search"
                 ><mat-label>ارزیاب</mat-label><mat-select [(ngModel)]="evaluator">
                   @for (p of s.state().people; track p.id) {
-                    <mat-option [value]="p.name">{{ p.name }}</mat-option>
+                    <mat-option [value]="p.id">{{ p.name }}</mat-option>
                   }
                 </mat-select></mat-form-field><mat-form-field appearance="outline"
                 ><mat-label>گروه</mat-label><mat-select [(ngModel)]="group">
