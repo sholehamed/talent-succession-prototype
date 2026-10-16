@@ -129,6 +129,15 @@ test("job to person to evaluation navigation preserves selected context for diff
   await expect(page.getByRole("combobox", { name: "شغل هدف" })).toContainText("سرپرست عملیات");
   await page.getByRole("link", { name: "برنامه‌های این شغل" }).click();
   await expect(page).toHaveURL(/\/development\?person=p2&job=j2$/);
+  await expect(page.locator("main")).toContainText("برنامه‌ای یافت نشد");
+  await nav(page, "/people/p2?job=j2");
+  await page.getByRole("button", { name: "ایجاد / مشاهده برنامه توسعه" }).click();
+  await expect(page).toHaveURL(/\/development\/idp\/[^/]+$/);
+  await expect(page.locator("main")).toContainText("سارا مهر");
+  await expect(page.locator("main")).toContainText("سرپرست عملیات");
+  await page.getByRole("link", { name: "پروفایل و تحلیل شکاف" }).click();
+  await expect(page).toHaveURL(/\/people\/p2\?job=j2$/);
+  await page.getByRole("link", { name: "برنامه‌های این شغل" }).click();
   await expect(page.getByRole("row").filter({ hasText: "سارا مهر" })).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "آرمان راد" })).toHaveCount(0);
 
