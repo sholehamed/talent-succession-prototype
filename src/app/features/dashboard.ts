@@ -148,7 +148,7 @@ import { competencies } from "../core/models";
           <div class="empty">در حال آماده‌سازی نمودار</div>
         }
         <p class="report-note">
-          منبع: آخرین گزارش منتشرشده یا شواهد اولیه ساختگی؛ مستقل از فیلتر دوره
+          منبع: آخرین گزارش منتشرشده یا شواهد عملکردی ثبت‌شده؛ مستقل از فیلتر دوره
           فعالیت.
         </p>
       </mat-card>
@@ -204,7 +204,7 @@ import { competencies } from "../core/models";
         <div class="panel-head">
           <div>
             <h2>پیگیری برنامه‌های توسعه</h2>
-            <small>پیشرفت واقعی اقدام‌های ثبت‌شده در دمو</small>
+            <small>پیشرفت اقدام‌های ثبت‌شده در برنامه‌های توسعه</small>
           </div>
           <a routerLink="/development" style="font-size:11px"
             >همه برنامه‌ها ←</a
@@ -280,7 +280,7 @@ import { competencies } from "../core/models";
     {{ s.gaps(p.id, p.jobId)[i] | fa }}
   </td></ng-container>
  }
- <ng-container matColumnDef="source"><th mat-header-cell *matHeaderCellDef>منشأ</th><td mat-cell *matCellDef="let p">گزارش منتشرشده / شواهد نمونه</td></ng-container>
+ <ng-container matColumnDef="source"><th mat-header-cell *matHeaderCellDef>منشأ</th><td mat-cell *matCellDef="let p">گزارش منتشرشده / شواهد عملکردی</td></ng-container>
  <tr mat-header-row *matHeaderRowDef="gapColumns"></tr><tr mat-row *matRowDef="let row; columns: gapColumns"></tr>
  </table>
         </div>
@@ -288,7 +288,7 @@ import { competencies } from "../core/models";
       <div class="info">
         فرمول‌ها: پوشش شناسنامه = شغل دارای نسخه منتشرشده ÷ کل شغل؛ مشارکت =
         پاسخ ÷ تکلیف؛ توسعه = اقدام کامل ÷ کل اقدام؛ جانشینی = پست حیاتی با
-        نامزد A ÷ کل پست حیاتی. همه فرمول‌ها نمایشی‌اند.
+        نامزد A ÷ کل پست حیاتی. شاخص‌ها بر اساس داده‌های موجود در سامانه محاسبه می‌شوند.
       </div>
     }`,
 })
