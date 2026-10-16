@@ -57,7 +57,7 @@ export function seed(): DemoState {
         formula: "تحویل به‌موقع ÷ کل تحویل × ۱۰۰",
         unit: "درصد",
         frequency: "ماهانه",
-        source: "PMIS نمونه",
+        source: "سامانه مدیریت پروژه",
         owner: "مالک خانواده شغلی",
       },
       {
@@ -66,7 +66,7 @@ export function seed(): DemoState {
         formula: "ریسک بسته ÷ کل ریسک × ۱۰۰",
         unit: "درصد",
         frequency: "ماهانه",
-        source: "دفتر ریسک نمونه",
+        source: "دفتر مدیریت ریسک",
         owner: "مدیر واحد",
       },
       {
@@ -75,21 +75,21 @@ export function seed(): DemoState {
         formula: "تعداد AAR تأییدشده",
         unit: "مورد",
         frequency: "فصلی",
-        source: "مخزن دانش دمو",
+        source: "مخزن دانش سازمانی",
         owner: "مالک دانش",
       },
     ],
     expected: [4, 4, 4, 4, i === 0 ? 3 : 4],
     skills: "برنامه‌ریزی: پیشرفته؛ تحلیل داده: متوسط؛ تسهیل جلسات: پیشرفته",
     qualifications:
-      "کارشناسی مرتبط؛ تجربه راهبری تیم؛ گواهی آموزشی مرتبط (همه نمونه)",
+      "کارشناسی مرتبط؛ تجربه راهبری تیم؛ گواهی آموزشی مرتبط",
     hse: "رعایت الزامات ایمنی محیط کار و محرمانگی اسناد پروژه",
     owner: "مالک خانواده شغلی",
     version: 1,
     revised: "2026-09-23",
     review: "published",
     history: [
-      { version: 1, at: "2026-09-23", summary: "تصویب شناسنامه اولیه نمونه" },
+      { version: 1, at: "2026-09-23", summary: "تصویب نسخه اولیه شناسنامه" },
     ],
   }));
   const names = [
@@ -140,7 +140,7 @@ export function seed(): DemoState {
     performance: (["high", "medium", "low"] as const)[i % 3],
     potential: (["high", "medium", "low"] as const)[Math.floor(i / 3) % 3],
     observed: [3 + (i % 2), 3, 2 + (i % 3), 4, 2 + (i % 2)],
-    evidence: "مصاحبه رفتاری و سابقه پروژه ساختگی؛ بازبینی کمیته در پاییز ۱۴۰۵",
+    evidence: "مصاحبه رفتاری و سوابق پروژه؛ بازبینی کمیته در پاییز ۱۴۰۵",
   }));
   const assignments = Array.from({ length: 6 }, (_, i) => ({
     id: `a${i + 1}`,
@@ -182,7 +182,7 @@ export function seed(): DemoState {
         id: `old-${a.id}`,
         scores: [3, 3, 2 + (i % 2), 3, 2],
       })),
-      notes: "بازبینی نمونه تکمیل شده؛ تمرکز بر هدایت تیم",
+      notes: "بازبینی تکمیل شده؛ تمرکز بر هدایت تیم",
       created: "2026-07-23",
     },
   ];
@@ -220,7 +220,7 @@ export function seed(): DemoState {
         "الگوی برنامه توسعه فردی",
         "تجربه کاهش دوباره‌کاری",
         "پرسش‌های متداول مدیریت ریسک",
-      ][i % 6] + (i > 5 ? ` — نمونه ${i + 1}` : ""),
+      ][i % 6] + (i > 5 ? ` — بخش ${i + 1}` : ""),
     kind: i % 3 === 0 ? "AAR" : i % 3 === 1 ? "چک‌لیست" : "راهنما",
     jobId: `j${(i % 5) + 1}`,
     taskId: `t${i % 5}-1`,
@@ -228,7 +228,7 @@ export function seed(): DemoState {
     owner: names[i],
     revision: i % 4 === 0 ? "2026-10-01" : "2027-03-21",
     access: "داخلی",
-    body: "پیش از آغاز هر فاز، مسئول خروجی و معیار پذیرش مشخص شود. مرور هفتگی ریسک‌ها با حضور ذی‌نفعان از دوباره‌کاری جلوگیری می‌کند. این تجربه و تمام اشخاص آن ساختگی هستند.",
+    body: "پیش از آغاز هر فاز، مسئول خروجی و معیار پذیرش مشخص شود. مرور هفتگی ریسک‌ها با حضور ذی‌نفعان از دوباره‌کاری جلوگیری می‌کند.",
     status: i < 14 ? "published" : "draft",
     views: i * 3,
     viewers: i ? ["p1", "p2"] : [],
@@ -272,7 +272,7 @@ export function seed(): DemoState {
       personId: `p${i + 1}`,
       positionId: i < 3 ? "pos1" : `pos${(i % 5) + 1}`,
       readiness: i === 4 ? "A" : i % 2 ? "B" : "C",
-      evidence: "بررسی انسانی نمونه؛ نیازمند تکمیل تجربه راهبری",
+      evidence: "بررسی شواهد شایستگی؛ نیازمند تکمیل تجربه راهبری",
       at: "2026-10-16",
     })),
     paths: [
