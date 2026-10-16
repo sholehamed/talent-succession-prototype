@@ -105,7 +105,7 @@ import { Chart } from "../shared/chart";
               <p>{{ p.reason }}</p>
             </div>
             <div>
-              <small>احتمال × اثر خروج (دمو)</small>
+              <small>احتمال × اثر خروج</small>
               <h3>
                 {{ p.probability | fa }} × {{ p.impact | fa }} =
                 {{ p.probability * p.impact | fa }}
