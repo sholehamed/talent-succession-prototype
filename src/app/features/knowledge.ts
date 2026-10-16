@@ -71,39 +71,32 @@ import { UI } from "../shared/ui";
             ><mat-label>سطح دسترسی</mat-label><mat-select [(ngModel)]="draft.access">
               <mat-option [value]="'داخلی'">داخلی</mat-option>
               <mat-option [value]="'واحد مرتبط'">واحد مرتبط</mat-option>
-            </mat-select></mat-form-field><label
-            >پیوست متنی نمایشی<input
-              type="file"
-              accept=".txt,.md"
-              (change)="attach($event)"
-            /><small>فقط متن تا ۵۰ کیلوبایت؛ داده ساختگی</small></label
-          ><label class="full"
-            >شرح محتوا<textarea [(ngModel)]="draft.body"></textarea>
-          </label>
+            </mat-select></mat-form-field><div class="upload-field">
+  <span>پیوست متنی نمایشی</span>
+  <input #upload type="file" accept=".txt,.md" (change)="attach($event)" hidden />
+  <button mat-stroked-button type="button" (click)="upload.click()">انتخاب پیوست متنی</button>
+  <small>فقط متن تا ۵۰ کیلوبایت؛ داده ساختگی</small>
+</div><mat-form-field appearance="outline" class="full"
+            ><mat-label>شرح محتوا</mat-label><textarea matInput [(ngModel)]="draft.body"></textarea></mat-form-field>
         </div>
         @if (draft.aar; as a) {
           <div class="form-section">
             <h2>مرور پس از اقدام — پنج محور</h2>
             <div class="form-grid">
-              <label
-                >۱. چه قصد داشتیم انجام دهیم؟<textarea
+              <mat-form-field appearance="outline"
+                ><mat-label>۱. چه قصد داشتیم انجام دهیم؟</mat-label><textarea matInput
                   [(ngModel)]="a.intended"
-                ></textarea></label
-              ><label
-                >۲. چه اتفاقی افتاد؟<textarea
+                ></textarea></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>۲. چه اتفاقی افتاد؟</mat-label><textarea matInput
                   [(ngModel)]="a.actual"
-                ></textarea></label
-              ><label
-                >۳. چرا این اتفاق افتاد؟<textarea
+                ></textarea></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>۳. چرا این اتفاق افتاد؟</mat-label><textarea matInput
                   [(ngModel)]="a.reasons"
-                ></textarea></label
-              ><label
-                >۴. چه باید بیاموزیم یا تغییر دهیم؟<textarea
+                ></textarea></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>۴. چه باید بیاموزیم یا تغییر دهیم؟</mat-label><textarea matInput
                   [(ngModel)]="a.lessons"
-                ></textarea></label
-              ><label class="full"
-                >۵. اقدام پیگیری چیست؟<input [(ngModel)]="a.action" /></label
-              ><mat-form-field appearance="outline"><mat-label>مسئول اقدام</mat-label><input matInput [(ngModel)]="a.responsible" /></mat-form-field><app-date-field
+                ></textarea></mat-form-field><mat-form-field appearance="outline" class="full"
+                ><mat-label>۵. اقدام پیگیری چیست؟</mat-label><input matInput [(ngModel)]="a.action" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مسئول اقدام</mat-label><input matInput [(ngModel)]="a.responsible" /></mat-form-field><app-date-field
                  label="مهلت اقدام" [(ngModel)]="a.due" />
             </div>
           </div>
