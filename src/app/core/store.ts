@@ -118,6 +118,40 @@ export class Store {
       (this.role() === "employee" && id === "p1")
     );
   }
+  /**
+   * People linked to a target job through their current job, a succession
+   * nomination, or a feeder job in the configured career paths.
+   * Scope the results with the existing front-end person visibility rule.
+   */
+  relatedPeople(jobId: string) {
+    if (!this.state().jobs.some((j) => j.id === jobId)) return [];
+
+    const feeders = new Set([jobId]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const path of this.state().paths) {
+        if (feeders.has(path.to) && !feeders.has(path.from)) {
+          feeders.add(path.from);
+          grew = true;
+        }
+      }
+    }
+
+    const positions = new Set(
+      this.state().positions.filter((p) => p.jobId === jobId).map((p) => p.id),
+    );
+    const nominees = new Set(
+      this.state().nominations
+        .filter((n) => positions.has(n.positionId))
+        .map((n) => n.personId),
+    );
+
+    return this.state().people.filter(
+      (p) => this.allowedPerson(p.id) && (feeders.has(p.jobId) || nominees.has(p.id)),
+    );
+  }
+
   scores(personId: string) {
     const cycle = this.state()
       .cycles.filter(
