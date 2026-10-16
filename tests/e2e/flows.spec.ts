@@ -264,8 +264,13 @@ test("Material datepicker writes an ISO day into the existing IDP model", async 
   await page.locator("app-date-field mat-datepicker-toggle button").click();
   await expect(page.locator("mat-datepicker-content")).toBeVisible();
   await page.locator("mat-datepicker-content .mat-calendar-body-cell").first().click();
+  const displayedJalali = await page.locator("app-date-field input").inputValue();
+  expect(displayedJalali).toMatch(/\d/);
   await page.getByRole("button", { name: "ذخیره اقدام" }).click();
   const due = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!)
     .plans.find((p: any) => p.id === "d1").actions[0].due);
   expect(due).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  await page.reload();
+  await page.getByRole("button", { name: "ویرایش و پیگیری" }).first().click();
+  await expect(page.locator("app-date-field input")).toHaveValue(displayedJalali);
 });
