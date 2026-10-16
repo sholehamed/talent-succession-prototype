@@ -961,7 +961,7 @@ mat-sidenav-container.app-shell {
 }
 mat-sidenav.sidebar {
   position:absolute; inset-block:0; right:0; width:248px;
-  padding:30px 19px 20px; overflow:auto; transform:none;
+  padding:30px 19px 20px; overflow:auto;
   border-left:1px solid var(--line); box-shadow:none;
 }
 mat-sidenav.sidebar .mat-drawer-inner-container { display:flex; flex-direction:column; overflow-y:auto; }
