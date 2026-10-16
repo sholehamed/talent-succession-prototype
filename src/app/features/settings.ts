@@ -13,7 +13,7 @@ import { UI } from "../shared/ui";
       </div>
     </div>
     <div class="grid two">
-      <section class="panel">
+      <mat-card class="panel">
         <h2>سناریوی ۱۰ تا ۱۵ دقیقه‌ای</h2>
         <div class="metric-line">
           <span class="step-number">۱</span>
@@ -74,8 +74,8 @@ import { UI } from "../shared/ui";
             >
           </div>
         </div>
-      </section>
-      <section class="panel">
+      </mat-card>
+      <mat-card class="panel">
         <h2>درباره این نمونه</h2>
         <p style="margin:15px 0">
           این برنامه هیچ بک‌اند، پایگاه داده یا احراز هویت واقعی ندارد.
@@ -110,10 +110,10 @@ import { UI } from "../shared/ui";
             </div>
           </div>
         }
-      </section>
+      </mat-card>
     </div>
     @if (s.role() === "hr") {
-      <section class="panel">
+      <mat-card class="panel">
         <div class="panel-head">
           <div>
             <h2>شبیه‌ساز قرارداد تبادل داده</h2>
@@ -152,8 +152,8 @@ import { UI } from "../shared/ui";
         } @empty {
           <p style="margin-top:15px">هنوز همگام‌سازی اجرا نشده است.</p>
         }
-      </section>
-      <section class="panel">
+      </mat-card>
+      <mat-card class="panel">
         <div class="panel-head">
           <h2>رویدادهای نمایشی</h2>
           <small>۲۵۰ رویداد آخر · محلی و غیرامنیتی</small>
@@ -182,7 +182,7 @@ import { UI } from "../shared/ui";
             }
           </table>
         </div>
-      </section>
+      </mat-card>
     }`,
 })
 export default class Settings {
