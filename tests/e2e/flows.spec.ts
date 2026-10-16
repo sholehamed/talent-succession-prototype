@@ -67,6 +67,26 @@ test("all main routes render, RTL, lazy charts and responsive layout", async ({
   });
   expect(errors).toEqual([]);
 });
+test("Material sidenav collapses cleanly and opens mobile navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await nav(page, "/dashboard/hr");
+  const content = page.locator("mat-sidenav-content");
+  const before = await content.boundingBox();
+  await page.getByRole("button", { name: "نمایش منو" }).click();
+  await expect(page.locator("mat-sidenav-container")).toHaveClass(/collapsed/);
+  await expect(page.locator("mat-sidenav .nav-item .nav-icon").first()).toBeVisible();
+  await expect(page.locator("mat-sidenav .nav-item .nav-arrow").first()).toBeHidden();
+  await expect.poll(async () => (await content.boundingBox())?.width ?? 0)
+    .toBeGreaterThan((before?.width ?? 0) + 90);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("mat-sidenav")).not.toHaveClass(/mat-drawer-opened/);
+  await page.getByRole("button", { name: "نمایش منو" }).click();
+  await expect(page.locator("mat-sidenav")).toHaveClass(/mat-drawer-opened/);
+  await page.locator("mat-sidenav a.nav-item").filter({ hasText: "شناسنامه‌های شغلی" }).click();
+  await expect(page).toHaveURL(/\/jobs$/);
+  await expect(page.locator("mat-sidenav")).not.toHaveClass(/mat-drawer-opened/);
+});
+
 test("job approval preserves publication until approved and persists", async ({
   page,
 }) => {
