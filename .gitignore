@@ -147,3 +147,11 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Angular / browser verification
+node_modules/
+dist/
+.angular/
+out-tsc/
+test-results/
+playwright-report/

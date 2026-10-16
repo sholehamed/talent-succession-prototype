@@ -1,0 +1,7 @@
+node_modules
+dist
+.angular
+pnpm-lock.yaml
+Talent_Succession_Prototype_Master_Reference_FA.md
+test-results
+playwright-report

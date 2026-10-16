@@ -1,0 +1,584 @@
+import { Component, computed, inject, input, signal } from "@angular/core";
+import { ActivatedRoute, Router } from "@angular/router";
+import { Store } from "../core/store";
+import { Group, competencies, groups } from "../core/models";
+import { UI } from "../shared/ui";
+import { Chart } from "../shared/chart";
+@Component({
+  standalone: true,
+  imports: [...UI, Chart],
+  template: ` <div class="page-header">
+      <div>
+        <div class="eyebrow">سنجش رفتار، بازخورد و رشد</div>
+        <h1>
+          {{
+            view === "inbox"
+              ? "کارتابل ارزیابی"
+              : view === "report"
+                ? "گزارش ارزیابی و تحلیل شکاف"
+                : view === "calibration"
+                  ? "کالیبراسیون و بازخورد"
+                  : "ارزیابی چندمنبعی"
+          }}
+        </h1>
+        <p>پرسش‌های تألیفی و داده‌های ساختگی · نتیجه کمکی برای تصمیم انسانی</p>
+      </div>
+      <a mat-button class="secondary" routerLink="/evaluations/cycles"
+        >دوره‌های ارزیابی</a
+      >
+    </div>
+    @if (view === "cycles") {
+      <div class="grid two">
+        <section class="panel">
+          <h2>دوره‌های ارزیابی</h2>
+          @for (c of s.state().cycles; track c.id) {
+            <div class="metric-line">
+              <div class="grow">
+                <a [routerLink]="['/evaluations', c.id]"
+                  ><strong>{{ c.title }}</strong></a
+                ><small
+                  >{{ s.person(c.subjectId).name }} · {{ c.mode | fa }} درجه ·
+                  {{ s.job(c.jobId).title }}</small
+                >
+              </div>
+              <span class="badge" [class]="'badge ' + c.status">{{
+                c.status | status
+              }}</span
+              ><span
+                >{{ answered(c.id) | fa }} /
+                {{ c.assignments.length | fa }}</span
+              >
+            </div>
+          }
+        </section>
+        @if (s.role() === "hr") {
+          <section class="panel">
+            <h2>ایجاد دوره جدید</h2>
+            <label
+              >عنوان دوره<input
+                [(ngModel)]="title"
+                placeholder="ارزیابی پاییز ۱۴۰۵"
+            /></label>
+            <div class="form-grid">
+              <label
+                >ارزیابی‌شونده<select [(ngModel)]="subject">
+                  @for (p of s.state().people; track p.id) {
+                    <option [value]="p.id">{{ p.name }}</option>
+                  }
+                </select></label
+              ><label
+                >شغل هدف<select [(ngModel)]="target">
+                  @for (j of s.state().jobs; track j.id) {
+                    <option [value]="j.id">{{ j.title }}</option>
+                  }
+                </select></label
+              ><label
+                >نوع ارزیابی<select [(ngModel)]="mode">
+                  <option [ngValue]="360">۳۶۰ درجه</option>
+                  <option [ngValue]="540">۵۴۰ درجه</option>
+                </select></label
+              >
+            </div>
+            <button mat-button class="primary" (click)="create()">
+              ایجاد دوره
+            </button>
+          </section>
+        }
+      </div>
+      <div class="info">
+        سناریوی آماده: «ارزیابی پاییز ۱۴۰۵» را باز کنید؛ ارزیاب‌ها انتخاب
+        شده‌اند و می‌توانید پاسخ‌گیری را آغاز کنید.
+      </div>
+    } @else if (view === "inbox") {
+      <div class="panel">
+        <div class="filterbar">
+          <label
+            >شخصیت ارزیاب نمایشی<select
+              [ngModel]="s.actor()"
+              (ngModelChange)="s.actor.set($event); selected.set('')"
+            >
+              @for (p of evaluators(); track p.id) {
+                <option [value]="p.id">{{ p.name }}</option>
+              }
+            </select></label
+          >
+        </div>
+        @for (item of inbox(); track item.a.id) {
+          <div class="metric-line">
+            <div class="grow">
+              <strong>{{ item.c.title }}</strong
+              ><small
+                >ارزیابی {{ s.person(item.c.subjectId).name }} ·
+                {{ groups[item.a.group] }}</small
+              >
+            </div>
+            <span class="badge">{{
+              item.a.scores ? "ثبت‌شده" : "در انتظار پاسخ"
+            }}</span>
+            @if (!item.a.scores) {
+              <button mat-button (click)="openAnswer(item.c.id, item.a.id)">
+                تکمیل پرسشنامه
+              </button>
+            }
+          </div>
+        } @empty {
+          <div class="empty">
+            تکلیف فعالی برای این شخصیت وجود ندارد. دوره باید در مرحله دریافت
+            پاسخ باشد.
+          </div>
+        }
+      </div>
+      @if (selected()) {
+        <section class="panel">
+          <h2>بازخورد رفتاری</h2>
+          <p>در تجربه همکاری، فرد تا چه اندازه رفتار زیر را نشان داده است؟</p>
+          @for (c of competencies; track c; let i = $index) {
+            <div class="question">
+              <strong>{{ i + 1 | fa }}. {{ questions[i] }}</strong
+              ><small style="display:block">شایستگی: {{ c }}</small>
+              <div class="score-row">
+                @for (anchor of anchors; track anchor; let n = $index) {
+                  <label
+                    ><input
+                      type="radio"
+                      [name]="'score' + i"
+                      [value]="n + 1"
+                      [(ngModel)]="scores[i]"
+                    />{{ n + 1 | fa
+                    }}<small style="display:block">{{ anchor }}</small></label
+                  >
+                }
+              </div>
+            </div>
+          }
+          <button
+            mat-button
+            class="primary"
+            style="margin-top:20px"
+            (click)="send()"
+          >
+            ثبت نهایی پاسخ‌ها
+          </button>
+        </section>
+      }
+    } @else if (cycle(); as c) {
+      @if (view === "detail") {
+        <div class="detail-summary">
+          <span class="avatar">{{ c.mode | fa }}</span>
+          <div>
+            <h2>{{ c.title }}</h2>
+            <p>
+              {{ s.person(c.subjectId).name }} · شغل هدف:
+              <a [routerLink]="['/jobs', c.jobId]">{{
+                s.job(c.jobId).title
+              }}</a>
+            </p>
+          </div>
+          <span class="badge" [class]="'badge ' + c.status">{{
+            c.status | status
+          }}</span>
+        </div>
+        <div class="flow-steps">
+          <span [class.muted]="c.status !== 'preparing'"
+            >۱ انتخاب ارزیابان</span
+          >
+          ← <span>۲ دریافت پاسخ</span> ← <span>۳ کالیبراسیون</span> ←
+          <span>۴ بازخورد و توسعه</span>
+        </div>
+        <div class="grid four" style="margin-bottom:20px">
+          @for (g of groupEntries; track g[0]) {
+            @if (c.mode === 540 || g[0] !== "external") {
+              <div class="stat">
+                <div class="label">{{ g[1] }}</div>
+                <strong>{{ count(g[0]) | fa }}</strong
+                ><small
+                  >حداقل
+                  {{
+                    (g[0] === "peer" || g[0] === "subordinate" ? 2 : 1) | fa
+                  }}
+                  ارزیاب</small
+                >
+              </div>
+            }
+          }
+        </div>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>ارزیابان و وضعیت تکالیف</h2>
+            <span
+              >{{ answered(c.id) | fa }} از
+              {{ c.assignments.length | fa }} پاسخ</span
+            >
+          </div>
+          <mat-progress-bar
+            mode="determinate"
+            [value]="
+              c.assignments.length
+                ? (answered(c.id) / c.assignments.length) * 100
+                : 0
+            "
+          />
+          <div class="table-wrap">
+            <table>
+              <tr>
+                <th>ارزیاب ساختگی</th>
+                <th>گروه</th>
+                <th>وضعیت</th>
+                <th></th>
+              </tr>
+              @for (a of c.assignments; track a.id) {
+                <tr>
+                  <td>{{ s.person(a.personId).name }}</td>
+                  <td>{{ groups[a.group] }}</td>
+                  <td>{{ a.scores ? "ثبت‌شده" : "در انتظار پاسخ" }}</td>
+                  <td>
+                    @if (c.status === "preparing" && s.role() === "hr") {
+                      <button
+                        mat-button
+                        (click)="s.removeEvaluator(c.id, a.id)"
+                      >
+                        حذف
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </table>
+          </div>
+          @if (c.status === "preparing" && s.role() === "hr") {
+            <div class="filterbar">
+              <label class="search"
+                >ارزیاب<select [(ngModel)]="evaluator">
+                  @for (p of s.state().people; track p.id) {
+                    <option [value]="p.id">{{ p.name }}</option>
+                  }
+                </select></label
+              ><label
+                >گروه<select [(ngModel)]="group">
+                  @for (g of groupEntries; track g[0]) {
+                    @if (c.mode === 540 || g[0] !== "external") {
+                      <option [value]="g[0]">{{ g[1] }}</option>
+                    }
+                  }
+                </select></label
+              ><button
+                mat-button
+                class="secondary"
+                (click)="s.addEvaluator(c.id, evaluator, group)"
+              >
+                افزودن ارزیاب
+              </button>
+            </div>
+            @if (!s.canStart(c)) {
+              <div class="warning">
+                شروع دوره نیازمند حداقل ۱ سرپرست، ۲ هم‌سطح، ۲ زیردست و برای ۵۴۰
+                یک ذی‌نفع بیرونی است.
+              </div>
+            }
+            <button
+              mat-button
+              class="primary"
+              [disabled]="!s.canStart(c)"
+              (click)="s.advance(c.id)"
+            >
+              شروع دریافت پاسخ‌ها
+            </button>
+          }
+          @if (c.status === "collecting") {
+            <div class="actions">
+              <button mat-button class="secondary" (click)="asEvaluator()">
+                ورود به نقش ارزیاب و کارتابل
+              </button>
+              @if (s.role() === "hr") {
+                <button
+                  mat-button
+                  class="primary"
+                  [disabled]="answered(c.id) !== c.assignments.length"
+                  (click)="s.advance(c.id)"
+                >
+                  پایان پاسخ‌گیری و کالیبراسیون
+                </button>
+              }
+            </div>
+          }
+          @if (c.status === "calibration") {
+            <a
+              mat-button
+              class="primary"
+              [routerLink]="['/evaluations', c.id, 'calibration']"
+              >ورود به کالیبراسیون ←</a
+            >
+          }
+          @if (c.status === "feedback" || c.status === "closed") {
+            <a
+              mat-button
+              class="primary"
+              [routerLink]="['/evaluations/reports', c.id]"
+              >گزارش، شکاف و برنامه توسعه ←</a
+            >
+            @if (c.status === "feedback" && s.role() === "hr") {
+              <button mat-button (click)="s.advance(c.id)">بستن دوره</button>
+            }
+          }
+        </section>
+      } @else if (view === "report" || view === "calibration") {
+        @if (
+          s.allowedPerson(c.subjectId) &&
+          ((view === "calibration" && c.status === "calibration") ||
+            ["feedback", "closed"].includes(c.status))
+        ) {
+          <div class="info">
+            روش پیشنهادی دمو: میانگین ساده گروه‌های قابل انتشار؛ گروه
+            هم‌سطح/زیردست با کمتر از دو پاسخ پنهان می‌شود. این مدل تأیید علمی یا
+            قانون کارفرما نیست.
+          </div>
+          <div class="grid two">
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>{{ s.person(c.subjectId).name }}</h2>
+                  <small>{{ c.title }} · {{ s.job(c.jobId).title }}</small>
+                </div>
+              </div>
+              @defer (on viewport) {
+                <app-chart
+                  type="radar"
+                  [categories]="competencies"
+                  [series]="chartSeries()"
+                />
+              } @placeholder {
+                <div class="empty">نمودار شایستگی</div>
+              }
+            </section>
+            <section class="panel">
+              <h2>شکاف نسبت به شغل هدف</h2>
+              <table>
+                <tr>
+                  <th>شایستگی</th>
+                  <th>انتظار</th>
+                  <th>مشاهده</th>
+                  <th>شکاف</th>
+                </tr>
+                @for (comp of competencies; track comp; let i = $index) {
+                  <tr>
+                    <td>{{ comp }}</td>
+                    <td>{{ s.job(c.jobId).expected[i] | fa }}</td>
+                    <td>{{ report().scores?.[i] | fa }}</td>
+                    <td>
+                      <span class="badge" [class.amber]="reportGap(i) > 0">{{
+                        reportGap(i) | fa
+                      }}</span>
+                    </td>
+                  </tr>
+                }
+              </table>
+              <p class="report-note">
+                نقاط رشد: {{ growth() }}. نمره ۴ یا بالاتر صرفاً شاهد رفتاری
+                مثبت در داده نمونه است.
+              </p>
+            </section>
+          </div>
+          <section class="panel">
+            <h2>بازخورد گروهی بدون هویت ارزیاب</h2>
+            <div class="table-wrap">
+              <table>
+                <tr>
+                  <th>گروه</th>
+                  <th>پاسخ</th>
+                  @for (comp of competencies; track comp) {
+                    <th>{{ comp }}</th>
+                  }
+                </tr>
+                @for (row of report().rows; track row.group) {
+                  <tr>
+                    <td>{{ groups[row.group] }}</td>
+                    <td>{{ row.count | fa }}</td>
+                    @for (comp of competencies; track comp; let i = $index) {
+                      <td>
+                        {{ row.scores ? (row.scores[i] | fa) : "نمونه ناکافی" }}
+                      </td>
+                    }
+                  </tr>
+                }
+              </table>
+            </div>
+          </section>
+          @if (view === "calibration" && s.role() === "hr") {
+            <section class="panel">
+              <h2>ثبت نظر کالیبراسیون</h2>
+              <p>
+                تفاوت میان گروه‌ها، شواهد رفتاری و احتمال سوگیری را بررسی کنید.
+                نمره خام بدون دستکاری حفظ می‌شود.
+              </p>
+              <label
+                >جمع‌بندی بازبینی<textarea
+                  [(ngModel)]="notes"
+                  placeholder="شواهد مرورشده و پیشنهاد بازخورد…"
+                ></textarea></label
+              ><button mat-button class="primary" (click)="calibrate()">
+                تأیید کالیبراسیون و آماده‌سازی بازخورد
+              </button>
+            </section>
+          } @else {
+            <section class="panel">
+              <h2>بازخورد و اقدام بعدی</h2>
+              <p>{{ c.notes }}</p>
+              <div class="actions" style="margin-top:15px">
+                @if (s.editable()) {
+                  <button
+                    mat-button
+                    class="primary"
+                    (click)="createPlan(c.subjectId, c.jobId, c.id)"
+                  >
+                    ایجاد / مشاهده برنامه توسعه سه‌اقدامی
+                  </button>
+                }
+                <a mat-button [routerLink]="['/people', c.subjectId]"
+                  >پروفایل فرد ←</a
+                >
+              </div>
+            </section>
+          }
+        } @else {
+          <div class="warning">
+            گزارش برای نقش فعلی یا پیش از تکمیل کالیبراسیون قابل انتشار نیست.
+          </div>
+        }
+      }
+    } @else {
+      <div class="empty">دوره موردنظر یافت نشد.</div>
+    }`,
+})
+export default class Evaluations {
+  s = inject(Store);
+  router = inject(Router);
+  route = inject(ActivatedRoute);
+  id = input<string>();
+  view = this.route.snapshot.data["view"] ?? "detail";
+  title = "";
+  subject = "p1";
+  target = this.route.snapshot.queryParamMap.get("job") ?? "j1";
+  mode: 360 | 540 = 540;
+  evaluator = "p2";
+  group: Group = "peer";
+  notes = "";
+  competencies = competencies;
+  groups = groups;
+  groupEntries = Object.entries(groups) as [Group, string][];
+  scores: number[] = [0, 0, 0, 0, 0];
+  selected = signal("");
+  answerCycle = "";
+  anchors = [
+    "به‌ندرت",
+    "با کمک مستمر",
+    "مستقل و قابل اتکا",
+    "فراتر از انتظار",
+    "الگوی دیگران",
+  ];
+  questions = [
+    "پیام و انتظار خود را روشن و قابل فهم منتقل می‌کند.",
+    "برای حل مسائل مشترک با دیگران همکاری می‌کند.",
+    "علت مسئله و راه‌حل‌های جایگزین را بررسی می‌کند.",
+    "مسئولیت نتیجه و پیگیری تعهدات را می‌پذیرد.",
+    "به اعضای تیم بازخورد و فرصت رشد می‌دهد.",
+  ];
+  cycle = computed(() => this.s.cycle(this.id() ?? ""));
+  report = computed(() =>
+    this.cycle() ? this.s.aggregate(this.cycle()!) : { rows: [], scores: null },
+  );
+  evaluators = computed(() =>
+    this.s
+      .state()
+      .people.filter((p) =>
+        this.s
+          .state()
+          .cycles.some((c) => c.assignments.some((a) => a.personId === p.id)),
+      ),
+  );
+  inbox = computed(() =>
+    this.s
+      .state()
+      .cycles.filter((c) => c.status === "collecting")
+      .flatMap((c) =>
+        c.assignments
+          .filter((a) => a.personId === this.s.actor())
+          .map((a) => ({ a, c })),
+      ),
+  );
+  chartSeries = computed(() => {
+    const c = this.cycle()!;
+    const previous = this.s
+      .state()
+      .cycles.find(
+        (x) =>
+          x.subjectId === c.subjectId &&
+          x.id !== c.id &&
+          x.created < c.created &&
+          x.status === "closed",
+      );
+    return [
+      { name: "دوره جاری", data: this.report().scores ?? [] },
+      { name: "انتظار شغل", data: this.s.job(c.jobId).expected },
+      ...(previous
+        ? [
+            {
+              name: "دوره پیشین",
+              data: this.s.aggregate(previous).scores ?? [],
+            },
+          ]
+        : []),
+    ];
+  });
+  growth = computed(
+    () =>
+      competencies.filter((_, i) => this.reportGap(i) > 0).join("، ") ||
+      "شکاف مثبت مشاهده نشد",
+  );
+  count(g: Group) {
+    return this.cycle()?.assignments.filter((a) => a.group === g).length ?? 0;
+  }
+  answered(id: string) {
+    return this.s.cycle(id)?.assignments.filter((a) => a.scores).length ?? 0;
+  }
+  create() {
+    const id = this.s.createCycle(
+      this.title,
+      this.subject,
+      this.target,
+      this.mode,
+    );
+    if (id) this.router.navigate(["/evaluations", id]);
+    else this.s.fail("عنوان دوره را وارد کنید.");
+  }
+  asEvaluator() {
+    this.s.role.set("evaluator");
+    this.s.actor.set(
+      this.cycle()!.assignments.find((a) => !a.scores)?.personId ?? "p2",
+    );
+    this.router.navigateByUrl("/evaluations/inbox");
+  }
+  openAnswer(c: string, a: string) {
+    this.answerCycle = c;
+    this.selected.set(a);
+    this.scores = [0, 0, 0, 0, 0];
+  }
+  send() {
+    if (this.s.submit(this.answerCycle, this.selected(), this.scores))
+      this.selected.set("");
+  }
+  reportGap(i: number) {
+    return Math.max(
+      0,
+      this.s.job(this.cycle()!.jobId).expected[i] -
+        (this.report().scores?.[i] ?? 0),
+    );
+  }
+  calibrate() {
+    if (this.s.advance(this.id()!, this.notes))
+      this.router.navigate(["/evaluations/reports", this.id()]);
+  }
+  createPlan(p: string, j: string, c: string) {
+    const id = this.s.createPlan(p, j, c);
+    if (id) this.router.navigate(["/development/idp", id]);
+  }
+}
