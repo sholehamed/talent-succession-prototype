@@ -96,7 +96,7 @@ import { UI } from "../shared/ui";
             <h2>پیگیری اقدام</h2>
             <div class="form-grid">
               <mat-form-field appearance="outline"><mat-label>عنوان اقدام</mat-label><input matInput [(ngModel)]="draft.title" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مسئول</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><app-date-field
-                 label="مهلت (انتخاب تاریخ میلادی؛ نمایش شمسی)" [(ngModel)]="draft.due" /><mat-form-field appearance="outline"
+                 label="مهلت اقدام" [(ngModel)]="draft.due" /><mat-form-field appearance="outline"
                 ><mat-label>وضعیت</mat-label><mat-select [(ngModel)]="draft.status">
                   @for (st of statuses; track st) {
                     <mat-option [value]="st">{{ st | status }}</mat-option>

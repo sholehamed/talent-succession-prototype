@@ -19,7 +19,7 @@ import { UI } from "./shared/ui";
       >
       <div class="workspace">
         <span class="workspace-symbol">◈</span
-        ><span>سازمان نمونه آفاق<small>فضای کاری نمایشی</small></span
+        ><span>سازمان آفاق<small>مدیریت سرمایه انسانی</small></span
         ><b>⌄</b>
       </div>
       <div class="nav-label">فضای مدیریت</div>
@@ -39,10 +39,9 @@ import { UI } from "./shared/ui";
       }
       </mat-nav-list>
       <div class="sidebar-bottom">
-        <div class="demo-dot"></div>
-        <strong>نسخه تعاملی ارائه</strong>
-        <p>تمام افراد و داده‌ها ساختگی‌اند.</p>
-        <a routerLink="/demo/settings">راهنمای دمو و تنظیمات ←</a>
+        <strong>مدیریت استعداد و جانشین‌پروری</strong>
+        <p>شناسنامه‌های شغلی، ارزیابی و توسعه سرمایه انسانی</p>
+        <a routerLink="/settings">تنظیمات سامانه ←</a>
       </div>
     </mat-sidenav>
     <mat-sidenav-content class="main-shell">
@@ -58,10 +57,9 @@ import { UI } from "./shared/ui";
         <div class="breadcrumb">
           سرمایه انسانی <span>/</span> فضای مدیریت استعداد
         </div>
-        <span class="demo-pill">● نسخه نمایشی</span>
         <div class="role-picker">
           <mat-form-field appearance="outline">
-            <mat-label>نقش دمو</mat-label>
+            <mat-label>نقش کاربری</mat-label>
             <mat-select id="role" [ngModel]="s.role()" (ngModelChange)="changeRole($event)">
               @for (r of roleEntries; track r[0]) {
                 <mat-option [value]="r[0]">{{ r[1] }}</mat-option>
@@ -82,7 +80,7 @@ import { UI } from "./shared/ui";
         <router-outlet />
       </main>
       <footer>
-        رویش · نمونه کاربردی مدیریت استعداد<span
+        رویش · مدیریت استعداد و جانشین‌پروری<span
           >اطلاعات کمکی برای تصمیم انسانی؛ بدون تصمیم‌گیری خودکار</span
         >
       </footer>
@@ -119,13 +117,13 @@ export class App {
     { path: "/talent/9box", title: "نقشه استعداد", icon: "▦" },
     { path: "/knowledge", title: "مدیریت دانش", icon: "▥" },
     { path: "/reports", title: "گزارش‌ها و تحلیل", icon: "▧" },
-    { path: "/demo/settings", title: "کنترل دمو", icon: "⚙" },
+    { path: "/settings", title: "تنظیمات", icon: "⚙" },
   ];
   visible(path: string) {
     const r = this.s.role();
     if (r === "hr") return true;
     if (
-      ["/jobs", "/career-paths", "/knowledge", "/demo/settings"].includes(path)
+      ["/jobs", "/career-paths", "/knowledge", "/settings"].includes(path)
     )
       return true;
     if (r === "evaluator") return path === "/evaluations/inbox";
@@ -137,7 +135,7 @@ export class App {
   }
   changeRole(r: Role) {
     this.s.role.set(r);
-    this.s.notice.set("نقش نمایشی تغییر کرد؛ کنترل دسترسی واقعی نیست.");
+    this.s.notice.set("نقش فعال تغییر کرد.");
     const path = this.router.url;
     if (r === "evaluator") this.router.navigateByUrl("/evaluations/inbox");
     else if (r === "employee") this.router.navigateByUrl("/people/p1");

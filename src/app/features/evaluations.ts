@@ -21,7 +21,7 @@ import { Chart } from "../shared/chart";
                   : "ارزیابی چندمنبعی"
           }}
         </h1>
-        <p>پرسش‌های تألیفی و داده‌های ساختگی · نتیجه کمکی برای تصمیم انسانی</p>
+        <p>ارزیابی چندمنبعی شایستگی‌ها · نتایج پشتیبان تصمیم انسانی</p>
       </div>
       <a mat-button class="secondary" routerLink="/evaluations/cycles"
         >دوره‌های ارزیابی</a
@@ -90,7 +90,7 @@ import { Chart } from "../shared/chart";
       <div class="panel">
         <div class="filterbar">
           <mat-form-field appearance="outline"
-            ><mat-label>شخصیت ارزیاب نمایشی</mat-label><mat-select
+            ><mat-label>انتخاب ارزیاب</mat-label><mat-select
               [ngModel]="s.actor()"
               (ngModelChange)="s.actor.set($event); selected.set('')"
             >
@@ -210,7 +210,7 @@ import { Chart } from "../shared/chart";
           />
           <div class="table-wrap">
             <table mat-table [dataSource]="c.assignments" class="royesh-table">
- <ng-container matColumnDef="evaluator"><th mat-header-cell *matHeaderCellDef>ارزیاب ساختگی</th><td mat-cell *matCellDef="let a">{{ s.person(a.personId).name }}</td></ng-container>
+ <ng-container matColumnDef="evaluator"><th mat-header-cell *matHeaderCellDef>ارزیاب</th><td mat-cell *matCellDef="let a">{{ s.person(a.personId).name }}</td></ng-container>
  <ng-container matColumnDef="group"><th mat-header-cell *matHeaderCellDef>گروه</th><td mat-cell *matCellDef="let a">{{ groupLabel(a.group) }}</td></ng-container>
  <ng-container matColumnDef="state"><th mat-header-cell *matHeaderCellDef>وضعیت</th><td mat-cell *matCellDef="let a">{{ a.scores ? "ثبت‌شده" : "در انتظار پاسخ" }}</td></ng-container>
  <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>عملیات</th><td mat-cell *matCellDef="let a">
@@ -302,7 +302,7 @@ import { Chart } from "../shared/chart";
             ["feedback", "closed"].includes(c.status))
         ) {
           <div class="info">
-            روش پیشنهادی دمو: میانگین ساده گروه‌های قابل انتشار؛ گروه
+            روش محاسبه: میانگین ساده گروه‌های قابل انتشار؛ گروه
             هم‌سطح/زیردست با کمتر از دو پاسخ پنهان می‌شود. این مدل تأیید علمی یا
             قانون کارفرما نیست.
           </div>
@@ -336,7 +336,7 @@ import { Chart } from "../shared/chart";
  </table>
               <p class="report-note">
                 نقاط رشد: {{ growth() }}. نمره ۴ یا بالاتر صرفاً شاهد رفتاری
-                مثبت در داده نمونه است.
+                مثبت در داده‌های ارزیابی است.
               </p>
             </mat-card>
           </div>

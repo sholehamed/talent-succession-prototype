@@ -7,8 +7,8 @@ const permit =
   () => {
     const s = inject(Store);
     if (roles.includes(s.role())) return true;
-    s.notice.set("این بخش برای نقش فعلی دمو در دسترس نیست.");
-    return inject(Router).parseUrl("/demo/settings");
+    s.notice.set("این بخش برای نقش فعلی در دسترس نیست.");
+    return inject(Router).parseUrl("/settings");
   };
 const management: Role[] = ["hr", "manager", "executive"];
 export const routes: Routes = [
@@ -105,6 +105,7 @@ export const routes: Routes = [
     data: { reports: true },
     loadComponent: () => import("./features/dashboard"),
   },
-  { path: "demo/settings", loadComponent: () => import("./features/settings") },
+  { path: "settings", loadComponent: () => import("./features/settings") },
+  { path: "demo/settings", redirectTo: "settings" },
   { path: "**", loadComponent: () => import("./features/not-found") },
 ];

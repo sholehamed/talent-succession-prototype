@@ -14,7 +14,7 @@ import { Chart } from "../shared/chart";
           <h1>افراد و استعدادها</h1>
           <p>پروفایل یکپارچه، شواهد ارزیابی و مسیر توسعه</p>
         </div>
-        <span class="badge">{{ filtered().length | fa }} فرد ساختگی</span>
+        <span class="badge">{{ filtered().length | fa }} فرد</span>
       </div>
       <div class="panel">
         <div class="filterbar">
@@ -85,7 +85,7 @@ import { Chart } from "../shared/chart";
           <div class="stat">
             <span class="label">عملکرد فعلی</span
             ><strong style="font-size:23px">{{ bands[p.performance] }}</strong
-            ><small>منبع: سابقه عملکرد ساختگی</small>
+            ><small>منبع: سوابق عملکرد ثبت‌شده</small>
           </div>
           <div class="stat">
             <span class="label">پتانسیل رشد</span
@@ -185,7 +185,7 @@ import { Chart } from "../shared/chart";
           </mat-card>
         </div>
       } @else {
-        <div class="warning">این پروفایل در محدوده نقش نمایشی شما نیست.</div>
+        <div class="warning">این پروفایل در محدوده نقش فعلی شما نیست.</div>
       }
     } @else {
       <div class="empty">فرد موردنظر یافت نشد.</div>
