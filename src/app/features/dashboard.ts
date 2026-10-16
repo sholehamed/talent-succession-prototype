@@ -35,19 +35,19 @@ import { competencies } from "../core/models";
       </div>
     </div>
     <div class="chips">
-      <button
+      <button mat-button
         class="chip"
         [class.selected]="view() === 'hr'"
         (click)="view.set('hr')"
       >
         منابع انسانی</button
-      ><button
+      ><button mat-button
         class="chip"
         [class.selected]="view() === 'executive'"
         (click)="view.set('executive')"
       >
         مدیرعامل</button
-      ><button
+      ><button mat-button
         class="chip"
         [class.selected]="view() === 'unit'"
         (click)="view.set('unit'); unit.set('دفتر پروژه‌ها')"
@@ -56,27 +56,25 @@ import { competencies } from "../core/models";
       </button>
     </div>
     <div class="filterbar">
-      <label
-        >دوره ارزیابی و توسعه<select
+      <mat-form-field appearance="outline"
+        ><mat-label>دوره ارزیابی و توسعه</mat-label><mat-select
           [ngModel]="period()"
           (ngModelChange)="period.set($event)"
         >
-          <option value="1405-autumn">پاییز ۱۴۰۵</option>
-          <option value="1405-summer">تابستان ۱۴۰۵</option>
-          <option value="">همه دوره‌ها</option>
-        </select></label
-      ><label
-        >واحد سازمانی<select
+          <mat-option value="1405-autumn">پاییز ۱۴۰۵</mat-option>
+          <mat-option value="1405-summer">تابستان ۱۴۰۵</mat-option>
+          <mat-option value="">همه دوره‌ها</mat-option>
+        </mat-select></mat-form-field><mat-form-field appearance="outline"
+        ><mat-label>واحد سازمانی</mat-label><mat-select
           [ngModel]="unit()"
           (ngModelChange)="unit.set($event)"
           [disabled]="s.role() === 'manager'"
         >
-          <option value="">همه واحدها</option>
+          <mat-option value="">همه واحدها</mat-option>
           @for (u of s.units(); track u) {
-            <option>{{ u }}</option>
+            <mat-option [value]="u">{{ u }}</mat-option>
           }
-        </select></label
-      ><span class="muted" style="font-size:10px;margin-right:auto"
+        </mat-select></mat-form-field><span class="muted" style="font-size:10px;margin-right:auto"
         >● به‌روز از داده‌های همین مرورگر</span
       >
     </div>
@@ -126,7 +124,7 @@ import { competencies } from "../core/models";
       >
     </div>
     <div class="grid wide">
-      <section class="panel">
+      <mat-card class="panel">
         <div class="panel-head">
           <div>
             <h2>
@@ -153,8 +151,8 @@ import { competencies } from "../core/models";
           منبع: آخرین گزارش منتشرشده یا شواهد اولیه ساختگی؛ مستقل از فیلتر دوره
           فعالیت.
         </p>
-      </section>
-      <section class="panel">
+      </mat-card>
+      <mat-card class="panel">
         <div class="panel-head">
           <div>
             <h2>وضعیت چرخه ارزیابی</h2>
@@ -199,10 +197,10 @@ import { competencies } from "../core/models";
           <span class="grow">تکالیف باقی‌مانده</span
           ><strong>{{ assignmentCount() - responseCount() | fa }}</strong>
         </div>
-      </section>
+      </mat-card>
     </div>
     <div class="grid wide">
-      <section class="panel">
+      <mat-card class="panel">
         <div class="panel-head">
           <div>
             <h2>پیگیری برنامه‌های توسعه</h2>
@@ -255,8 +253,8 @@ import { competencies } from "../core/models";
             }
           </table>
         </div>
-      </section>
-      <section class="panel">
+      </mat-card>
+      <mat-card class="panel">
         <div class="panel-head">
           <div>
             <h2>نیازمند توجه</h2>
@@ -295,10 +293,10 @@ import { competencies } from "../core/models";
           <span class="grow">مشاهده‌های دانشی</span
           ><strong>{{ knowledgeViews() | fa }}</strong>
         </div>
-      </section>
+      </mat-card>
     </div>
     @if (reports) {
-      <section class="panel">
+      <mat-card class="panel">
         <h2>جدول منشأ شاخص‌ها و شکاف فردی</h2>
         <div class="table-wrap">
           <table>
@@ -330,7 +328,7 @@ import { competencies } from "../core/models";
             }
           </table>
         </div>
-      </section>
+      </mat-card>
       <div class="info">
         فرمول‌ها: پوشش شناسنامه = شغل دارای نسخه منتشرشده ÷ کل شغل؛ مشارکت =
         پاسخ ÷ تکلیف؛ توسعه = اقدام کامل ÷ کل اقدام؛ جانشینی = پست حیاتی با
