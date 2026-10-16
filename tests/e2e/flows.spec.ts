@@ -267,7 +267,7 @@ test("role restrictions, invalid ids and corrupted persistence fail gracefully",
   await page.evaluate(() => localStorage.setItem("royesh.demo.v1", "{broken"));
   await page.reload();
   await expect(page.locator("main")).toContainText(
-    "ذخیره مرورگر قابل خواندن نیست",
+    "اطلاعات مرورگر قابل خواندن نیست",
   );
   await nav(page, "/people/missing");
   await expect(page.locator("main")).toContainText("فرد موردنظر یافت نشد");
