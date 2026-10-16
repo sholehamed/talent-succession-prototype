@@ -18,22 +18,20 @@ import { UI } from "../shared/ui";
       </div>
       <div class="panel">
         <div class="filterbar">
-          <label class="search"
-            >جستجوی شغل<input
+          <mat-form-field appearance="outline" class="search"
+            ><mat-label>جستجوی شغل</mat-label><input matInput
               placeholder="عنوان یا کد شغل…"
               [ngModel]="search()"
-              (ngModelChange)="search.set($event)" /></label
-          ><label
-            >واحد سازمانی<select
+              (ngModelChange)="search.set($event)" /></mat-form-field><mat-form-field appearance="outline"
+            ><mat-label>واحد سازمانی</mat-label><mat-select
               [ngModel]="unit()"
               (ngModelChange)="unit.set($event)"
             >
-              <option value="">همه واحدها</option>
+              <mat-option value="">همه واحدها</mat-option>
               @for (u of s.units(); track u) {
-                <option>{{ u }}</option>
+                <mat-option [value]="u">{{ u }}</mat-option>
               }
-            </select></label
-          >
+            </mat-select></mat-form-field>
         </div>
         <div class="table-wrap">
           <table>
@@ -148,29 +146,24 @@ import { UI } from "../shared/ui";
         </div>
       }
       @if (editing() && draft) {
-        <section class="panel">
+        <mat-card class="panel">
           <h2>پیش‌نویس بازنگری</h2>
           <div class="form-grid">
-            <label>عنوان<input [(ngModel)]="draft.title" /></label
-            ><label>مالک محتوا<input [(ngModel)]="draft.owner" /></label
-            ><label>خانواده<input [(ngModel)]="draft.family" /></label
-            ><label>سطح<input [(ngModel)]="draft.level" /></label
-            ><label class="full"
-              >مأموریت<textarea [(ngModel)]="draft.mission"></textarea>
-            </label>
+            <mat-form-field appearance="outline"><mat-label>عنوان</mat-label><input matInput [(ngModel)]="draft.title" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مالک محتوا</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><mat-form-field appearance="outline"><mat-label>خانواده</mat-label><input matInput [(ngModel)]="draft.family" /></mat-form-field><mat-form-field appearance="outline"><mat-label>سطح</mat-label><input matInput [(ngModel)]="draft.level" /></mat-form-field><mat-form-field appearance="outline" class="full"
+              ><mat-label>مأموریت</mat-label><textarea matInput [(ngModel)]="draft.mission"></textarea></mat-form-field>
           </div>
           <div class="form-section">
             <h3>شایستگی‌ها — سطح ۱ تا ۵</h3>
             <div class="grid three">
               @for (c of competencies; track c; let i = $index) {
-                <label
-                  >{{ c
-                  }}<input
+                <mat-form-field appearance="outline"
+                  ><mat-label>{{ c
+                  }}</mat-label><input matInput
                     type="number"
                     min="1"
                     max="5"
                     [(ngModel)]="draft.expected[i]"
-                /></label>
+                /></mat-form-field>
               }
             </div>
           </div>
@@ -181,10 +174,9 @@ import { UI } from "../shared/ui";
             </div>
             @for (t of draft.tasks; track t.id) {
               <div class="form-grid">
-                <label>وظیفه<input [(ngModel)]="t.title" /></label
-                ><label
-                  >خروجی / شاخص نتیجه<input [(ngModel)]="t.output"
-                /></label>
+                <mat-form-field appearance="outline"><mat-label>وظیفه</mat-label><input matInput [(ngModel)]="t.title" /></mat-form-field><mat-form-field appearance="outline"
+                  ><mat-label>خروجی / شاخص نتیجه</mat-label><input matInput [(ngModel)]="t.output"
+                /></mat-form-field>
               </div>
             }
           </div>
@@ -196,30 +188,27 @@ import { UI } from "../shared/ui";
             @for (k of draft.kpis; track $index) {
               <div class="panel form-grid">
                 @for (field of kpiFields; track field.key) {
-                  <label
-                    >{{ field.label }}<input [(ngModel)]="k[field.key]"
-                  /></label>
+                  <mat-form-field appearance="outline"
+                    ><mat-label>{{ field.label }}</mat-label><input matInput [(ngModel)]="k[field.key]"
+                  /></mat-form-field>
                 }
               </div>
             }
           </div>
           <div class="form-grid">
-            <label
-              >مهارت‌ها<textarea [(ngModel)]="draft.skills"></textarea></label
-            ><label
-              >شرایط احراز<textarea
+            <mat-form-field appearance="outline"
+              ><mat-label>مهارت‌ها</mat-label><textarea matInput [(ngModel)]="draft.skills"></textarea></mat-form-field><mat-form-field appearance="outline"
+              ><mat-label>شرایط احراز</mat-label><textarea matInput
                 [(ngModel)]="draft.qualifications"
-              ></textarea></label
-            ><label class="full"
-              >HSE و حقوقی<textarea [(ngModel)]="draft.hse"></textarea>
-            </label>
+              ></textarea></mat-form-field><mat-form-field appearance="outline" class="full"
+              ><mat-label>HSE و حقوقی</mat-label><textarea matInput [(ngModel)]="draft.hse"></textarea></mat-form-field>
           </div>
           <div class="actions">
             <button mat-button class="primary" (click)="save()">
               ذخیره پیش‌نویس</button
             ><button mat-button (click)="editing.set(false)">انصراف</button>
           </div>
-        </section>
+        </mat-card>
       }
       <div class="panel">
         <mat-tab-group
