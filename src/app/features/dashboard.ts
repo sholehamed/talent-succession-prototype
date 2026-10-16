@@ -35,19 +35,19 @@ import { competencies } from "../core/models";
       </div>
     </div>
     <div class="chips">
-      <button
+      <button mat-button
         class="chip"
         [class.selected]="view() === 'hr'"
         (click)="view.set('hr')"
       >
         منابع انسانی</button
-      ><button
+      ><button mat-button
         class="chip"
         [class.selected]="view() === 'executive'"
         (click)="view.set('executive')"
       >
         مدیرعامل</button
-      ><button
+      ><button mat-button
         class="chip"
         [class.selected]="view() === 'unit'"
         (click)="view.set('unit'); unit.set('دفتر پروژه‌ها')"
@@ -56,27 +56,25 @@ import { competencies } from "../core/models";
       </button>
     </div>
     <div class="filterbar">
-      <label
-        >دوره ارزیابی و توسعه<select
+      <mat-form-field appearance="outline"
+        ><mat-label>دوره ارزیابی و توسعه</mat-label><mat-select
           [ngModel]="period()"
           (ngModelChange)="period.set($event)"
         >
-          <option value="1405-autumn">پاییز ۱۴۰۵</option>
-          <option value="1405-summer">تابستان ۱۴۰۵</option>
-          <option value="">همه دوره‌ها</option>
-        </select></label
-      ><label
-        >واحد سازمانی<select
+          <mat-option value="1405-autumn">پاییز ۱۴۰۵</mat-option>
+          <mat-option value="1405-summer">تابستان ۱۴۰۵</mat-option>
+          <mat-option value="">همه دوره‌ها</mat-option>
+        </mat-select></mat-form-field><mat-form-field appearance="outline"
+        ><mat-label>واحد سازمانی</mat-label><mat-select
           [ngModel]="unit()"
           (ngModelChange)="unit.set($event)"
           [disabled]="s.role() === 'manager'"
         >
-          <option value="">همه واحدها</option>
+          <mat-option value="">همه واحدها</mat-option>
           @for (u of s.units(); track u) {
-            <option>{{ u }}</option>
+            <mat-option [value]="u">{{ u }}</mat-option>
           }
-        </select></label
-      ><span class="muted" style="font-size:10px;margin-right:auto"
+        </mat-select></mat-form-field><span class="muted" style="font-size:10px;margin-right:auto"
         >● به‌روز از داده‌های همین مرورگر</span
       >
     </div>
@@ -126,7 +124,7 @@ import { competencies } from "../core/models";
       >
     </div>
     <div class="grid wide">
-      <section class="panel">
+      <mat-card class="panel">
         <div class="panel-head">
           <div>
             <h2>
@@ -153,8 +151,8 @@ import { competencies } from "../core/models";
           منبع: آخرین گزارش منتشرشده یا شواهد اولیه ساختگی؛ مستقل از فیلتر دوره
           فعالیت.
         </p>
-      </section>
-      <section class="panel">
+      </mat-card>
+      <mat-card class="panel">
         <div class="panel-head">
           <div>
             <h2>وضعیت چرخه ارزیابی</h2>
@@ -199,10 +197,10 @@ import { competencies } from "../core/models";
           <span class="grow">تکالیف باقی‌مانده</span
           ><strong>{{ assignmentCount() - responseCount() | fa }}</strong>
         </div>
-      </section>
+      </mat-card>
     </div>
     <div class="grid wide">
-      <section class="panel">
+      <mat-card class="panel">
         <div class="panel-head">
           <div>
             <h2>پیگیری برنامه‌های توسعه</h2>
@@ -213,50 +211,22 @@ import { competencies } from "../core/models";
           >
         </div>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>فرد / شغل هدف</th>
-              <th>اقدام تکمیل‌شده</th>
-              <th>پیشرفت</th>
-              <th>جزئیات</th>
-            </tr>
-            @for (p of plans().slice(0, 5); track p.id) {
-              <tr>
-                <td>
-                  <div class="person-cell">
-                    <span class="avatar small">{{
-                      s.person(p.personId).name.slice(0, 1)
-                    }}</span>
-                    <div>
-                      {{ s.person(p.personId).name
-                      }}<small>{{ s.job(p.jobId).title }}</small>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  {{ completed(p.id) | fa }} از {{ p.actions.length | fa }}
-                </td>
-                <td>
-                  <div class="progress-cell">
-                    <div class="bar">
-                      <span [style.width.%]="s.progress(p)"></span>
-                    </div>
-                    {{ s.progress(p) | fa }}٪
-                  </div>
-                </td>
-                <td><a [routerLink]="['/development/idp', p.id]">←</a></td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="4" class="empty">
-                  برنامه‌ای برای این دوره و واحد ثبت نشده است.
-                </td>
-              </tr>
-            }
-          </table>
+          <table mat-table [dataSource]="plans().slice(0, 5)" class="royesh-table">
+ <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>فرد / شغل هدف</th><td mat-cell *matCellDef="let p">
+   <div class="person-cell"><span class="avatar small">{{ s.person(p.personId).name.slice(0, 1) }}</span>
+    <div>{{ s.person(p.personId).name }}<small>{{ s.job(p.jobId).title }}</small></div></div>
+ </td></ng-container>
+ <ng-container matColumnDef="done"><th mat-header-cell *matHeaderCellDef>اقدام تکمیل‌شده</th><td mat-cell *matCellDef="let p">{{ completed(p.id) | fa }} از {{ p.actions.length | fa }}</td></ng-container>
+ <ng-container matColumnDef="progress"><th mat-header-cell *matHeaderCellDef>پیشرفت</th><td mat-cell *matCellDef="let p">
+  <div class="progress-cell"><div class="bar"><span [style.width.%]="s.progress(p)"></span></div>{{ s.progress(p) | fa }}٪</div>
+ </td></ng-container>
+ <ng-container matColumnDef="link"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/development/idp', p.id]">پیگیری ←</a></td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="developmentColumns"></tr><tr mat-row *matRowDef="let row; columns: developmentColumns"></tr>
+ </table>
+ @if (!plans().length) { <div class="empty">برنامه‌ای برای این دوره و واحد ثبت نشده است.</div> }
         </div>
-      </section>
-      <section class="panel">
+      </mat-card>
+      <mat-card class="panel">
         <div class="panel-head">
           <div>
             <h2>نیازمند توجه</h2>
@@ -295,42 +265,26 @@ import { competencies } from "../core/models";
           <span class="grow">مشاهده‌های دانشی</span
           ><strong>{{ knowledgeViews() | fa }}</strong>
         </div>
-      </section>
+      </mat-card>
     </div>
     @if (reports) {
-      <section class="panel">
+      <mat-card class="panel">
         <h2>جدول منشأ شاخص‌ها و شکاف فردی</h2>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>فرد</th>
-              <th>واحد</th>
-              @for (c of competencies; track c) {
-                <th>{{ c }}</th>
-              }
-              <th>منشأ</th>
-            </tr>
-            @for (p of people(); track p.id) {
-              <tr>
-                <td>
-                  <a [routerLink]="['/people', p.id]">{{ p.name }}</a>
-                </td>
-                <td>{{ p.unit }}</td>
-                @for (g of s.gaps(p.id, p.jobId); track $index) {
-                  <td
-                    [style.background]="
-                      g > 1 ? '#fff4df' : g > 0 ? '#f4f8ed' : '#ecf7f2'
-                    "
-                  >
-                    {{ g | fa }}
-                  </td>
-                }
-                <td>گزارش منتشرشده / شواهد نمونه</td>
-              </tr>
-            }
-          </table>
+          <table mat-table [dataSource]="people()" class="royesh-table">
+ <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>فرد</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/people', p.id]">{{ p.name }}</a></td></ng-container>
+ <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>واحد</th><td mat-cell *matCellDef="let p">{{ p.unit }}</td></ng-container>
+ @for (comp of competencies; track comp; let i = $index) {
+  <ng-container [matColumnDef]="'gap' + i"><th mat-header-cell *matHeaderCellDef>{{ comp }}</th>
+  <td mat-cell *matCellDef="let p" [style.background]="s.gaps(p.id, p.jobId)[i] > 1 ? '#fff4df' : s.gaps(p.id, p.jobId)[i] > 0 ? '#f4f8ed' : '#ecf7f2'">
+    {{ s.gaps(p.id, p.jobId)[i] | fa }}
+  </td></ng-container>
+ }
+ <ng-container matColumnDef="source"><th mat-header-cell *matHeaderCellDef>منشأ</th><td mat-cell *matCellDef="let p">گزارش منتشرشده / شواهد نمونه</td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="gapColumns"></tr><tr mat-row *matRowDef="let row; columns: gapColumns"></tr>
+ </table>
         </div>
-      </section>
+      </mat-card>
       <div class="info">
         فرمول‌ها: پوشش شناسنامه = شغل دارای نسخه منتشرشده ÷ کل شغل؛ مشارکت =
         پاسخ ÷ تکلیف؛ توسعه = اقدام کامل ÷ کل اقدام؛ جانشینی = پست حیاتی با
@@ -340,6 +294,8 @@ import { competencies } from "../core/models";
 })
 export default class Dashboard {
   s = inject(Store);
+  readonly developmentColumns = ["person","done","progress","link"];
+  readonly gapColumns = ["person","unit",...competencies.map((_, i) => "gap" + i),"source"];
   route = inject(ActivatedRoute);
   reports = !!this.route.snapshot.data["reports"];
   view = signal(this.route.snapshot.paramMap.get("view") ?? "hr");

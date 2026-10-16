@@ -18,64 +18,32 @@ import { UI } from "../shared/ui";
       </div>
       <div class="panel">
         <div class="filterbar">
-          <label class="search"
-            >جستجوی شغل<input
+          <mat-form-field appearance="outline" class="search"
+            ><mat-label>جستجوی شغل</mat-label><input matInput
               placeholder="عنوان یا کد شغل…"
               [ngModel]="search()"
-              (ngModelChange)="search.set($event)" /></label
-          ><label
-            >واحد سازمانی<select
+              (ngModelChange)="search.set($event)" /></mat-form-field><mat-form-field appearance="outline"
+            ><mat-label>واحد سازمانی</mat-label><mat-select
               [ngModel]="unit()"
               (ngModelChange)="unit.set($event)"
             >
-              <option value="">همه واحدها</option>
+              <mat-option value="">همه واحدها</mat-option>
               @for (u of s.units(); track u) {
-                <option>{{ u }}</option>
+                <mat-option [value]="u">{{ u }}</mat-option>
               }
-            </select></label
-          >
+            </mat-select></mat-form-field>
         </div>
         <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>عنوان شغل</th>
-                <th>خانواده / واحد</th>
-                <th>نسخه</th>
-                <th>وضعیت بازنگری</th>
-                <th>آخرین بازنگری</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (j of filtered(); track j.id) {
-                <tr>
-                  <td>
-                    <strong>{{ j.title }}</strong
-                    ><small style="display:block">{{ j.code }}</small>
-                  </td>
-                  <td>
-                    {{ j.family
-                    }}<small style="display:block">{{ j.unit }}</small>
-                  </td>
-                  <td>{{ j.version | fa }}</td>
-                  <td>
-                    <span class="badge" [class]="'badge ' + j.review">{{
-                      j.review | status
-                    }}</span>
-                  </td>
-                  <td>{{ j.revised | faDate }}</td>
-                  <td>
-                    <a [routerLink]="['/jobs', j.id]">مشاهده شناسنامه ←</a>
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="6" class="empty">شغلی با این فیلتر یافت نشد.</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+          <table mat-table [dataSource]="filtered()" class="royesh-table">
+ <ng-container matColumnDef="title"><th mat-header-cell *matHeaderCellDef>عنوان شغل</th><td mat-cell *matCellDef="let j"><strong>{{ j.title }}</strong><small style="display:block">{{ j.code }}</small></td></ng-container>
+ <ng-container matColumnDef="family"><th mat-header-cell *matHeaderCellDef>خانواده / واحد</th><td mat-cell *matCellDef="let j">{{ j.family }}<small style="display:block">{{ j.unit }}</small></td></ng-container>
+ <ng-container matColumnDef="version"><th mat-header-cell *matHeaderCellDef>نسخه</th><td mat-cell *matCellDef="let j">{{ j.version | fa }}</td></ng-container>
+ <ng-container matColumnDef="review"><th mat-header-cell *matHeaderCellDef>وضعیت بازنگری</th><td mat-cell *matCellDef="let j"><span class="badge" [class]="'badge ' + j.review">{{ j.review | status }}</span></td></ng-container>
+ <ng-container matColumnDef="revised"><th mat-header-cell *matHeaderCellDef>آخرین بازنگری</th><td mat-cell *matCellDef="let j">{{ j.revised | faDate }}</td></ng-container>
+ <ng-container matColumnDef="link"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let j"><a mat-button [routerLink]="['/jobs', j.id]">مشاهده شناسنامه ←</a></td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="jobColumns"></tr><tr mat-row *matRowDef="let row; columns: jobColumns"></tr>
+ </table>
+ @if (!filtered().length) { <div class="empty">شغلی با این فیلتر یافت نشد.</div> }
         </div>
       </div>
     } @else if (job(); as j) {
@@ -148,29 +116,24 @@ import { UI } from "../shared/ui";
         </div>
       }
       @if (editing() && draft) {
-        <section class="panel">
+        <mat-card class="panel">
           <h2>پیش‌نویس بازنگری</h2>
           <div class="form-grid">
-            <label>عنوان<input [(ngModel)]="draft.title" /></label
-            ><label>مالک محتوا<input [(ngModel)]="draft.owner" /></label
-            ><label>خانواده<input [(ngModel)]="draft.family" /></label
-            ><label>سطح<input [(ngModel)]="draft.level" /></label
-            ><label class="full"
-              >مأموریت<textarea [(ngModel)]="draft.mission"></textarea>
-            </label>
+            <mat-form-field appearance="outline"><mat-label>عنوان</mat-label><input matInput [(ngModel)]="draft.title" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مالک محتوا</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><mat-form-field appearance="outline"><mat-label>خانواده</mat-label><input matInput [(ngModel)]="draft.family" /></mat-form-field><mat-form-field appearance="outline"><mat-label>سطح</mat-label><input matInput [(ngModel)]="draft.level" /></mat-form-field><mat-form-field appearance="outline" class="full"
+              ><mat-label>مأموریت</mat-label><textarea matInput [(ngModel)]="draft.mission"></textarea></mat-form-field>
           </div>
           <div class="form-section">
             <h3>شایستگی‌ها — سطح ۱ تا ۵</h3>
             <div class="grid three">
               @for (c of competencies; track c; let i = $index) {
-                <label
-                  >{{ c
-                  }}<input
+                <mat-form-field appearance="outline"
+                  ><mat-label>{{ c
+                  }}</mat-label><input matInput
                     type="number"
                     min="1"
                     max="5"
                     [(ngModel)]="draft.expected[i]"
-                /></label>
+                /></mat-form-field>
               }
             </div>
           </div>
@@ -181,10 +144,9 @@ import { UI } from "../shared/ui";
             </div>
             @for (t of draft.tasks; track t.id) {
               <div class="form-grid">
-                <label>وظیفه<input [(ngModel)]="t.title" /></label
-                ><label
-                  >خروجی / شاخص نتیجه<input [(ngModel)]="t.output"
-                /></label>
+                <mat-form-field appearance="outline"><mat-label>وظیفه</mat-label><input matInput [(ngModel)]="t.title" /></mat-form-field><mat-form-field appearance="outline"
+                  ><mat-label>خروجی / شاخص نتیجه</mat-label><input matInput [(ngModel)]="t.output"
+                /></mat-form-field>
               </div>
             }
           </div>
@@ -196,30 +158,27 @@ import { UI } from "../shared/ui";
             @for (k of draft.kpis; track $index) {
               <div class="panel form-grid">
                 @for (field of kpiFields; track field.key) {
-                  <label
-                    >{{ field.label }}<input [(ngModel)]="k[field.key]"
-                  /></label>
+                  <mat-form-field appearance="outline"
+                    ><mat-label>{{ field.label }}</mat-label><input matInput [(ngModel)]="k[field.key]"
+                  /></mat-form-field>
                 }
               </div>
             }
           </div>
           <div class="form-grid">
-            <label
-              >مهارت‌ها<textarea [(ngModel)]="draft.skills"></textarea></label
-            ><label
-              >شرایط احراز<textarea
+            <mat-form-field appearance="outline"
+              ><mat-label>مهارت‌ها</mat-label><textarea matInput [(ngModel)]="draft.skills"></textarea></mat-form-field><mat-form-field appearance="outline"
+              ><mat-label>شرایط احراز</mat-label><textarea matInput
                 [(ngModel)]="draft.qualifications"
-              ></textarea></label
-            ><label class="full"
-              >HSE و حقوقی<textarea [(ngModel)]="draft.hse"></textarea>
-            </label>
+              ></textarea></mat-form-field><mat-form-field appearance="outline" class="full"
+              ><mat-label>HSE و حقوقی</mat-label><textarea matInput [(ngModel)]="draft.hse"></textarea></mat-form-field>
           </div>
           <div class="actions">
             <button mat-button class="primary" (click)="save()">
               ذخیره پیش‌نویس</button
             ><button mat-button (click)="editing.set(false)">انصراف</button>
           </div>
-        </section>
+        </mat-card>
       }
       <div class="panel">
         <mat-tab-group
@@ -255,28 +214,13 @@ import { UI } from "../shared/ui";
             </div></mat-tab
           ><mat-tab label="KPI"
             ><div class="section-body table-wrap">
-              <table>
-                <tr>
-                  <th>شاخص / تعریف</th>
-                  <th>فرمول</th>
-                  <th>واحد / تناوب</th>
-                  <th>منبع / مالک</th>
-                </tr>
-                @for (k of j.kpis; track k.title) {
-                  <tr>
-                    <td>
-                      {{ k.title
-                      }}<small style="display:block">{{ k.definition }}</small>
-                    </td>
-                    <td>{{ k.formula }}</td>
-                    <td>{{ k.unit }} / {{ k.frequency }}</td>
-                    <td>
-                      {{ k.source
-                      }}<small style="display:block">{{ k.owner }}</small>
-                    </td>
-                  </tr>
-                }
-              </table>
+              <table mat-table [dataSource]="j.kpis" class="royesh-table">
+ <ng-container matColumnDef="metric"><th mat-header-cell *matHeaderCellDef>شاخص / تعریف</th><td mat-cell *matCellDef="let k">{{ k.title }}<small style="display:block">{{ k.definition }}</small></td></ng-container>
+ <ng-container matColumnDef="formula"><th mat-header-cell *matHeaderCellDef>فرمول</th><td mat-cell *matCellDef="let k">{{ k.formula }}</td></ng-container>
+ <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>واحد / تناوب</th><td mat-cell *matCellDef="let k">{{ k.unit }} / {{ k.frequency }}</td></ng-container>
+ <ng-container matColumnDef="source"><th mat-header-cell *matHeaderCellDef>منبع / مالک</th><td mat-cell *matCellDef="let k">{{ k.source }}<small style="display:block">{{ k.owner }}</small></td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="kpiColumns"></tr><tr mat-row *matRowDef="let row; columns: kpiColumns"></tr>
+ </table>
             </div></mat-tab
           ><mat-tab label="شایستگی‌ها"
             ><div class="section-body">
@@ -358,6 +302,8 @@ import { UI } from "../shared/ui";
 })
 export default class Jobs {
   s = inject(Store);
+  readonly jobColumns = ["title","family","version","review","revised","link"];
+  readonly kpiColumns = ["metric","formula","unit","source"];
   id = input<string>();
   search = signal("");
   unit = signal("");

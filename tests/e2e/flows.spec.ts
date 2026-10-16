@@ -1,5 +1,13 @@
 import { test, expect, Page } from "@playwright/test";
-const role = async (p: Page, r: string) => p.locator("#role").selectOption(r);
+const roleLabels: Record<string, string> = {
+  hr: "کارشناس منابع انسانی", executive: "مدیرعامل", manager: "مدیر واحد",
+  owner: "مالک خانواده شغلی", evaluator: "ارزیاب", employee: "کارمند"
+};
+const selectMaterial = async (p: Page, label: string, option: string) => {
+  await p.getByRole("combobox", { name: label }).click();
+  await p.getByRole("option", { name: option, exact: true }).click();
+};
+const role = async (p: Page, r: string) => selectMaterial(p, "نقش دمو", roleLabels[r]);
 const nav = async (p: Page, url: string) => {
   await p.goto(url);
   await expect(p.locator("app-root")).not.toBeEmpty();
@@ -59,6 +67,26 @@ test("all main routes render, RTL, lazy charts and responsive layout", async ({
   });
   expect(errors).toEqual([]);
 });
+test("Material sidenav collapses cleanly and opens mobile navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await nav(page, "/dashboard/hr");
+  const content = page.locator("mat-sidenav-content");
+  const before = await content.boundingBox();
+  await page.getByRole("button", { name: "نمایش منو" }).click();
+  await expect(page.locator("mat-sidenav-container")).toHaveClass(/collapsed/);
+  await expect(page.locator("mat-sidenav .nav-item .nav-icon").first()).toBeVisible();
+  await expect(page.locator("mat-sidenav .nav-item .nav-arrow").first()).toBeHidden();
+  await expect.poll(async () => (await content.boundingBox())?.width ?? 0)
+    .toBeGreaterThan((before?.width ?? 0) + 90);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("mat-sidenav")).not.toHaveClass(/mat-drawer-opened/);
+  await page.getByRole("button", { name: "نمایش منو" }).click();
+  await expect(page.locator("mat-sidenav")).toHaveClass(/mat-drawer-opened/);
+  await page.locator("mat-sidenav a.nav-item").filter({ hasText: "شناسنامه‌های شغلی" }).click();
+  await expect(page).toHaveURL(/\/jobs$/);
+  await expect(page.locator("mat-sidenav")).not.toHaveClass(/mat-drawer-opened/);
+});
+
 test("job approval preserves publication until approved and persists", async ({
   page,
 }) => {
@@ -98,10 +126,13 @@ test("full evaluation, calibration, IDP and shared progress", async ({
     .getByRole("button", { name: "ورود به نقش ارزیاب و کارتابل" })
     .click();
   for (const person of ["p2", "p3", "p4", "p5", "p6", "p7"]) {
-    await page.getByLabel("شخصیت ارزیاب نمایشی").selectOption(person);
-    await page
-      .getByRole("button", { name: "تکمیل پرسشنامه", exact: true })
-      .click();
+    await selectMaterial(page, "شخصیت ارزیاب نمایشی", ({
+      p2: "سارا مهر", p3: "نیما روشن", p4: "مهسا سپهر",
+      p5: "علی پارسا", p6: "نازنین آذر", p7: "کیان نیک"
+    } as Record<string,string>)[person]);
+    const pending = page.getByRole("button", { name: "تکمیل پرسشنامه", exact: true });
+    await expect(pending).toBeVisible();
+    await pending.click();
     if (person === "p2") {
       await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
       await expect(page.getByRole("status")).toContainText("پنج سؤال");
@@ -134,7 +165,7 @@ test("full evaluation, calibration, IDP and shared progress", async ({
     .getByRole("button", { name: "ایجاد / مشاهده برنامه توسعه سه‌اقدامی" })
     .click();
   await page.getByRole("button", { name: "ویرایش و پیگیری" }).first().click();
-  await page.getByRole("combobox", { name: "وضعیت", exact: true }).selectOption("completed");
+  await selectMaterial(page, "وضعیت", "انجام‌شده");
   await page.getByRole("button", { name: "ذخیره اقدام", exact: true }).click();
   await expect(page.locator("main")).toContainText("۳۳٪");
   await page.reload();
@@ -187,7 +218,7 @@ test("human readiness changes dashboard; filters, mock sync and reset work", asy
     .getByRole("button", { name: "ثبت نظر آمادگی", exact: true })
     .first()
     .click();
-  await page.getByLabel("آمادگی برای همین پست").selectOption("A");
+  await selectMaterial(page, "آمادگی برای همین پست", "A — اکنون آماده");
   await page
     .getByLabel("شواهد و نظر بررسی‌کننده")
     .fill("جلسه انسانی و شواهد پروژه نمونه بررسی شد");
@@ -197,7 +228,7 @@ test("human readiness changes dashboard; filters, mock sync and reset work", asy
   await expect(page.locator("main")).toContainText("دارای نامزد با آمادگی A");
   await nav(page, "/dashboard/hr");
   await expect(page.locator(".stat").nth(3)).toContainText("۴۰");
-  await page.getByLabel("دوره ارزیابی و توسعه").selectOption("1405-summer");
+  await selectMaterial(page, "دوره ارزیابی و توسعه", "تابستان ۱۴۰۵");
   await expect(page.locator(".stat").nth(2)).toContainText("۰");
   await nav(page, "/demo/settings");
   await page.getByRole("button", { name: "اجرای همگام‌سازی Mock" }).click();
@@ -224,4 +255,17 @@ test("role restrictions, invalid ids and corrupted persistence fail gracefully",
   );
   await nav(page, "/people/missing");
   await expect(page.locator("main")).toContainText("فرد موردنظر یافت نشد");
+});
+
+test("Material datepicker writes an ISO day into the existing IDP model", async ({ page }) => {
+  await nav(page, "/development/idp/d1");
+  await page.getByRole("button", { name: "ویرایش و پیگیری" }).first().click();
+  await expect(page.locator("app-date-field mat-datepicker-toggle")).toBeVisible();
+  await page.locator("app-date-field mat-datepicker-toggle button").click();
+  await expect(page.locator("mat-datepicker-content")).toBeVisible();
+  await page.locator("mat-datepicker-content .mat-calendar-body-cell").first().click();
+  await page.getByRole("button", { name: "ذخیره اقدام" }).click();
+  const due = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!)
+    .plans.find((p: any) => p.id === "d1").actions[0].due);
+  expect(due).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 });

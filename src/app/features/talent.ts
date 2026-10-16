@@ -35,17 +35,16 @@ import { Chart } from "../shared/chart";
     @if (nine) {
       <div class="panel">
         <div class="filterbar">
-          <label
-            >واحد سازمانی<select
+          <mat-form-field appearance="outline"
+            ><mat-label>واحد سازمانی</mat-label><mat-select
               [ngModel]="unit()"
               (ngModelChange)="unit.set($event)"
             >
-              <option value="">همه واحدها</option>
+              <mat-option value="">همه واحدها</mat-option>
               @for (u of s.units(); track u) {
-                <option>{{ u }}</option>
+                <mat-option [value]="u">{{ u }}</mat-option>
               }
-            </select></label
-          ><button mat-button (click)="cell.set('')">نمایش همه افراد</button>
+            </mat-select></mat-form-field><button mat-button (click)="cell.set('')">نمایش همه افراد</button>
         </div>
         <p style="margin-bottom:12px">
           ↑ پتانسیل رشد · عملکرد از چپ به راست افزایش می‌یابد →
@@ -53,7 +52,7 @@ import { Chart } from "../shared/chart";
         <div class="nine-grid">
           @for (y of ys; track y) {
             @for (x of xs; track x) {
-              <button
+              <button mat-button
                 class="nine-cell"
                 [class.active]="cell() === x + '-' + y"
                 (click)="cell.set(x + '-' + y)"
@@ -65,50 +64,34 @@ import { Chart } from "../shared/chart";
           }
         </div>
       </div>
-      <section class="panel">
+      <mat-card class="panel">
         <h2>افراد خانه انتخاب‌شده</h2>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>فرد</th>
-              <th>واحد</th>
-              <th>عملکرد</th>
-              <th>پتانسیل</th>
-              <th>شواهد</th>
-            </tr>
-            @for (p of selectedPeople(); track p.id) {
-              <tr>
-                <td>
-                  <a [routerLink]="['/people', p.id]">{{ p.name }}</a>
-                </td>
-                <td>{{ p.unit }}</td>
-                <td>{{ bands[p.performance] }}</td>
-                <td>{{ bands[p.potential] }}</td>
-                <td>{{ p.evidence }}</td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="5" class="empty">فردی در این خانه نیست.</td>
-              </tr>
-            }
-          </table>
+          <table mat-table [dataSource]="selectedPeople()" class="royesh-table">
+ <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>فرد</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/people', p.id]">{{ p.name }}</a></td></ng-container>
+ <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>واحد</th><td mat-cell *matCellDef="let p">{{ p.unit }}</td></ng-container>
+ <ng-container matColumnDef="performance"><th mat-header-cell *matHeaderCellDef>عملکرد</th><td mat-cell *matCellDef="let p">{{ bandLabel(p.performance) }}</td></ng-container>
+ <ng-container matColumnDef="potential"><th mat-header-cell *matHeaderCellDef>پتانسیل</th><td mat-cell *matCellDef="let p">{{ bandLabel(p.potential) }}</td></ng-container>
+ <ng-container matColumnDef="evidence"><th mat-header-cell *matHeaderCellDef>شواهد</th><td mat-cell *matCellDef="let p">{{ p.evidence }}</td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="talentColumns"></tr><tr mat-row *matRowDef="let row; columns: talentColumns"></tr>
+ </table>
+ @if (!selectedPeople().length) {<div class="empty">فردی در این خانه نیست.</div>}
         </div>
-      </section>
+      </mat-card>
     } @else {
-      <section class="panel">
+      <mat-card class="panel">
         <div class="filterbar">
-          <label class="search"
-            >پست حیاتی<select
+          <mat-form-field appearance="outline" class="search"
+            ><mat-label>پست حیاتی</mat-label><mat-select
               [ngModel]="positionId()"
               (ngModelChange)="
                 positionId.set($event); draft = undefined; compare.set([])
               "
             >
               @for (p of critical(); track p.id) {
-                <option [value]="p.id">{{ p.title }}</option>
+                <mat-option [value]="p.id">{{ p.title }}</mat-option>
               }
-            </select></label
-          >
+            </mat-select></mat-form-field>
         </div>
         @if (position(); as p) {
           <div class="grid three">
@@ -138,10 +121,10 @@ import { Chart } from "../shared/chart";
             </div>
           </div>
         }
-      </section>
+      </mat-card>
       <div class="grid three">
         @for (n of nominations(); track n.id) {
-          <section class="panel">
+          <mat-card class="panel">
             <div class="panel-head">
               <div class="person-cell">
                 <span class="avatar">{{
@@ -183,13 +166,13 @@ import { Chart } from "../shared/chart";
                 <button mat-button (click)="edit(n)">ثبت نظر آمادگی</button>
               }
             </div>
-          </section>
+          </mat-card>
         } @empty {
           <div class="panel empty">برای این پست نامزدی ثبت نشده است.</div>
         }
       </div>
       @if (compare().length) {
-        <section class="panel">
+        <mat-card class="panel">
           <h2>مقایسه شواهد شایستگی با شغل هدف</h2>
           @defer (on viewport) {
             <app-chart
@@ -209,34 +192,31 @@ import { Chart } from "../shared/chart";
               >
             }
           </div>
-        </section>
+        </mat-card>
       }
       @if (s.editable()) {
-        <section class="panel">
+        <mat-card class="panel">
           <div class="panel-head">
             <h2>ثبت نامزد و نظر انسانی</h2>
             <button mat-button (click)="newNomination()">+ نامزد جدید</button>
           </div>
           @if (draft) {
             <div class="form-grid">
-              <label
-                >فرد<select [(ngModel)]="draft.personId">
+              <mat-form-field appearance="outline"
+                ><mat-label>فرد</mat-label><mat-select [(ngModel)]="draft.personId">
                   @for (p of s.state().people; track p.id) {
-                    <option [value]="p.id">{{ p.name }}</option>
+                    <mat-option [value]="p.id">{{ p.name }}</mat-option>
                   }
-                </select></label
-              ><label
-                >آمادگی برای همین پست<select [(ngModel)]="draft.readiness">
-                  <option value="A">A — اکنون آماده</option>
-                  <option value="B">B — طی ۶ تا ۱۸ ماه</option>
-                  <option value="C">C — بیش از ۱۸ ماه</option>
-                </select></label
-              ><label class="full"
-                >شواهد و نظر بررسی‌کننده<textarea
+                </mat-select></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>آمادگی برای همین پست</mat-label><mat-select [(ngModel)]="draft.readiness">
+                  <mat-option value="A">A — اکنون آماده</mat-option>
+                  <mat-option value="B">B — طی ۶ تا ۱۸ ماه</mat-option>
+                  <mat-option value="C">C — بیش از ۱۸ ماه</mat-option>
+                </mat-select></mat-form-field><mat-form-field appearance="outline" class="full"
+                ><mat-label>شواهد و نظر بررسی‌کننده</mat-label><textarea matInput
                   [(ngModel)]="draft.evidence"
                   placeholder="تجربه، بازخورد، ملاحظات و دلیل تصمیم…"
-                ></textarea>
-              </label>
+                ></textarea></mat-form-field>
             </div>
             <button mat-button class="primary" (click)="save()">
               ثبت نظر انسانی
@@ -247,12 +227,14 @@ import { Chart } from "../shared/chart";
               پست آمادگی متفاوت داشته باشد.
             </p>
           }
-        </section>
+        </mat-card>
       }
     }`,
 })
 export default class Talent {
   s = inject(Store);
+  readonly talentColumns = ["person","unit","performance","potential","evidence"];
+  bandLabel(value: string) { return bands[value as Band] ?? "—"; }
   route = inject(ActivatedRoute);
   nine = !!this.route.snapshot.data["nine"];
   unit = signal("");

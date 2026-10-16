@@ -38,85 +38,66 @@ import { UI } from "../shared/ui";
       </div>
     </div>
     @if (editor) {
-      <section class="panel">
+      <mat-card class="panel">
         <div class="form-grid">
-          <label class="full"
-            >عنوان<input
+          <mat-form-field appearance="outline" class="full"
+            ><mat-label>عنوان</mat-label><input matInput
               [(ngModel)]="draft.title"
-              placeholder="عنوان تجربه یا راهنما" /></label
-          ><label
-            >نوع محتوا<select
+              placeholder="عنوان تجربه یا راهنما" /></mat-form-field><mat-form-field appearance="outline"
+            ><mat-label>نوع محتوا</mat-label><mat-select
               [(ngModel)]="draft.kind"
               (ngModelChange)="kindChanged()"
             >
-              <option>AAR</option>
-              <option>چک‌لیست</option>
-              <option>راهنما</option>
-              <option>پرسش و پاسخ</option>
-              <option>الگو / فرم</option>
-            </select></label
-          ><label
-            >شغل مرتبط<select
+              <mat-option [value]="'AAR'">AAR</mat-option>
+              <mat-option [value]="'چک‌لیست'">چک‌لیست</mat-option>
+              <mat-option [value]="'راهنما'">راهنما</mat-option>
+              <mat-option [value]="'پرسش و پاسخ'">پرسش و پاسخ</mat-option>
+              <mat-option [value]="'الگو / فرم'">الگو / فرم</mat-option>
+            </mat-select></mat-form-field><mat-form-field appearance="outline"
+            ><mat-label>شغل مرتبط</mat-label><mat-select
               [(ngModel)]="draft.jobId"
               (ngModelChange)="draft.taskId = s.job(draft.jobId).tasks[0].id"
             >
               @for (j of s.state().jobs; track j.id) {
-                <option [value]="j.id">{{ j.title }}</option>
+                <mat-option [value]="j.id">{{ j.title }}</mat-option>
               }
-            </select></label
-          ><label
-            >وظیفه مرتبط<select [(ngModel)]="draft.taskId">
+            </mat-select></mat-form-field><mat-form-field appearance="outline"
+            ><mat-label>وظیفه مرتبط</mat-label><mat-select [(ngModel)]="draft.taskId">
               @for (t of s.job(draft.jobId).tasks; track t.id) {
-                <option [value]="t.id">{{ t.title }}</option>
+                <mat-option [value]="t.id">{{ t.title }}</mat-option>
               }
-            </select></label
-          ><label>کلیدواژه‌ها<input [(ngModel)]="draft.tags" /></label
-          ><label>صاحب محتوا<input [(ngModel)]="draft.owner" /></label
-          ><label
-            >تاریخ بازنگری (ورودی میلادی)<input
-              type="date"
-              [(ngModel)]="draft.revision" /></label
-          ><label
-            >سطح دسترسی<select [(ngModel)]="draft.access">
-              <option>داخلی</option>
-              <option>واحد مرتبط</option>
-            </select></label
-          ><label
-            >پیوست متنی نمایشی<input
-              type="file"
-              accept=".txt,.md"
-              (change)="attach($event)"
-            /><small>فقط متن تا ۵۰ کیلوبایت؛ داده ساختگی</small></label
-          ><label class="full"
-            >شرح محتوا<textarea [(ngModel)]="draft.body"></textarea>
-          </label>
+            </mat-select></mat-form-field><mat-form-field appearance="outline"><mat-label>کلیدواژه‌ها</mat-label><input matInput [(ngModel)]="draft.tags" /></mat-form-field><mat-form-field appearance="outline"><mat-label>صاحب محتوا</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><app-date-field
+             label="تاریخ بازنگری (ورودی میلادی)" [(ngModel)]="draft.revision" /><mat-form-field appearance="outline"
+            ><mat-label>سطح دسترسی</mat-label><mat-select [(ngModel)]="draft.access">
+              <mat-option [value]="'داخلی'">داخلی</mat-option>
+              <mat-option [value]="'واحد مرتبط'">واحد مرتبط</mat-option>
+            </mat-select></mat-form-field><div class="upload-field">
+  <span>پیوست متنی نمایشی</span>
+  <input #upload type="file" accept=".txt,.md" (change)="attach($event)" hidden />
+  <button mat-stroked-button type="button" (click)="upload.click()">انتخاب پیوست متنی</button>
+  <small>فقط متن تا ۵۰ کیلوبایت؛ داده ساختگی</small>
+</div><mat-form-field appearance="outline" class="full"
+            ><mat-label>شرح محتوا</mat-label><textarea matInput [(ngModel)]="draft.body"></textarea></mat-form-field>
         </div>
         @if (draft.aar; as a) {
           <div class="form-section">
             <h2>مرور پس از اقدام — پنج محور</h2>
             <div class="form-grid">
-              <label
-                >۱. چه قصد داشتیم انجام دهیم؟<textarea
+              <mat-form-field appearance="outline"
+                ><mat-label>۱. چه قصد داشتیم انجام دهیم؟</mat-label><textarea matInput
                   [(ngModel)]="a.intended"
-                ></textarea></label
-              ><label
-                >۲. چه اتفاقی افتاد؟<textarea
+                ></textarea></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>۲. چه اتفاقی افتاد؟</mat-label><textarea matInput
                   [(ngModel)]="a.actual"
-                ></textarea></label
-              ><label
-                >۳. چرا این اتفاق افتاد؟<textarea
+                ></textarea></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>۳. چرا این اتفاق افتاد؟</mat-label><textarea matInput
                   [(ngModel)]="a.reasons"
-                ></textarea></label
-              ><label
-                >۴. چه باید بیاموزیم یا تغییر دهیم؟<textarea
+                ></textarea></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>۴. چه باید بیاموزیم یا تغییر دهیم؟</mat-label><textarea matInput
                   [(ngModel)]="a.lessons"
-                ></textarea></label
-              ><label class="full"
-                >۵. اقدام پیگیری چیست؟<input [(ngModel)]="a.action" /></label
-              ><label>مسئول اقدام<input [(ngModel)]="a.responsible" /></label
-              ><label
-                >مهلت اقدام<input type="date" [(ngModel)]="a.due"
-              /></label>
+                ></textarea></mat-form-field><mat-form-field appearance="outline" class="full"
+                ><mat-label>۵. اقدام پیگیری چیست؟</mat-label><input matInput [(ngModel)]="a.action" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مسئول اقدام</mat-label><input matInput [(ngModel)]="a.responsible" /></mat-form-field><app-date-field
+                 label="مهلت اقدام" [(ngModel)]="a.due" />
             </div>
           </div>
         }
@@ -136,11 +117,11 @@ import { UI } from "../shared/ui";
             ذخیره پیش‌نویس</button
           ><a mat-button routerLink="/knowledge">انصراف</a>
         </div>
-      </section>
+      </mat-card>
     } @else if (id()) {
       @if (item(); as k) {
         @if (canSee(k)) {
-          <section class="panel">
+          <mat-card class="panel">
             <div class="panel-head">
               <span class="badge">{{ k.kind }}</span
               ><span class="badge" [class]="'badge ' + k.status">{{
@@ -250,7 +231,7 @@ import { UI } from "../shared/ui";
               }
               <a mat-button routerLink="/knowledge">بازگشت به مخزن</a>
             </div>
-          </section>
+          </mat-card>
         } @else {
           <div class="warning">
             محتوا هنوز منتشر نشده یا در محدوده نقش فعلی نیست.
@@ -282,37 +263,34 @@ import { UI } from "../shared/ui";
           ><small>دانش منتشرشده با تاریخ گذشته</small>
         </div>
       </div>
-      <section class="panel">
+      <mat-card class="panel">
         <div class="filterbar">
-          <label class="search"
-            >جستجوی دانش<input
+          <mat-form-field appearance="outline" class="search"
+            ><mat-label>جستجوی دانش</mat-label><input matInput
               [ngModel]="search()"
               (ngModelChange)="search.set($event)"
-              placeholder="عنوان، کلیدواژه یا وظیفه…" /></label
-          ><label
-            >شغل<select [ngModel]="job()" (ngModelChange)="job.set($event)">
-              <option value="">همه مشاغل</option>
+              placeholder="عنوان، کلیدواژه یا وظیفه…" /></mat-form-field><mat-form-field appearance="outline"
+            ><mat-label>شغل</mat-label><mat-select [ngModel]="job()" (ngModelChange)="job.set($event)">
+              <mat-option value="">همه مشاغل</mat-option>
               @for (j of s.state().jobs; track j.id) {
-                <option [value]="j.id">{{ j.title }}</option>
+                <mat-option [value]="j.id">{{ j.title }}</mat-option>
               }
-            </select></label
-          ><label
-            >وضعیت<select
+            </mat-select></mat-form-field><mat-form-field appearance="outline"
+            ><mat-label>وضعیت</mat-label><mat-select
               [ngModel]="status()"
               (ngModelChange)="status.set($event)"
             >
-              <option value="">همه</option>
-              <option value="published">منتشرشده</option>
-              <option value="draft">پیش‌نویس</option>
-              <option value="review">در انتظار بازبینی</option>
-              <option value="due">موعد بازنگری</option>
-            </select></label
-          >
+              <mat-option value="">همه</mat-option>
+              <mat-option value="published">منتشرشده</mat-option>
+              <mat-option value="draft">پیش‌نویس</mat-option>
+              <mat-option value="review">در انتظار بازبینی</mat-option>
+              <mat-option value="due">موعد بازنگری</mat-option>
+            </mat-select></mat-form-field>
         </div>
-      </section>
+      </mat-card>
       <div class="grid three">
         @for (k of filtered(); track k.id) {
-          <article class="panel knowledge-card">
+          <mat-card class="panel knowledge-card">
             <div class="panel-head">
               <span class="card-kind">▤ {{ k.kind }}</span
               ><span class="badge" [class]="'badge ' + k.status">{{
@@ -329,7 +307,7 @@ import { UI } from "../shared/ui";
                 >مطالعه و پیگیری ←</a
               ><small>{{ k.views | fa }} مشاهده</small>
             </div>
-          </article>
+          </mat-card>
         } @empty {
           <div class="panel empty">محتوایی مطابق فیلتر یافت نشد.</div>
         }

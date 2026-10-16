@@ -29,7 +29,7 @@ import { Chart } from "../shared/chart";
     </div>
     @if (view === "cycles") {
       <div class="grid two">
-        <section class="panel">
+        <mat-card class="panel">
           <h2>دوره‌های ارزیابی</h2>
           @for (c of s.state().cycles; track c.id) {
             <div class="metric-line">
@@ -50,39 +50,36 @@ import { Chart } from "../shared/chart";
               >
             </div>
           }
-        </section>
+        </mat-card>
         @if (s.role() === "hr") {
-          <section class="panel">
+          <mat-card class="panel">
             <h2>ایجاد دوره جدید</h2>
-            <label
-              >عنوان دوره<input
+            <mat-form-field appearance="outline"
+              ><mat-label>عنوان دوره</mat-label><input matInput
                 [(ngModel)]="title"
                 placeholder="ارزیابی پاییز ۱۴۰۵"
-            /></label>
+            /></mat-form-field>
             <div class="form-grid">
-              <label
-                >ارزیابی‌شونده<select [(ngModel)]="subject">
+              <mat-form-field appearance="outline"
+                ><mat-label>ارزیابی‌شونده</mat-label><mat-select [(ngModel)]="subject">
                   @for (p of s.state().people; track p.id) {
-                    <option [value]="p.id">{{ p.name }}</option>
+                    <mat-option [value]="p.id">{{ p.name }}</mat-option>
                   }
-                </select></label
-              ><label
-                >شغل هدف<select [(ngModel)]="target">
+                </mat-select></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>شغل هدف</mat-label><mat-select [(ngModel)]="target">
                   @for (j of s.state().jobs; track j.id) {
-                    <option [value]="j.id">{{ j.title }}</option>
+                    <mat-option [value]="j.id">{{ j.title }}</mat-option>
                   }
-                </select></label
-              ><label
-                >نوع ارزیابی<select [(ngModel)]="mode">
-                  <option [ngValue]="360">۳۶۰ درجه</option>
-                  <option [ngValue]="540">۵۴۰ درجه</option>
-                </select></label
-              >
+                </mat-select></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>نوع ارزیابی</mat-label><mat-select [(ngModel)]="mode">
+                  <mat-option [value]="360">۳۶۰ درجه</mat-option>
+                  <mat-option [value]="540">۵۴۰ درجه</mat-option>
+                </mat-select></mat-form-field>
             </div>
             <button mat-button class="primary" (click)="create()">
               ایجاد دوره
             </button>
-          </section>
+          </mat-card>
         }
       </div>
       <div class="info">
@@ -92,16 +89,15 @@ import { Chart } from "../shared/chart";
     } @else if (view === "inbox") {
       <div class="panel">
         <div class="filterbar">
-          <label
-            >شخصیت ارزیاب نمایشی<select
+          <mat-form-field appearance="outline"
+            ><mat-label>شخصیت ارزیاب نمایشی</mat-label><mat-select
               [ngModel]="s.actor()"
               (ngModelChange)="s.actor.set($event); selected.set('')"
             >
               @for (p of evaluators(); track p.id) {
-                <option [value]="p.id">{{ p.name }}</option>
+                <mat-option [value]="p.id">{{ p.name }}</mat-option>
               }
-            </select></label
-          >
+            </mat-select></mat-form-field>
         </div>
         @for (item of inbox(); track item.a.id) {
           <div class="metric-line">
@@ -129,7 +125,7 @@ import { Chart } from "../shared/chart";
         }
       </div>
       @if (selected()) {
-        <section class="panel">
+        <mat-card class="panel">
           <h2>بازخورد رفتاری</h2>
           <p>در تجربه همکاری، فرد تا چه اندازه رفتار زیر را نشان داده است؟</p>
           @for (c of competencies; track c; let i = $index) {
@@ -137,18 +133,12 @@ import { Chart } from "../shared/chart";
               <strong>{{ i + 1 | fa }}. {{ questions[i] }}</strong
               ><small style="display:block">شایستگی: {{ c }}</small>
               <div class="score-row">
-                @for (anchor of anchors; track anchor; let n = $index) {
-                  <label
-                    ><input
-                      type="radio"
-                      [name]="'score' + i"
-                      [value]="n + 1"
-                      [(ngModel)]="scores[i]"
-                    />{{ n + 1 | fa
-                    }}<small style="display:block">{{ anchor }}</small></label
-                  >
-                }
-              </div>
+     <mat-radio-group [ngModel]="scores[i]" (ngModelChange)="scores[i] = $event">
+       @for (anchor of anchors; track anchor; let n = $index) {
+         <mat-radio-button [value]="n + 1">{{ n + 1 | fa }} · {{ anchor }}</mat-radio-button>
+       }
+     </mat-radio-group>
+   </div>
             </div>
           }
           <button
@@ -159,7 +149,7 @@ import { Chart } from "../shared/chart";
           >
             ثبت نهایی پاسخ‌ها
           </button>
-        </section>
+        </mat-card>
       }
     } @else if (cycle(); as c) {
       @if (view === "detail") {
@@ -202,7 +192,7 @@ import { Chart } from "../shared/chart";
             }
           }
         </div>
-        <section class="panel">
+        <mat-card class="panel">
           <div class="panel-head">
             <h2>ارزیابان و وضعیت تکالیف</h2>
             <span
@@ -219,49 +209,33 @@ import { Chart } from "../shared/chart";
             "
           />
           <div class="table-wrap">
-            <table>
-              <tr>
-                <th>ارزیاب ساختگی</th>
-                <th>گروه</th>
-                <th>وضعیت</th>
-                <th></th>
-              </tr>
-              @for (a of c.assignments; track a.id) {
-                <tr>
-                  <td>{{ s.person(a.personId).name }}</td>
-                  <td>{{ groups[a.group] }}</td>
-                  <td>{{ a.scores ? "ثبت‌شده" : "در انتظار پاسخ" }}</td>
-                  <td>
-                    @if (c.status === "preparing" && s.role() === "hr") {
-                      <button
-                        mat-button
-                        (click)="s.removeEvaluator(c.id, a.id)"
-                      >
-                        حذف
-                      </button>
-                    }
-                  </td>
-                </tr>
-              }
-            </table>
+            <table mat-table [dataSource]="c.assignments" class="royesh-table">
+ <ng-container matColumnDef="evaluator"><th mat-header-cell *matHeaderCellDef>ارزیاب ساختگی</th><td mat-cell *matCellDef="let a">{{ s.person(a.personId).name }}</td></ng-container>
+ <ng-container matColumnDef="group"><th mat-header-cell *matHeaderCellDef>گروه</th><td mat-cell *matCellDef="let a">{{ groupLabel(a.group) }}</td></ng-container>
+ <ng-container matColumnDef="state"><th mat-header-cell *matHeaderCellDef>وضعیت</th><td mat-cell *matCellDef="let a">{{ a.scores ? "ثبت‌شده" : "در انتظار پاسخ" }}</td></ng-container>
+ <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>عملیات</th><td mat-cell *matCellDef="let a">
+   @if (c.status === "preparing" && s.role() === "hr") {
+     <button mat-button (click)="s.removeEvaluator(c.id, a.id)">حذف</button>
+   }
+ </td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="evaluatorColumns"></tr><tr mat-row *matRowDef="let row; columns: evaluatorColumns"></tr>
+ </table>
           </div>
           @if (c.status === "preparing" && s.role() === "hr") {
             <div class="filterbar">
-              <label class="search"
-                >ارزیاب<select [(ngModel)]="evaluator">
+              <mat-form-field appearance="outline" class="search"
+                ><mat-label>ارزیاب</mat-label><mat-select [(ngModel)]="evaluator">
                   @for (p of s.state().people; track p.id) {
-                    <option [value]="p.id">{{ p.name }}</option>
+                    <mat-option [value]="p.id">{{ p.name }}</mat-option>
                   }
-                </select></label
-              ><label
-                >گروه<select [(ngModel)]="group">
+                </mat-select></mat-form-field><mat-form-field appearance="outline"
+                ><mat-label>گروه</mat-label><mat-select [(ngModel)]="group">
                   @for (g of groupEntries; track g[0]) {
                     @if (c.mode === 540 || g[0] !== "external") {
-                      <option [value]="g[0]">{{ g[1] }}</option>
+                      <mat-option [value]="g[0]">{{ g[1] }}</mat-option>
                     }
                   }
-                </select></label
-              ><button
+                </mat-select></mat-form-field><button
                 mat-button
                 class="secondary"
                 (click)="s.addEvaluator(c.id, evaluator, group)"
@@ -320,7 +294,7 @@ import { Chart } from "../shared/chart";
               <button mat-button (click)="s.advance(c.id)">بستن دوره</button>
             }
           }
-        </section>
+        </mat-card>
       } @else if (view === "report" || view === "calibration") {
         @if (
           s.allowedPerson(c.subjectId) &&
@@ -333,7 +307,7 @@ import { Chart } from "../shared/chart";
             قانون کارفرما نیست.
           </div>
           <div class="grid two">
-            <section class="panel">
+            <mat-card class="panel">
               <div class="panel-head">
                 <div>
                   <h2>{{ s.person(c.subjectId).name }}</h2>
@@ -349,78 +323,55 @@ import { Chart } from "../shared/chart";
               } @placeholder {
                 <div class="empty">نمودار شایستگی</div>
               }
-            </section>
-            <section class="panel">
+            </mat-card>
+            <mat-card class="panel">
               <h2>شکاف نسبت به شغل هدف</h2>
-              <table>
-                <tr>
-                  <th>شایستگی</th>
-                  <th>انتظار</th>
-                  <th>مشاهده</th>
-                  <th>شکاف</th>
-                </tr>
-                @for (comp of competencies; track comp; let i = $index) {
-                  <tr>
-                    <td>{{ comp }}</td>
-                    <td>{{ s.job(c.jobId).expected[i] | fa }}</td>
-                    <td>{{ report().scores?.[i] | fa }}</td>
-                    <td>
-                      <span class="badge" [class.amber]="reportGap(i) > 0">{{
-                        reportGap(i) | fa
-                      }}</span>
-                    </td>
-                  </tr>
-                }
-              </table>
+              <table mat-table [dataSource]="competencies" class="royesh-table">
+ <ng-container matColumnDef="competency"><th mat-header-cell *matHeaderCellDef>شایستگی</th><td mat-cell *matCellDef="let comp">{{ comp }}</td></ng-container>
+ <ng-container matColumnDef="expected"><th mat-header-cell *matHeaderCellDef>انتظار</th><td mat-cell *matCellDef="let comp; let i = index">{{ s.job(c.jobId).expected[i] | fa }}</td></ng-container>
+ <ng-container matColumnDef="observed"><th mat-header-cell *matHeaderCellDef>مشاهده</th><td mat-cell *matCellDef="let comp; let i = index">{{ report().scores?.[i] | fa }}</td></ng-container>
+ <ng-container matColumnDef="gap"><th mat-header-cell *matHeaderCellDef>شکاف</th><td mat-cell *matCellDef="let comp; let i = index">
+ <span class="badge" [class.amber]="reportGap(i) > 0">{{ reportGap(i) | fa }}</span></td></ng-container>
+ <tr mat-header-row *matHeaderRowDef="competencyColumns"></tr><tr mat-row *matRowDef="let row; columns: competencyColumns"></tr>
+ </table>
               <p class="report-note">
                 نقاط رشد: {{ growth() }}. نمره ۴ یا بالاتر صرفاً شاهد رفتاری
                 مثبت در داده نمونه است.
               </p>
-            </section>
+            </mat-card>
           </div>
-          <section class="panel">
+          <mat-card class="panel">
             <h2>بازخورد گروهی بدون هویت ارزیاب</h2>
             <div class="table-wrap">
-              <table>
-                <tr>
-                  <th>گروه</th>
-                  <th>پاسخ</th>
-                  @for (comp of competencies; track comp) {
-                    <th>{{ comp }}</th>
-                  }
-                </tr>
-                @for (row of report().rows; track row.group) {
-                  <tr>
-                    <td>{{ groups[row.group] }}</td>
-                    <td>{{ row.count | fa }}</td>
-                    @for (comp of competencies; track comp; let i = $index) {
-                      <td>
-                        {{ row.scores ? (row.scores[i] | fa) : "نمونه ناکافی" }}
-                      </td>
-                    }
-                  </tr>
-                }
-              </table>
+              <table mat-table [dataSource]="report().rows" class="royesh-table">
+ <ng-container matColumnDef="group"><th mat-header-cell *matHeaderCellDef>گروه</th><td mat-cell *matCellDef="let row">{{ groupLabel(row.group) }}</td></ng-container>
+ <ng-container matColumnDef="count"><th mat-header-cell *matHeaderCellDef>پاسخ</th><td mat-cell *matCellDef="let row">{{ row.count | fa }}</td></ng-container>
+ @for (comp of competencies; track comp; let i = $index) {
+  <ng-container [matColumnDef]="'score' + i"><th mat-header-cell *matHeaderCellDef>{{ comp }}</th><td mat-cell *matCellDef="let row">
+    {{ row.scores ? (row.scores[i] | fa) : "نمونه ناکافی" }}
+  </td></ng-container>
+ }
+ <tr mat-header-row *matHeaderRowDef="groupColumns"></tr><tr mat-row *matRowDef="let row; columns: groupColumns"></tr>
+ </table>
             </div>
-          </section>
+          </mat-card>
           @if (view === "calibration" && s.role() === "hr") {
-            <section class="panel">
+            <mat-card class="panel">
               <h2>ثبت نظر کالیبراسیون</h2>
               <p>
                 تفاوت میان گروه‌ها، شواهد رفتاری و احتمال سوگیری را بررسی کنید.
                 نمره خام بدون دستکاری حفظ می‌شود.
               </p>
-              <label
-                >جمع‌بندی بازبینی<textarea
+              <mat-form-field appearance="outline"
+                ><mat-label>جمع‌بندی بازبینی</mat-label><textarea matInput
                   [(ngModel)]="notes"
                   placeholder="شواهد مرورشده و پیشنهاد بازخورد…"
-                ></textarea></label
-              ><button mat-button class="primary" (click)="calibrate()">
+                ></textarea></mat-form-field><button mat-button class="primary" (click)="calibrate()">
                 تأیید کالیبراسیون و آماده‌سازی بازخورد
               </button>
-            </section>
+            </mat-card>
           } @else {
-            <section class="panel">
+            <mat-card class="panel">
               <h2>بازخورد و اقدام بعدی</h2>
               <p>{{ c.notes }}</p>
               <div class="actions" style="margin-top:15px">
@@ -437,7 +388,7 @@ import { Chart } from "../shared/chart";
                   >پروفایل فرد ←</a
                 >
               </div>
-            </section>
+            </mat-card>
           }
         } @else {
           <div class="warning">
@@ -451,6 +402,10 @@ import { Chart } from "../shared/chart";
 })
 export default class Evaluations {
   s = inject(Store);
+  readonly evaluatorColumns = ["evaluator","group","state","action"];
+  readonly competencyColumns = ["competency","expected","observed","gap"];
+  readonly groupColumns = ["group","count",...competencies.map((_, i) => "score" + i)];
+  groupLabel(value: string) { return groups[value as Group] ?? "—"; }
   router = inject(Router);
   route = inject(ActivatedRoute);
   id = input<string>();

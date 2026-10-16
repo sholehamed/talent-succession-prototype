@@ -18,56 +18,33 @@ import { Chart } from "../shared/chart";
       </div>
       <div class="panel">
         <div class="filterbar">
-          <label class="search"
-            >جستجو<input
+          <mat-form-field appearance="outline" class="search"
+            ><mat-label>جستجو</mat-label><input matInput
               [ngModel]="search()"
               (ngModelChange)="search.set($event); page.set(0)"
-              placeholder="نام یا کد پرسنلی…" /></label
-          ><label
-            >واحد<select
+              placeholder="نام یا کد پرسنلی…" /></mat-form-field><mat-form-field appearance="outline"
+            ><mat-label>واحد</mat-label><mat-select
               [ngModel]="unit()"
               (ngModelChange)="unit.set($event); page.set(0)"
             >
-              <option value="">همه واحدها</option>
+              <mat-option value="">همه واحدها</mat-option>
               @for (u of s.units(); track u) {
-                <option>{{ u }}</option>
+                <mat-option [value]="u">{{ u }}</mat-option>
               }
-            </select></label
-          >
+            </mat-select></mat-form-field>
         </div>
         <div class="table-wrap">
-          <table>
-            <tr>
-              <th>نام و کد</th>
-              <th>شغل فعلی</th>
-              <th>واحد</th>
-              <th>عملکرد / پتانسیل</th>
-              <th>پیشرفت توسعه</th>
-              <th></th>
-            </tr>
-            @for (p of paged(); track p.id) {
-              <tr>
-                <td>
-                  <div class="person-cell">
-                    <span class="avatar">{{ p.name.slice(0, 1) }}</span>
-                    <div>
-                      <strong>{{ p.name }}</strong
-                      ><small>{{ p.code }}</small>
-                    </div>
-                  </div>
-                </td>
-                <td>{{ s.job(p.jobId).title }}</td>
-                <td>{{ p.unit }}</td>
-                <td>{{ bands[p.performance] }} / {{ bands[p.potential] }}</td>
-                <td>{{ personProgress(p.id) | fa }}٪</td>
-                <td><a [routerLink]="['/people', p.id]">پروفایل ←</a></td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="6" class="empty">فردی یافت نشد.</td>
-              </tr>
-            }
-          </table>
+          <table mat-table [dataSource]="paged()" class="royesh-table">
+    <ng-container matColumnDef="person"><th mat-header-cell *matHeaderCellDef>نام و کد</th><td mat-cell *matCellDef="let p"><div class="person-cell"><span class="avatar">{{ p.name.slice(0, 1) }}</span><div><strong>{{ p.name }}</strong><small>{{ p.code }}</small></div></div></td></ng-container>
+    <ng-container matColumnDef="job"><th mat-header-cell *matHeaderCellDef>شغل فعلی</th><td mat-cell *matCellDef="let p">{{ s.job(p.jobId).title }}</td></ng-container>
+    <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>واحد</th><td mat-cell *matCellDef="let p">{{ p.unit }}</td></ng-container>
+    <ng-container matColumnDef="talent"><th mat-header-cell *matHeaderCellDef>عملکرد / پتانسیل</th><td mat-cell *matCellDef="let p">{{ bandLabel(p.performance) }} / {{ bandLabel(p.potential) }}</td></ng-container>
+    <ng-container matColumnDef="progress"><th mat-header-cell *matHeaderCellDef>پیشرفت توسعه</th><td mat-cell *matCellDef="let p">{{ personProgress(p.id) | fa }}٪</td></ng-container>
+    <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/people', p.id]">پروفایل ←</a></td></ng-container>
+    <tr mat-header-row *matHeaderRowDef="personColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: personColumns"></tr>
+  </table>
+  @if (!paged().length) { <div class="empty">فردی یافت نشد.</div> }
         </div>
         <div class="pagination">
           <span>{{ filtered().length | fa }} نتیجه</span>
@@ -133,16 +110,15 @@ import { Chart } from "../shared/chart";
         <div class="panel">
           <div class="panel-head">
             <h2>تحلیل شکاف با شغل هدف</h2>
-            <label style="min-width:210px"
-              >شغل هدف<select
+            <mat-form-field appearance="outline" style="min-width:210px"
+              ><mat-label>شغل هدف</mat-label><mat-select
                 [ngModel]="target()"
                 (ngModelChange)="target.set($event)"
               >
                 @for (j of s.state().jobs; track j.id) {
-                  <option [value]="j.id">{{ j.title }}</option>
+                  <mat-option [value]="j.id">{{ j.title }}</mat-option>
                 }
-              </select></label
-            >
+              </mat-select></mat-form-field>
           </div>
           <div class="grid two">
             <div>
@@ -157,22 +133,13 @@ import { Chart } from "../shared/chart";
               }
             </div>
             <div>
-              <table>
-                <tr>
-                  <th>شایستگی</th>
-                  <th>سطح فرد</th>
-                  <th>هدف</th>
-                  <th>شکاف</th>
-                </tr>
-                @for (comp of competencies; track comp; let i = $index) {
-                  <tr>
-                    <td>{{ comp }}</td>
-                    <td>{{ s.scores(p.id)[i] | fa }}</td>
-                    <td>{{ s.job(target()).expected[i] | fa }}</td>
-                    <td>{{ s.gaps(p.id, target())[i] | fa }}</td>
-                  </tr>
-                }
-              </table>
+              <table mat-table [dataSource]="competencies" class="royesh-table">
+  <ng-container matColumnDef="competency"><th mat-header-cell *matHeaderCellDef>شایستگی</th><td mat-cell *matCellDef="let comp">{{ comp }}</td></ng-container>
+  <ng-container matColumnDef="observed"><th mat-header-cell *matHeaderCellDef>سطح فرد</th><td mat-cell *matCellDef="let comp; let i=index">{{ s.scores(p.id)[i] | fa }}</td></ng-container>
+  <ng-container matColumnDef="target"><th mat-header-cell *matHeaderCellDef>هدف</th><td mat-cell *matCellDef="let comp; let i=index">{{ s.job(target()).expected[i] | fa }}</td></ng-container>
+  <ng-container matColumnDef="gap"><th mat-header-cell *matHeaderCellDef>شکاف</th><td mat-cell *matCellDef="let comp; let i=index">{{ s.gaps(p.id, target())[i] | fa }}</td></ng-container>
+  <tr mat-header-row *matHeaderRowDef="gapColumns"></tr><tr mat-row *matRowDef="let row; columns: gapColumns"></tr>
+</table>
               @if (s.editable()) {
                 <button
                   mat-button
@@ -187,7 +154,7 @@ import { Chart } from "../shared/chart";
           </div>
         </div>
         <div class="grid two">
-          <section class="panel">
+          <mat-card class="panel">
             <h2>سوابق ارزیابی</h2>
             @for (c of cycles(); track c.id) {
               <div class="metric-line">
@@ -202,8 +169,8 @@ import { Chart } from "../shared/chart";
             } @empty {
               <div class="empty">گزارش ثبت نشده است.</div>
             }
-          </section>
-          <section class="panel">
+          </mat-card>
+          <mat-card class="panel">
             <h2>برنامه‌های توسعه فردی</h2>
             @for (d of plans(); track d.id) {
               <div class="metric-line">
@@ -215,7 +182,7 @@ import { Chart } from "../shared/chart";
             } @empty {
               <div class="empty">هنوز برنامه‌ای ایجاد نشده است.</div>
             }
-          </section>
+          </mat-card>
         </div>
       } @else {
         <div class="warning">این پروفایل در محدوده نقش نمایشی شما نیست.</div>
@@ -226,6 +193,8 @@ import { Chart } from "../shared/chart";
 })
 export default class People {
   s = inject(Store);
+  readonly gapColumns = ["competency","observed","target","gap"];
+  readonly personColumns = ["person","job","unit","talent","progress","action"];
   router = inject(Router);
   route = inject(ActivatedRoute);
   id = input<string>();
@@ -235,6 +204,9 @@ export default class People {
   target = signal(this.route.snapshot.queryParamMap.get("job") ?? "j1");
   competencies = competencies;
   bands = bands;
+  bandLabel(value: string) {
+    return bands[value as keyof typeof bands] ?? "—";
+  }
   inc = (n: number) => n + 1;
   dec = (n: number) => n - 1;
   person = computed(() =>

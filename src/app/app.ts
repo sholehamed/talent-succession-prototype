@@ -1,4 +1,4 @@
-import { Component, inject, signal } from "@angular/core";
+import { Component, HostListener, inject, signal } from "@angular/core";
 import {
   Router,
   RouterLink,
@@ -11,8 +11,8 @@ import { UI } from "./shared/ui";
 @Component({
   selector: "app-root",
   imports: [...UI, RouterOutlet, RouterLink, RouterLinkActive],
-  template: ` <div class="app-shell" [class.collapsed]="collapsed()">
-    <aside class="sidebar" [class.mobile-open]="mobile()">
+  template: ` <mat-sidenav-container [autosize]="true" class="app-shell" [class.collapsed]="collapsed() && !handset()">
+    <mat-sidenav class="sidebar" position="start" [mode]="handset() ? 'over' : 'side'" [opened]="!handset() || mobile()">
       <a routerLink="/dashboard/hr" class="brand"
         ><span class="brand-icon">ر</span
         ><span>رویش<small>سرمایه انسانی، آینده سازمان</small></span></a
@@ -23,9 +23,10 @@ import { UI } from "./shared/ui";
         ><b>⌄</b>
       </div>
       <div class="nav-label">فضای مدیریت</div>
+      <mat-nav-list>
       @for (n of nav; track n.path) {
         @if (visible(n.path)) {
-          <a
+          <a mat-list-item
             [routerLink]="n.path"
             routerLinkActive="active"
             class="nav-item"
@@ -36,15 +37,16 @@ import { UI } from "./shared/ui";
           >
         }
       }
+      </mat-nav-list>
       <div class="sidebar-bottom">
         <div class="demo-dot"></div>
         <strong>نسخه تعاملی ارائه</strong>
         <p>تمام افراد و داده‌ها ساختگی‌اند.</p>
         <a routerLink="/demo/settings">راهنمای دمو و تنظیمات ←</a>
       </div>
-    </aside>
-    <div class="main-shell">
-      <header class="topbar">
+    </mat-sidenav>
+    <mat-sidenav-content class="main-shell">
+      <mat-toolbar class="topbar">
         <button
           mat-button
           class="menu-toggle"
@@ -58,19 +60,17 @@ import { UI } from "./shared/ui";
         </div>
         <span class="demo-pill">● نسخه نمایشی</span>
         <div class="role-picker">
-          <label for="role">نقش دمو</label
-          ><select
-            id="role"
-            [ngModel]="s.role()"
-            (ngModelChange)="changeRole($event)"
-          >
-            @for (r of roleEntries; track r[0]) {
-              <option [value]="r[0]">{{ r[1] }}</option>
-            }
-          </select>
+          <mat-form-field appearance="outline">
+            <mat-label>نقش دمو</mat-label>
+            <mat-select id="role" [ngModel]="s.role()" (ngModelChange)="changeRole($event)">
+              @for (r of roleEntries; track r[0]) {
+                <mat-option [value]="r[0]">{{ r[1] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
         </div>
         <span class="avatar small">{{ s.role() === "hr" ? "HR" : "آ" }}</span>
-      </header>
+      </mat-toolbar>
       <main>
         <div class="page-meta">
           <span>مدیریت استعداد و جانشین‌پروری</span
@@ -86,20 +86,25 @@ import { UI } from "./shared/ui";
           >اطلاعات کمکی برای تصمیم انسانی؛ بدون تصمیم‌گیری خودکار</span
         >
       </footer>
-    </div>
     @if (s.notice()) {
       <div class="toast" role="status">
         {{ s.notice()
-        }}<button aria-label="بستن پیام" (click)="s.notice.set('')">×</button>
+        }}<button mat-button aria-label="بستن پیام" (click)="s.notice.set('')">×</button>
       </div>
     }
-  </div>`,
+    </mat-sidenav-content>
+  </mat-sidenav-container>`,
 })
 export class App {
   s = inject(Store);
   router = inject(Router);
   collapsed = signal(false);
   mobile = signal(false);
+  handset = signal(window.innerWidth < 900);
+  @HostListener("window:resize") onResize() {
+    this.handset.set(window.innerWidth < 900);
+    if (!this.handset()) this.mobile.set(false);
+  }
   today = new Date().toISOString();
   roleEntries = Object.entries(roles);
   nav = [
@@ -155,7 +160,7 @@ export class App {
       this.router.navigateByUrl("/dashboard/hr");
   }
   toggleMenu() {
-    if (window.innerWidth < 900) this.mobile.update((v) => !v);
+    if (this.handset()) this.mobile.update((v) => !v);
     else this.collapsed.update((v) => !v);
   }
 }
