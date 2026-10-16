@@ -1,4 +1,5 @@
-import { Component, computed, inject, input, signal } from "@angular/core";
+import { Component, computed, effect, inject, input, signal } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router } from "@angular/router";
 import { Store } from "../core/store";
 import { bands, competencies } from "../core/models";
@@ -13,6 +14,11 @@ import { Chart } from "../shared/chart";
           <div class="eyebrow">سرمایه انسانی سازمان</div>
           <h1>افراد و استعدادها</h1>
           <p>پروفایل یکپارچه، شواهد ارزیابی و مسیر توسعه</p>
+          @if (jobFilter()) {
+            <p>افراد مرتبط با شغل «{{ s.job(jobFilter()).title }}»
+              <a routerLink="/people">نمایش همه افراد</a>
+            </p>
+          }
         </div>
         <span class="badge">{{ filtered().length | fa }} فرد</span>
       </div>
@@ -40,7 +46,7 @@ import { Chart } from "../shared/chart";
     <ng-container matColumnDef="unit"><th mat-header-cell *matHeaderCellDef>واحد</th><td mat-cell *matCellDef="let p">{{ p.unit }}</td></ng-container>
     <ng-container matColumnDef="talent"><th mat-header-cell *matHeaderCellDef>عملکرد / پتانسیل</th><td mat-cell *matCellDef="let p">{{ bandLabel(p.performance) }} / {{ bandLabel(p.potential) }}</td></ng-container>
     <ng-container matColumnDef="progress"><th mat-header-cell *matHeaderCellDef>پیشرفت توسعه</th><td mat-cell *matCellDef="let p">{{ personProgress(p.id) | fa }}٪</td></ng-container>
-    <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/people', p.id]">پروفایل ←</a></td></ng-container>
+    <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let p"><a mat-button [routerLink]="['/people', p.id]" [queryParams]="jobFilter() ? { job: jobFilter() } : {}">پروفایل ←</a></td></ng-container>
     <tr mat-header-row *matHeaderRowDef="personColumns"></tr>
     <tr mat-row *matRowDef="let row; columns: personColumns"></tr>
   </table>
@@ -79,7 +85,7 @@ import { Chart } from "../shared/chart";
               <p>{{ s.job(p.jobId).title }} · {{ p.unit }}</p>
             </div>
           </div>
-          <a mat-button class="secondary" routerLink="/people">فهرست افراد</a>
+          <a mat-button class="secondary" routerLink="/people" [queryParams]="jobFilter() ? { job: jobFilter() } : {}">فهرست افراد</a>
         </div>
         <div class="grid four" style="margin-bottom:22px">
           <div class="stat">
@@ -113,7 +119,7 @@ import { Chart } from "../shared/chart";
             <mat-form-field appearance="outline" style="min-width:210px"
               ><mat-label>شغل هدف</mat-label><mat-select
                 [ngModel]="target()"
-                (ngModelChange)="target.set($event)"
+                (ngModelChange)="selectTarget($event)"
               >
                 @for (j of s.state().jobs; track j.id) {
                   <mat-option [value]="j.id">{{ j.title }}</mat-option>
@@ -140,6 +146,12 @@ import { Chart } from "../shared/chart";
   <ng-container matColumnDef="gap"><th mat-header-cell *matHeaderCellDef>شکاف</th><td mat-cell *matCellDef="let comp; let i=index">{{ s.gaps(p.id, target())[i] | fa }}</td></ng-container>
   <tr mat-header-row *matHeaderRowDef="gapColumns"></tr><tr mat-row *matRowDef="let row; columns: gapColumns"></tr>
 </table>
+              @if (s.role() === "hr") {
+                <a mat-button routerLink="/evaluations/cycles"
+                  [queryParams]="{ job: target(), person: p.id }">
+                  ارزیابی فرد برای این شغل ←
+                </a>
+              }
               @if (s.editable()) {
                 <button
                   mat-button
@@ -201,11 +213,42 @@ export default class People {
   search = signal("");
   unit = signal("");
   page = signal(0);
-  target = signal(this.route.snapshot.queryParamMap.get("job") ?? "j1");
+  readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+  readonly jobFilter = computed(() => {
+    const id = this.queryParams().get("job");
+    return id && this.s.state().jobs.some((j) => j.id === id) ? id : "";
+  });
+  target = signal(this.initialTarget());
   competencies = competencies;
   bands = bands;
   bandLabel(value: string) {
     return bands[value as keyof typeof bands] ?? "—";
+  }
+  constructor() {
+    effect(() => {
+      const requested = this.jobFilter();
+      const current = this.id() ?? this.route.snapshot.paramMap.get("id");
+      const ownJob = this.s.state().people.find((p) => p.id === current)?.jobId;
+      this.target.set(requested || ownJob || this.s.state().jobs[0]?.id || "");
+    });
+  }
+  initialTarget() {
+    const requested = this.route.snapshot.queryParamMap.get("job");
+    if (requested && this.s.state().jobs.some((j) => j.id === requested)) return requested;
+    const current = this.route.snapshot.paramMap.get("id");
+    return this.s.state().people.find((p) => p.id === current)?.jobId
+      ?? this.s.state().jobs[0]?.id ?? "";
+  }
+  selectTarget(jobId: string) {
+    this.target.set(jobId);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { job: jobId },
+      queryParamsHandling: "merge",
+      replaceUrl: true,
+    });
   }
   inc = (n: number) => n + 1;
   dec = (n: number) => n - 1;
@@ -213,9 +256,8 @@ export default class People {
     this.s.state().people.find((p) => p.id === this.id()),
   );
   filtered = computed(() =>
-    this.s
-      .state()
-      .people.filter(
+    (this.jobFilter() ? this.s.relatedPeople(this.jobFilter()) : this.s.state().people)
+      .filter(
         (p) =>
           this.s.allowedPerson(p.id) &&
           (!this.unit() || p.unit === this.unit()) &&
