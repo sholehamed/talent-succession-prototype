@@ -133,22 +133,13 @@ import { Chart } from "../shared/chart";
               }
             </div>
             <div>
-              <table>
-                <tr>
-                  <th>شایستگی</th>
-                  <th>سطح فرد</th>
-                  <th>هدف</th>
-                  <th>شکاف</th>
-                </tr>
-                @for (comp of competencies; track comp; let i = $index) {
-                  <tr>
-                    <td>{{ comp }}</td>
-                    <td>{{ s.scores(p.id)[i] | fa }}</td>
-                    <td>{{ s.job(target()).expected[i] | fa }}</td>
-                    <td>{{ s.gaps(p.id, target())[i] | fa }}</td>
-                  </tr>
-                }
-              </table>
+              <table mat-table [dataSource]="competencies" class="royesh-table">
+  <ng-container matColumnDef="competency"><th mat-header-cell *matHeaderCellDef>شایستگی</th><td mat-cell *matCellDef="let comp">{{ comp }}</td></ng-container>
+  <ng-container matColumnDef="observed"><th mat-header-cell *matHeaderCellDef>سطح فرد</th><td mat-cell *matCellDef="let comp; let i=index">{{ s.scores(p.id)[i] | fa }}</td></ng-container>
+  <ng-container matColumnDef="target"><th mat-header-cell *matHeaderCellDef>هدف</th><td mat-cell *matCellDef="let comp; let i=index">{{ s.job(target()).expected[i] | fa }}</td></ng-container>
+  <ng-container matColumnDef="gap"><th mat-header-cell *matHeaderCellDef>شکاف</th><td mat-cell *matCellDef="let comp; let i=index">{{ s.gaps(p.id, target())[i] | fa }}</td></ng-container>
+  <tr mat-header-row *matHeaderRowDef="gapColumns"></tr><tr mat-row *matRowDef="let row; columns: gapColumns"></tr>
+</table>
               @if (s.editable()) {
                 <button
                   mat-button
@@ -202,6 +193,7 @@ import { Chart } from "../shared/chart";
 })
 export default class People {
   s = inject(Store);
+  readonly gapColumns = ["competency","observed","target","gap"];
   readonly personColumns = ["person","job","unit","talent","progress","action"];
   router = inject(Router);
   route = inject(ActivatedRoute);
