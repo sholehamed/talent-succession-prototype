@@ -191,10 +191,16 @@ import { Chart } from "../shared/chart";
             </div>
             @for (d of plans(); track d.id) {
               <div class="metric-line">
-                <a class="grow" [routerLink]="['/development/idp', d.id]">{{
-                  s.job(d.jobId).title
-                }}</a
-                ><span>{{ s.progress(d) | fa }}٪</span>
+                <div class="grow">
+                  <a [routerLink]="['/development/idp', d.id]">
+                    {{ s.job(d.jobId).title }} · نسخه {{ s.planVersion(d) | fa }}
+                  </a>
+                  <small style="display:block">
+                    {{ d.cycleId ? (s.cycle(d.cycleId)?.title ?? "دوره ارزیابی") : "برنامه مستقل" }}
+                    @if (!s.isCurrentPlan(d)) { · سابقه قبلی }
+                  </small>
+                </div>
+                <span>{{ s.progress(d) | fa }}٪</span>
               </div>
             } @empty {
               <div class="empty">هنوز برنامه‌ای ایجاد نشده است.</div>
@@ -273,7 +279,9 @@ export default class People {
     this.filtered().slice(this.page() * 10, this.page() * 10 + 10),
   );
   plans = computed(() =>
-    this.s.state().plans.filter((p) => p.personId === this.id()),
+    this.s.state().plans
+      .filter((p) => p.personId === this.id())
+      .sort((a, b) => this.s.planVersion(b) - this.s.planVersion(a)),
   );
   cycles = computed(() =>
     this.s.state().cycles.filter((c) => c.subjectId === this.id()),
@@ -296,7 +304,8 @@ export default class People {
       : 0;
   }
   createPlan() {
-    const id = this.s.createPlan(this.id()!, this.target());
+    const cycle = this.s.latestPublishedCycle(this.id()!, this.target());
+    const id = this.s.createPlan(this.id()!, this.target(), cycle?.id);
     if (id) this.router.navigate(["/development/idp", id]);
   }
 }
