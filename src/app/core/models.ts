@@ -190,8 +190,8 @@ export interface DemoState {
   schema: 1;
   jobs: Job[];
   people: Person[];
-  /** Optional in old local browser snapshots; normalized on restore. */
-  candidates?: Candidate[];
+  /** Restored from an empty array for browser snapshots predating hiring. */
+  candidates: Candidate[];
   positions: Position[];
   cycles: Cycle[];
   plans: Plan[];
