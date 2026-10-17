@@ -239,6 +239,7 @@ test("two evaluation cycles create distinct IDP versions with preserved history"
   // Existing approved summer assessment
   await nav(page, "/evaluations/reports/c0");
   await page.getByRole("button", { name: "ایجاد برنامه توسعه این دوره" }).click();
+  await expect(page).toHaveURL(/\/development\/idp\/[^/]+$/);
   const firstUrl = page.url();
   await expect(page.locator("main")).toContainText("نسخه ۱");
   await expect(page.locator("main")).toContainText("ارزیابی تابستان ۱۴۰۵");
@@ -304,7 +305,6 @@ test("IDP supports competency-led additions, evidence and separate manager effec
   await nav(page, "/evaluations/reports/c0");
   await page.getByRole("button", { name: "ایجاد برنامه توسعه این دوره" }).click();
   await expect(page).toHaveURL(/\/development\/idp\/[^/]+$/);
-  const planPath = new URL(page.url()).pathname;
   await expect(page.locator("main")).toContainText("انتخاب اقدام متناسب با شایستگی");
   await selectMaterial(page, "شایستگی هدف", "هدایت تیم");
   await selectMaterial(page, "الگوی اقدام توسعه", "راهبری تیم کوچک و تفویض مسئولیت");
@@ -319,7 +319,9 @@ test("IDP supports competency-led additions, evidence and separate manager effec
   await expect(card).toContainText("بررسی اثربخشی هنوز انجام نشده");
 
   await role(page, "manager");
-  await nav(page, planPath);
+  // A full page reload would reset the temporary client-side role to HR.
+  // Continue in the active Angular session.
+  await expect(page).toHaveURL(/\/development\/idp\/[^/]+$/);
   await page.locator("mat-card.panel")
     .filter({ has: page.getByRole("heading", { name: "راهبری تیم کوچک و تفویض مسئولیت" }) })
     .getByRole("button", { name: "ثبت / اصلاح نظر اثربخشی" }).click();
