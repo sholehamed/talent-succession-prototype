@@ -1,4 +1,4 @@
-import { Cycle, Group, JobContent, Plan } from "./models";
+import { Cycle, EvaluationQuestion, Group, JobContent, Plan, QuestionAnswer } from "./models";
 export function canStart(c: Cycle): boolean {
   const n = (g: Group) => c.assignments.filter((a) => a.group === g).length;
   return (
@@ -17,43 +17,52 @@ export function validScores(scores: number[]): boolean {
     scores.every((s) => Number.isInteger(s) && s >= 1 && s <= 5)
   );
 }
-// Reports deliberately have no evaluator identities. Small peer/subordinate samples are suppressed.
+/** All questions in the assigned group must be answered once with values 1..5. */
+export function validQuestionAnswers(
+  questions: EvaluationQuestion[], answers: QuestionAnswer[],
+): boolean {
+  if (!questions.length || answers.length !== questions.length) return false;
+  const ids = new Set(questions.map((q) => q.id));
+  return ids.size === questions.length &&
+    new Set(answers.map((a) => a.questionId)).size === answers.length &&
+    answers.every((a) => ids.has(a.questionId) &&
+      Number.isInteger(a.score) && a.score >= 1 && a.score <= 5);
+}
+/** Published result carries no evaluator identifiers; small peer/subordinate samples are suppressed. */
 export function aggregate(c: Cycle) {
   const gs: Group[] = [
-    "supervisor",
-    "peer",
-    "subordinate",
+    "supervisor", "peer", "subordinate",
     ...(c.mode === 540 ? ["external" as Group] : []),
   ];
   const rows = gs.map((group) => {
-    const responses = c.assignments.filter(
-      (a) => a.group === group && a.scores,
-    );
-    const suppressed =
-      responses.length < (["peer", "subordinate"].includes(group) ? 2 : 1);
-    return {
-      group,
-      count: responses.length,
-      scores: suppressed
-        ? null
-        : Array.from(
-            { length: 5 },
-            (_, i) =>
-              responses.reduce((v, a) => v + a.scores![i], 0) /
-              responses.length,
-          ),
-    };
+    const questions = c.questions?.filter((q) => q.group === group) ?? [];
+    const dynamic = !!c.questions;
+    const responses = c.assignments.filter((a) => a.group === group &&
+      (dynamic
+        ? !!a.answers && validQuestionAnswers(questions, a.answers)
+        : !!a.scores && validScores(a.scores)));
+    const suppressed = responses.length < (["peer", "subordinate"].includes(group) ? 2 : 1);
+    const scores: (number | null)[] | null = suppressed ? null : Array.from({length:5}, (_, i) => {
+      if (!dynamic)
+        return responses.reduce((sum, a) => sum + a.scores![i], 0) / responses.length;
+      const selected = questions.filter((q) => q.competencyIndex === i);
+      if (!selected.length) return null;
+      const totals = responses.flatMap((a) => selected.map((q) =>
+        a.answers!.find((answer) => answer.questionId === q.id)!.score));
+      return totals.reduce((sum, score) => sum + score, 0) / totals.length;
+    });
+    return { group, count: responses.length, scores };
   });
-  const available = rows.filter((r) => r.scores);
+  const scores = Array.from({length:5}, (_, i) => {
+    const values = rows
+      .filter((r) => r.scores !== null)
+      .map((r) => r.scores![i])
+      .filter((v): v is number => v !== null);
+    return values.length ? values.reduce((sum, n) => sum + n, 0) / values.length : null;
+  });
   return {
     rows,
-    scores: available.length
-      ? Array.from(
-          { length: 5 },
-          (_, i) =>
-            available.reduce((s, r) => s + r.scores![i], 0) / available.length,
-        )
-      : null,
+    scores: scores.every((v): v is number => v !== null) ? scores as number[] : null,
   };
 }
 export function gap(expected: number[], observed: number[]) {
