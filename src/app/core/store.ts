@@ -422,7 +422,7 @@ export class Store {
     if (
       !Number.isInteger(a.competency) || a.competency < 0 || a.competency >= competencies.length ||
       !a.title.trim() || !a.owner.trim() || !a.due ||
-      !/^\\d{4}-\\d{2}-\\d{2}$/.test(a.due) || !a.indicator.trim()
+      !/^\d{4}-\d{2}-\d{2}$/.test(a.due) || !a.indicator.trim()
     ) return this.fail("شایستگی، عنوان، مسئول، مهلت معتبر و شاخص موفقیت را تکمیل کنید.");
     this.commit("اقدام توسعه به‌روزرسانی شد", planId, (state) => {
       const plan = state.plans.find((x) => x.id === planId)!;
