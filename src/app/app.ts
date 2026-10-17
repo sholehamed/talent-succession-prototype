@@ -107,6 +107,7 @@ export class App {
   roleEntries = Object.entries(roles);
   nav = [
     { path: "/dashboard/hr", title: "داشبورد مدیریتی", icon: "▦" },
+    { path: "/dashboard/development", title: "داشبورد توسعه سرمایه انسانی", icon: "↗" },
     { path: "/jobs", title: "شناسنامه‌های شغلی", icon: "▤" },
     { path: "/career-paths", title: "مسیرهای رشد", icon: "↗" },
     { path: "/people", title: "افراد و استعدادها", icon: "♧" },
