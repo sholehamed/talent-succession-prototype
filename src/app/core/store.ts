@@ -6,6 +6,9 @@ import {
   Cycle,
   DemoState,
   EffectivenessOutcome,
+  EvaluationQuestion,
+  QuestionAnswer,
+  Assignment,
   Group,
   JobContent,
   Knowledge,
@@ -14,6 +17,7 @@ import {
   competencies,
 } from "./models";
 import { seed } from "./seed";
+import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
 import { developmentTemplates, templatesForCompetency } from "./development-templates";
 import {
   aggregate,
@@ -22,6 +26,7 @@ import {
   progress,
   validateJob,
   validScores,
+  validQuestionAnswers,
 } from "./domain";
 const KEY = "royesh.demo.v1";
 @Injectable({ providedIn: "root" })
@@ -67,7 +72,10 @@ export class Store {
           d.cycles.every((c: any) => Array.isArray(c.assignments)) &&
           d.plans.every((p: any) => Array.isArray(p.actions))
         )
-          return { ...d, candidates: Array.isArray(d.candidates) ? d.candidates : [] };
+          return { ...d,
+            candidates: Array.isArray(d.candidates) ? d.candidates : [],
+            questions: Array.isArray(d.questions) ? d.questions : defaultEvaluationQuestions(),
+          };
         this.storageWarning.set(
           "اطلاعات ذخیره‌شده ناسازگار بود؛ وضعیت اولیه بازیابی شد.",
         );
@@ -305,6 +313,71 @@ export class Store {
     );
     return true;
   }
+  /** The global bank is editable by HR, never by an evaluator or employee. */
+  saveEvaluationQuestion(draft: EvaluationQuestion) {
+    if (this.role() !== "hr") return this.fail("مدیریت سؤالات فقط برای منابع انسانی مجاز است.");
+    const validGroups: Group[] = ["supervisor", "peer", "subordinate", "external"];
+    if (!validGroups.includes(draft.group) || !draft.text.trim() ||
+      !Number.isInteger(draft.competencyIndex) ||
+      draft.competencyIndex < 0 || draft.competencyIndex >= competencies.length)
+      return this.fail("گروه، متن سؤال و شایستگی معتبر الزامی‌اند.");
+    const others = this.state().questions.filter((q) => q.id !== draft.id);
+    if (others.some((q) => q.group === draft.group && q.text.trim() === draft.text.trim()))
+      return this.fail("متن سؤال در این گروه تکراری است.");
+    const existing = this.state().questions.find((q) => q.id === draft.id);
+    if (existing && existing.group !== draft.group)
+      return this.fail("برای تغییر گروه ارزیاب، سؤال جدیدی تعریف کنید.");
+    const id = existing ? existing.id : crypto.randomUUID();
+    this.commit(existing ? "سؤال ارزیابی ویرایش شد" : "سؤال ارزیابی افزوده شد", id, (state) => {
+      const list = state.questions;
+      const value: EvaluationQuestion = {
+        id, group: draft.group, text: draft.text.trim(),
+        competencyIndex: draft.competencyIndex, isActive: draft.isActive,
+        order: existing ? existing.order :
+          Math.max(-1, ...list.filter((q) => q.group === draft.group).map((q) => q.order)) + 1,
+      };
+      const index = list.findIndex((q) => q.id === id);
+      if (index >= 0) list[index] = value;
+      else list.push(value);
+    });
+    return true;
+  }
+  deleteEvaluationQuestion(id: string) {
+    if (this.role() !== "hr") return this.fail("اجازه حذف سؤال ندارید.");
+    if (!this.state().questions.some((q) => q.id === id))
+      return this.fail("سؤال موردنظر یافت نشد.");
+    this.commit("سؤال از بانک حذف شد", id, (state) => {
+      state.questions = state.questions.filter((q) => q.id !== id);
+    });
+    return true;
+  }
+  moveEvaluationQuestion(id: string, direction: -1 | 1) {
+    if (this.role() !== "hr") return this.fail("اجازه تغییر ترتیب ندارید.");
+    const question = this.state().questions.find((q) => q.id === id);
+    if (!question) return false;
+    const ordered = this.state().questions.filter((q) => q.group === question.group)
+      .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+    const index = ordered.findIndex((q) => q.id === id);
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= ordered.length) return false;
+    [ordered[index], ordered[nextIndex]] = [ordered[nextIndex], ordered[index]];
+    this.commit("ترتیب سؤال‌های گروه تغییر کرد", id, (state) => {
+      ordered.forEach((q, order) => {
+        state.questions.find((x) => x.id === q.id)!.order = order;
+      });
+    });
+    return true;
+  }
+  questionsFor(c: Cycle, group: Group): EvaluationQuestion[] {
+    if (c.questions) return orderedQuestions(c.questions, group);
+    if (c.status === "preparing") return orderedQuestions(this.state().questions, group);
+    return legacyCycleQuestions(group);
+  }
+  hasAnswered(c: Cycle, a: Assignment): boolean {
+    return c.questions
+      ? !!a.answers && validQuestionAnswers(this.questionsFor(c, a.group), a.answers)
+      : !!a.scores && validScores(a.scores);
+  }
   createCycle(
     title: string,
     subjectId: string,
@@ -366,7 +439,11 @@ export class Store {
       return this.fail(
         "حداقل یک سرپرست، دو هم‌سطح، دو زیردست و در ۵۴۰ یک بیرونی لازم است.",
       );
-    if (c.status === "collecting" && c.assignments.some((a) => !a.scores))
+    if (c.status === "preparing") {
+      const error = validateQuestionBank(this.state().questions, c.mode);
+      if (error) return this.fail(error);
+    }
+    if (c.status === "collecting" && c.assignments.some((a) => !this.hasAnswered(c, a)))
       return this.fail("ابتدا تمام تکالیف دوره را تکمیل کنید.");
     if (c.status === "calibration" && !notes.trim())
       return this.fail("یادداشت کالیبراسیون الزامی است.");
@@ -379,29 +456,46 @@ export class Store {
         calibration: "feedback",
         feedback: "closed",
       } as const;
+      if (x.status === "preparing") {
+        const groups: Group[] = ["supervisor", "peer", "subordinate", ...(x.mode === 540 ? ["external" as Group] : [])];
+        x.questions = structuredClone(groups.flatMap((g) => orderedQuestions(s.questions, g)));
+      }
       x.status = next[x.status as keyof typeof next];
       if (notes) x.notes = notes.trim();
     });
     return true;
   }
-  submit(id: string, aid: string, scores: number[]) {
+  submit(id: string, aid: string, answers: number[] | QuestionAnswer[]) {
     const c = this.cycle(id);
-    const a = c?.assignments.find((a) => a.id === aid);
+    const a = c?.assignments.find((item) => item.id === aid);
     if (
       this.role() !== "evaluator" ||
       a?.personId !== this.actor() ||
       c?.status !== "collecting" ||
-      a.scores
-    )
-      return this.fail("این تکلیف برای نقش و شخصیت فعلی قابل ثبت نیست.");
-    if (!validScores(scores))
-      return this.fail(
-        "برای هر پنج سؤال یک امتیاز صحیح از ۱ تا ۵ انتخاب کنید.",
-      );
-    this.commit("پرسشنامه ثبت شد", id, (s) => {
-      s.cycles
-        .find((c) => c.id === id)!
-        .assignments.find((a) => a.id === aid)!.scores = [...scores];
+      this.hasAnswered(c, a)
+    ) return this.fail("این تکلیف برای نقش و شخصیت فعلی قابل ثبت نیست.");
+
+    if (c.questions) {
+      const questions = this.questionsFor(c, a.group);
+      const keyed: QuestionAnswer[] = answers.every((v) => typeof v === "number")
+        ? (answers as number[]).map((score, i) => ({
+            questionId: questions[i]?.id ?? "", score,
+          }))
+        : answers as QuestionAnswer[];
+      if (!validQuestionAnswers(questions, keyed))
+        return this.fail("برای تمام سؤالات گروه یک امتیاز معتبر از ۱ تا ۵ ثبت کنید.");
+      this.commit("پاسخ‌های گروه ارزیاب ثبت شد", id, (state) => {
+        state.cycles.find((x) => x.id === id)!.assignments
+          .find((x) => x.id === aid)!.answers = keyed.map((v) => ({ ...v }));
+      });
+      return true;
+    }
+
+    if (!answers.every((v) => typeof v === "number") || !validScores(answers as number[]))
+      return this.fail("برای هر پنج سؤال یک امتیاز صحیح از ۱ تا ۵ انتخاب کنید.");
+    this.commit("پرسشنامه ثبت شد", id, (state) => {
+      state.cycles.find((x) => x.id === id)!.assignments
+        .find((x) => x.id === aid)!.scores = [...answers as number[]];
     });
     return true;
   }
