@@ -101,7 +101,7 @@ import { competencies } from "../core/models";
           >{{ responseCount() | fa }} پاسخ از {{ assignmentCount() | fa }} تکلیف
           در دوره</small
         ></a
-      ><a class="stat" routerLink="/development"
+      ><a class="stat" routerLink="/dashboard/development"
         ><span class="stat-icon" style="background:#f3eff9;color:#9b83bd"
           >↗</span
         >
@@ -206,8 +206,14 @@ import { competencies } from "../core/models";
             <h2>پیگیری برنامه‌های توسعه</h2>
             <small>پیشرفت اقدام‌های ثبت‌شده در برنامه‌های توسعه</small>
           </div>
-          <a routerLink="/development" style="font-size:11px"
-            >همه برنامه‌ها ←</a
+          <div class="actions">
+            <a routerLink="/dashboard/development" style="font-size:11px">
+              تحلیل توسعه سرمایه انسانی ←
+            </a>
+            <a routerLink="/development" style="font-size:11px">
+              همه برنامه‌ها ←
+            </a>
+          </div>
           >
         </div>
         <div class="table-wrap">
