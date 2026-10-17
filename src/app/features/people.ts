@@ -91,13 +91,13 @@ import { GrowthComparison } from "../shared/growth-comparison";
         <div class="grid four" style="margin-bottom:22px">
           <div class="stat">
             <span class="label">عملکرد فعلی</span
-            ><strong style="font-size:23px">{{ bands[p.performance] }}</strong
-            ><small>منبع: سوابق عملکرد ثبت‌شده</small>
+            ><strong style="font-size:23px">{{ bandLabel(p.performance) }}</strong
+            ><small>{{ p.performance === null ? 'هنوز ارزیابی عملکرد پس از استخدام ثبت نشده' : 'منبع: سوابق عملکرد ثبت‌شده' }}</small>
           </div>
           <div class="stat">
             <span class="label">پتانسیل رشد</span
-            ><strong style="font-size:23px">{{ bands[p.potential] }}</strong
-            ><small>نظر انسانی، مستقل از عملکرد</small>
+            ><strong style="font-size:23px">{{ bandLabel(p.potential) }}</strong
+            ><small>{{ p.entry ? 'نظر انسانی در ارزیابی بدو استخدام' : 'نظر انسانی، مستقل از عملکرد' }}</small>
           </div>
           <div class="stat">
             <span class="label">پیشرفت توسعه</span
@@ -114,6 +114,27 @@ import { GrowthComparison } from "../shared/growth-comparison";
           {{ p.evidence }} · امتیازها ابزار کمکی‌اند و به معنای صلاحیت قطعی یا
           آمادگی انتصاب نیستند.
         </div>
+        @if (p.entry) {
+          <mat-card class="panel">
+            <div class="panel-head">
+              <h2>سابقه ورود به سازمان</h2>
+              @if (s.role() === "hr") {
+                <a [routerLink]="['/hiring', p.entry.candidateId]">پرونده و شواهد ارزیابی ورودی ←</a>
+              }
+            </div>
+            <div class="metric-line">
+              <span class="grow">تاریخ استخدام</span><strong>{{ p.entry.hiredAt | faDate }}</strong>
+            </div>
+            <div class="metric-line">
+              <span class="grow">مبنای اولیه شایستگی</span>
+              <strong>ارزیابی بدو استخدام · نسخه ثابت در تاریخچه داوطلب</strong>
+            </div>
+            <div class="info">
+              سطح اولیه شایستگی و پتانسیل در جریان جذب ثبت شده‌اند؛
+              ارزیابی عملکرد شغلی و جانشین‌پروری بعداً و به‌صورت مستقل انجام می‌شوند.
+            </div>
+          </mat-card>
+        }
         <div class="panel">
           <div class="panel-head">
             <h2>تحلیل شکاف با شغل هدف</h2>
