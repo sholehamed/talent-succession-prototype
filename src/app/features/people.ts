@@ -257,7 +257,7 @@ export default class People {
   target = signal(this.initialTarget());
   competencies = competencies;
   bands = bands;
-  bandLabel(value: string) {
+  bandLabel(value: string | null) {
     return bands[value as keyof typeof bands] ?? "—";
   }
   constructor() {
