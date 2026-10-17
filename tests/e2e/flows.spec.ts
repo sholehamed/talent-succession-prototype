@@ -235,6 +235,30 @@ test("full evaluation, calibration, IDP and shared progress", async ({
   await nav(page, "/dashboard/hr");
   await expect(page.locator("main")).toContainText("۱۰۰");
 });
+test("development dashboard shows distinct KPIs with correct empty states and filters", async ({ page }) => {
+  await nav(page, "/dashboard/development");
+  await expect(page.getByRole("heading", { name: "داشبورد توسعه سرمایه انسانی" })).toBeVisible();
+  await expect(page.locator(".stat")).toHaveCount(3);
+  await expect(page.locator(".stat").nth(0)).toContainText("پیشرفت اقدامات توسعه");
+  await expect(page.locator(".stat").nth(0)).toContainText("۳۳٪");
+  await expect(page.locator(".stat").nth(1)).toContainText("اثربخشی تأییدشده توسط مدیر");
+  await expect(page.locator(".stat").nth(1)).toContainText("—");
+  await expect(page.locator(".stat").nth(2)).toContainText("تغییر شایستگی بین دوره‌ها");
+  await expect(page.locator(".stat").nth(2)).toContainText("—");
+
+  await selectMaterial(page, "دوره ارزیابی و توسعه", "تابستان ۱۴۰۵");
+  await expect(page.locator(".stat").nth(0)).toContainText("—");
+  await expect(page.locator("main")).toContainText("دو دوره ارزیابی منتشرشده");
+  await selectMaterial(page, "دوره ارزیابی و توسعه", "پاییز ۱۴۰۵");
+  await selectMaterial(page, "واحد سازمانی", "عملیات");
+  await page.getByRole("link", { name: "مشاهده برنامه‌ها" }).click();
+  await expect(page).toHaveURL(/\/development\?unit=/);
+  await expect(page.locator("main")).toContainText("عملیات");
+
+  await nav(page, "/dashboard/hr");
+  await expect(page.getByRole("link", { name: "داشبورد توسعه سرمایه انسانی" })).toBeVisible();
+});
+
 test("two evaluation cycles create distinct IDP versions with preserved history", async ({ page }) => {
   // Existing approved summer assessment
   await nav(page, "/evaluations/reports/c0");
@@ -299,6 +323,13 @@ test("two evaluation cycles create distinct IDP versions with preserved history"
   expect(second.baseline).toBeTruthy();
   await page.reload();
   await expect(page.locator("main")).toContainText("نسخه قبلی برنامه");
+
+  await nav(page, "/dashboard/development");
+  await expect(page.locator(".stat").nth(2)).not.toContainText("—");
+  await expect(page.getByRole("row").filter({ hasText: "آرمان راد" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("ارزیابی پاییز ۱۴۰۵");
+  await selectMaterial(page, "دوره ارزیابی و توسعه", "تابستان ۱۴۰۵");
+  await expect(page.locator(".stat").nth(2)).toContainText("—");
 });
 
 test("IDP supports competency-led additions, evidence and separate manager effectiveness review", async ({ page }) => {
@@ -338,6 +369,13 @@ test("IDP supports competency-led additions, evidence and separate manager effec
     .find((a: any) => a.templateId === "leadership-delegate");
   expect(action.effectiveness.outcome).toBe("partial");
   expect(action.evidence).toContain("بازخورد مکتوب");
+
+  await nav(page, "/dashboard/development");
+  await selectMaterial(page, "دوره ارزیابی و توسعه", "تابستان ۱۴۰۵");
+  await expect(page.locator(".stat").nth(0)).toContainText("۲۵٪");
+  await expect(page.locator(".stat").nth(1)).toContainText("۰٪");
+  await expect(page.locator(".stat").nth(1)).toContainText("۱ از ۱");
+  await expect(page.locator("main")).toContainText("تاحدی مؤثر");
 });
 
 test("AAR review, publication and job linkage", async ({ page }) => {
