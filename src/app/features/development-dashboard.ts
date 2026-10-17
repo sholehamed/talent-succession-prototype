@@ -32,7 +32,7 @@ import { competencies } from "../core/models";
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>واحد سازمانی</mat-label>
-        <mat-select [ngModel]="unit()" (ngModelChange)="unit.set($event)"
+        <mat-select [ngModel]="effectiveUnit()" (ngModelChange)="unit.set($event)"
           [disabled]="s.role() === 'manager'">
           <mat-option value="">همه واحدها</mat-option>
           @for (u of s.units(); track u) {
@@ -207,6 +207,7 @@ export default class DevelopmentDashboard {
   readonly s = inject(Store);
   readonly period = signal("1405-autumn");
   readonly unit = signal(this.s.role() === "manager" ? "دفتر پروژه‌ها" : "");
+  readonly effectiveUnit = computed(() => this.s.role() === "manager" ? "دفتر پروژه‌ها" : this.unit());
   readonly competencies = competencies;
   readonly growthColumns = ["person", "cycles", "score", "gap", "link"];
   readonly reviewCategories = ["مؤثر", "تاحدی مؤثر", "بدون اثربخشی"];
@@ -218,7 +219,7 @@ export default class DevelopmentDashboard {
   ].filter(Boolean).sort().reverse());
   readonly visiblePeople = computed(() => this.s.state().people.filter(
     (p) => this.s.allowedPerson(p.id) &&
-      (!this.unit() || p.unit === this.unit()),
+      (!this.effectiveUnit() || p.unit === this.effectiveUnit()),
   ));
   readonly metrics = computed(() => developmentMetrics(
     this.s.state(), new Set(this.visiblePeople().map((p) => p.id)), this.period(),
@@ -236,7 +237,7 @@ export default class DevelopmentDashboard {
   }]);
   filterParams() {
     return {
-      ...(this.unit() ? { unit: this.unit() } : {}),
+      ...(this.effectiveUnit() ? { unit: this.effectiveUnit() } : {}),
       ...(this.period() ? { period: this.period() } : {}),
     };
   }
@@ -258,7 +259,7 @@ export default class DevelopmentDashboard {
     const line = (...values: (string | number | null)[]) =>
       values.map(safe).join(",");
     download("royesh-human-capital-development.csv", [
-      line("گزارش توسعه سرمایه انسانی", this.period() || "همه دوره‌ها", this.unit() || "همه واحدها"),
+      line("گزارش توسعه سرمایه انسانی", this.period() || "همه دوره‌ها", this.effectiveUnit() || "همه واحدها"),
       line("شاخص", "مقدار", "صورت", "مخرج"),
       line("پیشرفت فعالیت‌های توسعه", m.activityPercent, m.completed, m.totalActions),
       line("اثربخشی مؤثر از نظر مدیر", m.effectivePercent, m.effective, m.reviewed),
