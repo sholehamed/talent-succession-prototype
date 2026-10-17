@@ -187,7 +187,7 @@ import { competencies } from "../core/models";
             <tr mat-row *matRowDef="let row; columns: growthColumns"></tr>
           </table>
         </div>
-        @if (metrics().growthRows.some(g => g.expectationsChanged || g.historicalExpectedEstimated)) {
+        @if (hasCaution()) {
           <div class="warning">
             بعضی مبناهای تاریخی فاقد Snapshot کامل‌اند یا انتظار شغل تغییر کرده؛
             تفسیر عدد «کاهش شکاف» در این ردیف‌ها نیازمند بررسی است.
@@ -226,6 +226,9 @@ export default class DevelopmentDashboard {
   readonly pendingReviews = computed(() => this.metrics().actions.filter(({ action, plan }) =>
     action.status === "completed" && !action.effectiveness &&
     this.s.isCurrentPlan(plan),
+  ));
+  readonly hasCaution = computed(() => this.metrics().growthRows.some(
+    (row) => row.expectationsChanged || row.historicalExpectedEstimated,
   ));
   readonly reviewSeries = computed(() => [{
     name: "تعداد بررسی",
