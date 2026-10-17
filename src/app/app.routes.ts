@@ -47,6 +47,11 @@ export const routes: Routes = [
     loadComponent: () => import("./features/people"),
   },
   {
+    path: "evaluations/questions",
+    canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/evaluation-questions"),
+  },
+  {
     path: "evaluations/cycles",
     canActivate: [permit(["hr"])],
     data: { view: "cycles" },

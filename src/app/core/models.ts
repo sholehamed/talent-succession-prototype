@@ -88,11 +88,27 @@ export interface Position {
   impact: number;
   months: number;
 }
+export interface EvaluationQuestion {
+  id: string;
+  group: Group;
+  text: string;
+  /** Index in the five shared competency dimensions. */
+  competencyIndex: number;
+  order: number;
+  isActive: boolean;
+}
+export interface QuestionAnswer {
+  questionId: string;
+  score: number;
+}
 export interface Assignment {
   id: string;
   personId: string;
   group: Group;
+  /** Old browser cycles may have five fixed scores. */
   scores?: number[];
+  /** New cycles keep one rating for every assigned question id. */
+  answers?: QuestionAnswer[];
 }
 export interface Cycle {
   id: string;
@@ -103,6 +119,8 @@ export interface Cycle {
   mode: 360 | 540;
   status: "preparing" | "collecting" | "calibration" | "feedback" | "closed";
   assignments: Assignment[];
+  /** Immutable active questionnaire at the start of collection. Missing in legacy cycles. */
+  questions?: EvaluationQuestion[];
   notes: string;
   created: string;
 }
@@ -194,6 +212,7 @@ export interface DemoState {
   candidates: Candidate[];
   positions: Position[];
   cycles: Cycle[];
+  questions: EvaluationQuestion[];
   plans: Plan[];
   knowledge: Knowledge[];
   nominations: Nomination[];

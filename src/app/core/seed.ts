@@ -1,4 +1,5 @@
 import { DemoState, Job, Person, Knowledge, Cycle, Plan } from "./models";
+import { defaultEvaluationQuestions } from "./evaluation-questions";
 export function seed(): DemoState {
   const units = [
     "دفتر پروژه‌ها",
@@ -252,6 +253,7 @@ export function seed(): DemoState {
     schema: 1,
     jobs,
     people,
+    questions: defaultEvaluationQuestions(),
     candidates: [
       {
         id: "cand1", name: "تارا ساعی", jobId: "j1", createdAt: "2026-10-10T09:00:00.000Z",
