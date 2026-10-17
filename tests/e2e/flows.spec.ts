@@ -30,6 +30,7 @@ test("all main routes render, RTL, lazy charts and responsive layout", async ({
     "/people",
     "/people/p1",
     "/evaluations/cycles",
+    "/evaluations/questions",
     "/evaluations/c1",
     "/evaluations/reports/c0",
     "/development",
@@ -535,4 +536,53 @@ test("non-hiring decision archives candidate without adding a person", async ({ 
   await expect(page.locator("main")).toContainText("مطابقت شواهد با موقعیت فعلی");
   const state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
   expect(state.candidates.find((x: any) => x.id === "cand1").decision.outcome).toBe("declined");
+});
+
+test("HR edits peer questions; evaluator sees only its snapped questionnaire even after edits", async ({ page }) => {
+  await nav(page, "/evaluations/questions");
+  await page.getByRole("button", { name: /هم‌سطح.*سؤال فعال/ }).click();
+  await page.getByRole("textbox", { name: "متن سؤال ارزیابی" })
+    .fill("در تصمیم‌های گروهی به نظرات همکاران گوش می‌دهد؟");
+  await selectMaterial(page, "شایستگی مرتبط", "همکاری تیمی");
+  await page.getByRole("button", { name: "ثبت سؤال جدید" }).click();
+  await expect(page.locator("main")).toContainText("در تصمیم‌های گروهی به نظرات همکاران گوش می‌دهد؟");
+  await expect(page.getByRole("button", { name: /هم‌سطح.*سؤال فعال/ })).toContainText("۶");
+
+  await nav(page, "/evaluations/c1");
+  await page.getByRole("button", { name: "شروع دریافت پاسخ‌ها" }).click();
+  await expect(page.locator("main")).toContainText("دریافت پاسخ");
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!)
+    .cycles.find((c: any) => c.id === "c1").questions);
+  expect(before.filter((q: any) => q.group === "peer")).toHaveLength(6);
+
+  await nav(page, "/evaluations/questions");
+  await page.getByRole("button", { name: /هم‌سطح.*سؤال فعال/ }).click();
+  const q = page.locator("mat-card.panel").filter({ has: page.getByRole("heading", { name: "سؤالات هم‌سطح" }) })
+    .locator(".metric-line").filter({ hasText: "در تصمیم‌های گروهی به نظرات همکاران گوش می‌دهد؟" });
+  await q.getByRole("button", { name: "ویرایش" }).click();
+  await page.getByRole("textbox", { name: "متن سؤال ارزیابی" })
+    .fill("متن ویرایش‌شده برای دوره‌های بعدی");
+  await page.getByRole("button", { name: "ذخیره تغییرات" }).click();
+
+  await nav(page, "/evaluations/c1");
+  await page.getByRole("button", { name: "ورود به نقش ارزیاب و کارتابل" }).click();
+  await selectMaterial(page, "انتخاب ارزیاب", "نیما روشن");
+  await page.getByRole("button", { name: "تکمیل پرسشنامه" }).click();
+  await expect(page.locator(".question")).toHaveCount(6);
+  await expect(page.locator("main")).toContainText("در تصمیم‌های گروهی به نظرات همکاران گوش می‌دهد؟");
+  await expect(page.locator("main")).not.toContainText("متن ویرایش‌شده برای دوره‌های بعدی");
+  await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+  await expect(page.getByRole("status")).toContainText("تمام سؤالات");
+  for (let i = 0; i < 6; i++)
+    await page.locator(".question").nth(i).getByRole("radio").nth(3).check();
+  await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+  await expect(page.getByRole("button", { name: "تکمیل پرسشنامه" })).toHaveCount(0);
+  await page.reload();
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  const cycle = state.cycles.find((c: any) => c.id === "c1");
+  const response = cycle.assignments.find((a: any) => a.personId === "p3");
+  expect(response.answers).toHaveLength(6);
+  expect(new Set(response.answers.map((a: any) => a.questionId)).size).toBe(6);
+  expect(cycle.questions.find((q: any) => q.id === response.answers[5].questionId).text)
+    .toBe("در تصمیم‌های گروهی به نظرات همکاران گوش می‌دهد؟");
 });
