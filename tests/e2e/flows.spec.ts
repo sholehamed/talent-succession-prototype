@@ -503,7 +503,7 @@ test("candidate entry assessment leads to documented hiring and an employee with
   await page.getByRole("textbox", { name: "دلیل تصمیم انسانی" })
     .fill("بررسی شواهد و تأیید انسانی شرایط احراز");
   await page.getByRole("textbox", { name: "کد پرسنلی جدید (فقط برای استخدام)" }).fill("EMP-8008");
-  await selectMaterial(page, "مدیر مستقیم (فقط برای استخدام)", "رویا رسا · دفتر پروژه‌ها");
+  await selectMaterial(page, "مدیر مستقیم (فقط برای استخدام)", "پویان فرهمند · دفتر پروژه‌ها");
   await page.getByRole("button", { name: "تأیید استخدام و تشکیل پرونده" }).click();
   await expect(page).toHaveURL(/\/people\/[^/]+$/);
   await expect(page.locator("main h1")).toHaveText("سارا روشن");
