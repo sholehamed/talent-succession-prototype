@@ -351,7 +351,7 @@ export default class Dashboard {
   );
   responseCount = computed(() =>
     this.cycles().reduce(
-      (v, c) => v + c.assignments.filter((a) => a.scores).length,
+      (v, c) => v + c.assignments.filter((a) => this.s.hasAnswered(c, a)).length,
       0,
     ),
   );
@@ -453,7 +453,7 @@ export default class Dashboard {
           : "برنامه‌های توسعه و بازخوردهای منتشرشده را پیگیری کنید.",
   );
   answered(id: string) {
-    return this.s.cycle(id)!.assignments.filter((a) => a.scores).length;
+    return this.s.cycle(id)!.assignments.filter((a) => this.s.hasAnswered(this.s.cycle(id)!, a)).length;
   }
   completed(id: string) {
     return this.s
