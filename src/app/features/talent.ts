@@ -49,6 +49,9 @@ import { Chart } from "../shared/chart";
         <p style="margin-bottom:12px">
           ↑ پتانسیل رشد · عملکرد از چپ به راست افزایش می‌یابد →
         </p>
+        @if (unclassified().length) {
+          <div class="info">{{ unclassified().length | fa }} فرد هنوز ارزیابی عملکرد یا پتانسیل لازم برای جانمایی در ماتریس را ندارند؛ نمایش در یک خانه بدون داده معتبر انجام نمی‌شود.</div>
+        }
         <div class="nine-grid">
           @for (y of ys; track y) {
             @for (x of xs; track x) {
@@ -143,8 +146,8 @@ import { Chart } from "../shared/chart";
             <p>{{ readiness[n.readiness] }}</p>
             <p style="margin:12px 0">{{ n.evidence }}</p>
             <small
-              >عملکرد {{ bands[s.person(n.personId).performance] }} · پتانسیل
-              {{ bands[s.person(n.personId).potential] }}</small
+              >عملکرد {{ bandLabel(s.person(n.personId).performance) }} · پتانسیل
+              {{ bandLabel(s.person(n.personId).potential) }}</small
             >
             <div class="metric-line">
               <span class="grow">مجموع شکاف شایستگی</span
@@ -234,7 +237,7 @@ import { Chart } from "../shared/chart";
 export default class Talent {
   s = inject(Store);
   readonly talentColumns = ["person","unit","performance","potential","evidence"];
-  bandLabel(value: string) { return bands[value as Band] ?? "—"; }
+  bandLabel(value: string | null) { return bands[value as Band] ?? "—"; }
   route = inject(ActivatedRoute);
   nine = !!this.route.snapshot.data["nine"];
   unit = signal("");
@@ -284,6 +287,7 @@ export default class Talent {
           this.s.allowedPerson(p.id),
       ),
   );
+  unclassified = computed(() => this.people().filter((p) => !p.performance || !p.potential));
   selectedPeople = computed(() =>
     this.people().filter(
       (p) => !this.cell() || this.cell() === p.performance + "-" + p.potential,

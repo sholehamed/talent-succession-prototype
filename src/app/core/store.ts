@@ -1,6 +1,8 @@
 import { Injectable, computed, signal } from "@angular/core";
 import {
   Action,
+  Band,
+  Candidate,
   Cycle,
   DemoState,
   EffectivenessOutcome,
@@ -65,7 +67,7 @@ export class Store {
           d.cycles.every((c: any) => Array.isArray(c.assignments)) &&
           d.plans.every((p: any) => Array.isArray(p.actions))
         )
-          return d;
+          return { ...d, candidates: Array.isArray(d.candidates) ? d.candidates : [] };
         this.storageWarning.set(
           "اطلاعات ذخیره‌شده ناسازگار بود؛ وضعیت اولیه بازیابی شد.",
         );
@@ -154,6 +156,92 @@ export class Store {
     );
   }
 
+  candidate(id: string): Candidate | undefined {
+    return this.state().candidates.find((c) => c.id === id);
+  }
+  latestEntryAssessment(id: string) {
+    return this.candidate(id)?.assessments.at(-1);
+  }
+  registerCandidate(name: string, jobId: string) {
+    if (this.role() !== "hr") return (this.fail("ثبت داوطلب تنها برای منابع انسانی مجاز است."), "");
+    if (!name.trim() || !this.state().jobs.some((j) => j.id === jobId))
+      return (this.fail("نام داوطلب و شغل هدف معتبر الزامی است."), "");
+    const id = crypto.randomUUID();
+    this.commit("داوطلب برای ارزیابی اولیه ثبت شد", id, (state) => {
+      state.candidates.unshift({
+        id, name: name.trim(), jobId, createdAt: new Date().toISOString(),
+        assessments: [],
+      });
+    });
+    return id;
+  }
+  recordEntryAssessment(
+    candidateId: string, scores: number[], potential: Band,
+    evidence: string, potentialReason: string,
+  ) {
+    const candidate = this.candidate(candidateId);
+    if (this.role() !== "hr" || !candidate || candidate.decision)
+      return this.fail("ارزیابی این داوطلب در نقش فعلی یا پس از تصمیم نهایی قابل ثبت نیست.");
+    if (!validScores(scores) || !["low", "medium", "high"].includes(potential) ||
+        !evidence.trim() || !potentialReason.trim())
+      return this.fail("پنج امتیاز معتبر ۱ تا ۵، سطح پتانسیل و شواهد و استدلال آن الزامی است.");
+    this.commit("نسخه جدید ارزیابی بدو استخدام ثبت شد", candidateId, (state) => {
+      state.candidates.find((c) => c.id === candidateId)!.assessments.push({
+        id: crypto.randomUUID(), scores: [...scores], potential,
+        evidence: evidence.trim(), potentialReason: potentialReason.trim(),
+        assessor: "کارشناس منابع انسانی", evaluatedAt: new Date().toISOString(),
+      });
+    });
+    return true;
+  }
+  decideCandidate(
+    candidateId: string, outcome: "hired" | "declined", reason: string,
+    employment?: { code: string; managerId: string; hiredAt: string },
+  ) {
+    const candidate = this.candidate(candidateId);
+    const assessment = candidate?.assessments.at(-1);
+    if (this.role() !== "hr" || !candidate || candidate.decision)
+      return this.fail("تصمیم نهایی برای این داوطلب مجاز نیست یا قبلاً ثبت شده است.");
+    if (!assessment || !reason.trim() || !["hired", "declined"].includes(outcome))
+      return this.fail("ارزیابی اولیه و دلیل تصمیم انسانی الزامی است.");
+    if (outcome === "hired") {
+      if (!employment?.code.trim() || !employment.managerId ||
+          !this.person(employment.managerId) ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(employment.hiredAt) ||
+          !Number.isFinite(Date.parse(employment.hiredAt + "T00:00:00Z")) ||
+          this.state().people.some((p) => p.code === employment.code.trim()))
+        return this.fail("کد پرسنلی یکتا، مدیر مستقیم و تاریخ استخدام معتبر الزامی است.");
+      const d = new Date(employment.hiredAt + "T00:00:00Z");
+      if (d.toISOString().slice(0, 10) !== employment.hiredAt)
+        return this.fail("تاریخ استخدام نامعتبر است.");
+    }
+    const personId = outcome === "hired" ? crypto.randomUUID() : undefined;
+    this.commit(outcome === "hired"
+      ? "داوطلب استخدام و پرونده کارکنان ایجاد شد"
+      : "نتیجه عدم استخدام با شواهد ثبت شد", candidateId, (state) => {
+      const c = state.candidates.find((x) => x.id === candidateId)!;
+      c.decision = {
+        outcome, reason: reason.trim(), reviewer: "کارشناس منابع انسانی",
+        decidedAt: new Date().toISOString(),
+        ...(personId ? { personId } : {}),
+      };
+      if (personId && employment) {
+        const job = state.jobs.find((j) => j.id === c.jobId)!;
+        state.people.push({
+          id: personId, name: c.name, code: employment.code.trim(),
+          jobId: c.jobId, unit: job.unit, managerId: employment.managerId,
+          performance: null, potential: assessment.potential,
+          observed: [...assessment.scores],
+          evidence: "ارزیابی اولیه بدو استخدام: " + assessment.evidence,
+          entry: {
+            candidateId: c.id, assessmentId: assessment.id,
+            hiredAt: employment.hiredAt, potentialReviewedAt: assessment.evaluatedAt,
+          },
+        });
+      }
+    });
+    return personId ?? "declined";
+  }
   scores(personId: string) {
     const cycle = this.state()
       .cycles.filter(

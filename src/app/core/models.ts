@@ -41,10 +41,40 @@ export interface Person {
   unit: string;
   jobId: string;
   managerId: string;
-  performance: Band;
-  potential: Band;
+  /** Null until an actual on-the-job performance / potential review exists. */
+  performance: Band | null;
+  potential: Band | null;
+  /** Initial entry competency results may be the first observed baseline. */
+  entry?: { candidateId: string; assessmentId: string; hiredAt: string; potentialReviewedAt: string };
   observed: number[];
   evidence: string;
+}
+export type HiringOutcome = "hired" | "declined";
+export interface EntryAssessment {
+  id: string;
+  /** Competencies follow the job-profile's five competency dimensions. */
+  scores: number[];
+  /** Human-reviewed potential, not computed from mean competency scores. */
+  potential: Band;
+  evidence: string;
+  potentialReason: string;
+  assessor: string;
+  evaluatedAt: string;
+}
+export interface Candidate {
+  id: string;
+  name: string;
+  jobId: string;
+  createdAt: string;
+  assessments: EntryAssessment[];
+  decision?: {
+    outcome: HiringOutcome;
+    reason: string;
+    reviewer: string;
+    decidedAt: string;
+    /** Employee exists only after a positive HR decision. */
+    personId?: string;
+  };
 }
 export interface Position {
   id: string;
@@ -160,6 +190,8 @@ export interface DemoState {
   schema: 1;
   jobs: Job[];
   people: Person[];
+  /** Restored from an empty array for browser snapshots predating hiring. */
+  candidates: Candidate[];
   positions: Position[];
   cycles: Cycle[];
   plans: Plan[];

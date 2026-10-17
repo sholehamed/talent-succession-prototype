@@ -110,6 +110,7 @@ export class App {
     { path: "/dashboard/development", title: "داشبورد توسعه سرمایه انسانی", icon: "↗" },
     { path: "/jobs", title: "شناسنامه‌های شغلی", icon: "▤" },
     { path: "/career-paths", title: "مسیرهای رشد", icon: "↗" },
+    { path: "/hiring", title: "ارزیابی بدو استخدام", icon: "⊕" },
     { path: "/people", title: "افراد و استعدادها", icon: "♧" },
     { path: "/evaluations/cycles", title: "ارزیابی چندمنبعی", icon: "◎" },
     { path: "/evaluations/inbox", title: "کارتابل ارزیابی", icon: "☑" },
@@ -127,6 +128,7 @@ export class App {
       ["/jobs", "/career-paths", "/knowledge", "/settings"].includes(path)
     )
       return true;
+    if (path === "/hiring") return false;
     if (r === "evaluator") return path === "/evaluations/inbox";
     if (r === "owner") return false;
     if (r === "employee") return ["/people", "/development"].includes(path);

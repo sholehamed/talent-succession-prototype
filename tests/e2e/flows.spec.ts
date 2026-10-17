@@ -25,6 +25,8 @@ test("all main routes render, RTL, lazy charts and responsive layout", async ({
     "/jobs",
     "/jobs/j1",
     "/career-paths",
+    "/hiring",
+    "/hiring/cand1",
     "/people",
     "/people/p1",
     "/evaluations/cycles",
@@ -476,4 +478,61 @@ test("Material datepicker writes an ISO day into the existing IDP model", async 
   await page.reload();
   await page.getByRole("button", { name: "ویرایش و پیگیری" }).first().click();
   await expect(page.locator("app-date-field input")).toHaveValue(displayedJalali);
+});
+
+test("candidate entry assessment leads to documented hiring and an employee with unknown performance", async ({ page }) => {
+  await nav(page, "/hiring");
+  await page.getByRole("textbox", { name: "نام و نام خانوادگی داوطلب" }).fill("سارا روشن");
+  await selectMaterial(page, "شغل هدف استخدام", "مدیر پروژه · دفتر پروژه‌ها");
+  await page.getByRole("button", { name: "ثبت و آغاز ارزیابی" }).click();
+  await expect(page).toHaveURL(/\/hiring\/[^/]+$/);
+  await expect(page.locator("main h1")).toHaveText("سارا روشن");
+  await expect(page.locator("main")).toContainText("در انتظار ارزیابی");
+
+  await selectMaterial(page, "ارتباط مؤثر", "۴");
+  await selectMaterial(page, "نتیجه بررسی پتانسیل", "بالا");
+  await page.getByRole("textbox", { name: "شواهد مصاحبه و سنجش شایستگی‌ها" })
+    .fill("مصاحبه رفتاری و اجرای تمرین برنامه‌ریزی در نقش مدیر پروژه");
+  await page.getByRole("textbox", { name: "استدلال ارزیاب درباره پتانسیل رشد" })
+    .fill("یادگیری سریع و سازگاری با سناریوی جدید مستند شد");
+  await page.getByRole("button", { name: "ثبت نسخه ارزیابی" }).click();
+  await expect(page.locator("main")).toContainText("تاریخچه ارزیابی‌های ورودی");
+  await expect(page.locator("main")).toContainText("یادگیری سریع و سازگاری");
+  await expect(page.locator("main")).toContainText("در انتظار تصمیم");
+
+  await page.getByRole("textbox", { name: "دلیل تصمیم انسانی" })
+    .fill("بررسی شواهد و تأیید انسانی شرایط احراز");
+  await page.getByRole("textbox", { name: "کد پرسنلی جدید (فقط برای استخدام)" }).fill("EMP-8008");
+  await selectMaterial(page, "مدیر مستقیم (فقط برای استخدام)", "پویان فرهمند · دفتر پروژه‌ها");
+  await page.getByRole("button", { name: "تأیید استخدام و تشکیل پرونده" }).click();
+  await expect(page).toHaveURL(/\/people\/[^/]+$/);
+  await expect(page.locator("main h1")).toHaveText("سارا روشن");
+  await expect(page.locator("main")).toContainText("EMP-8008");
+  await expect(page.locator("main")).toContainText("هنوز ارزیابی عملکرد پس از استخدام ثبت نشده");
+  await expect(page.locator("main")).toContainText("سابقه ورود به سازمان");
+  await page.getByRole("link", { name: "پرونده و شواهد ارزیابی ورودی" }).click();
+  await expect(page.locator("main")).toContainText("استخدام‌شده");
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  const candidate = state.candidates.find((x: any) => x.name === "سارا روشن");
+  const hired = state.people.find((x: any) => x.code === "EMP-8008");
+  expect(hired.entry.candidateId).toBe(candidate.id);
+  expect(hired.entry.assessmentId).toBe(candidate.assessments[0].id);
+  expect(hired.performance).toBe(null);
+  expect(candidate.decision.personId).toBe(hired.id);
+  await nav(page, "/talent/9box");
+  await expect(page.locator("main")).toContainText("هنوز ارزیابی عملکرد یا پتانسیل لازم");
+});
+
+test("non-hiring decision archives candidate without adding a person", async ({ page }) => {
+  await nav(page, "/hiring/cand1");
+  await expect(page.locator("main")).toContainText("تارا ساعی");
+  await page.getByRole("textbox", { name: "دلیل تصمیم انسانی" })
+    .fill("مطابقت شواهد با موقعیت فعلی در کمیته تأیید نشد");
+  await page.getByRole("button", { name: "ثبت عدم استخدام" }).click();
+  await expect(page.locator("main")).toContainText("استخدام‌نشده");
+  await expect(page.getByRole("button", { name: "ثبت نسخه ارزیابی" })).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator("main")).toContainText("مطابقت شواهد با موقعیت فعلی");
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  expect(state.candidates.find((x: any) => x.id === "cand1").decision.outcome).toBe("declined");
 });

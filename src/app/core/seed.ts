@@ -252,6 +252,21 @@ export function seed(): DemoState {
     schema: 1,
     jobs,
     people,
+    candidates: [
+      {
+        id: "cand1", name: "تارا ساعی", jobId: "j1", createdAt: "2026-10-10T09:00:00.000Z",
+        assessments: [{
+          id: "entry1", scores: [4, 3, 4, 4, 3], potential: "high",
+          evidence: "تحلیل یک موقعیت واقعی مدیریت پروژه و مثال رفتاری مستند از تجربه کار تیمی",
+          potentialReason: "پذیرش بازخورد و توان یادگیری و حل مسئله در موقعیت جدید؛ تأیید کیفی ارزیاب",
+          assessor: "کارشناس منابع انسانی", evaluatedAt: "2026-10-11T10:00:00.000Z",
+        }],
+      },
+      {
+        id: "cand2", name: "بهزاد پویش", jobId: "j9", createdAt: "2026-10-12T08:30:00.000Z",
+        assessments: [],
+      },
+    ],
     cycles,
     plans,
     knowledge,
