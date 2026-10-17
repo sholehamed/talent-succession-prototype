@@ -14,6 +14,11 @@ const management: Role[] = ["hr", "manager", "executive"];
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "dashboard/hr" },
   {
+    path: "dashboard/development",
+    canActivate: [permit(management)],
+    loadComponent: () => import("./features/development-dashboard"),
+  },
+  {
     path: "dashboard/:view",
     canActivate: [permit(management)],
     loadComponent: () => import("./features/dashboard"),
