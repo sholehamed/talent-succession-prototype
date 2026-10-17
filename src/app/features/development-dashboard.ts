@@ -243,7 +243,7 @@ export default class DevelopmentDashboard {
     const names: Record<string, string> = {
       spring: "بهار", summer: "تابستان", autumn: "پاییز", winter: "زمستان",
     };
-    return (names[season] ?? season) + " " + year.replace(/\\d/g, x => "۰۱۲۳۴۵۶۷۸۹"[Number(x)]);
+    return (names[season] ?? season) + " " + year.replace(/\d/g, x => "۰۱۲۳۴۵۶۷۸۹"[Number(x)]);
   }
   exportCsv() {
     const m = this.metrics();
