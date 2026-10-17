@@ -2,7 +2,8 @@ import { Component, computed, effect, inject, input, signal } from "@angular/cor
 import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router } from "@angular/router";
 import { Store } from "../core/store";
-import { Group, competencies, groups } from "../core/models";
+import { Group, competencies, groups, EvaluationQuestion } from "../core/models";
+import { evaluationAnchors } from "../core/evaluation-questions";
 import { UI } from "../shared/ui";
 import { Chart } from "../shared/chart";
 @Component({
@@ -24,9 +25,12 @@ import { Chart } from "../shared/chart";
         </h1>
         <p>ارزیابی چندمنبعی شایستگی‌ها · نتایج پشتیبان تصمیم انسانی</p>
       </div>
-      <a mat-button class="secondary" routerLink="/evaluations/cycles"
-        >دوره‌های ارزیابی</a
-      >
+      <div class="actions">
+        @if (s.role() === "hr") {
+          <a mat-button class="secondary" routerLink="/evaluations/questions">مدیریت سؤالات</a>
+        }
+        <a mat-button class="secondary" routerLink="/evaluations/cycles">دوره‌های ارزیابی</a>
+      </div>
     </div>
     @if (view === "cycles") {
       <div class="grid two">
@@ -119,9 +123,9 @@ import { Chart } from "../shared/chart";
               >
             </div>
             <span class="badge">{{
-              item.a.scores ? "ثبت‌شده" : "در انتظار پاسخ"
+              s.hasAnswered(item.c, item.a) ? "ثبت‌شده" : "در انتظار پاسخ"
             }}</span>
-            @if (!item.a.scores) {
+            @if (!s.hasAnswered(item.c, item.a)) {
               <button mat-button (click)="openAnswer(item.c.id, item.a.id)">
                 تکمیل پرسشنامه
               </button>
@@ -138,10 +142,10 @@ import { Chart } from "../shared/chart";
         <mat-card class="panel">
           <h2>بازخورد رفتاری</h2>
           <p>در تجربه همکاری، فرد تا چه اندازه رفتار زیر را نشان داده است؟</p>
-          @for (c of competencies; track c; let i = $index) {
+          @for (question of answerQuestions(); track question.id; let i = $index) {
             <div class="question">
-              <strong>{{ i + 1 | fa }}. {{ questions[i] }}</strong
-              ><small style="display:block">شایستگی: {{ c }}</small>
+              <strong>{{ i + 1 | fa }}. {{ question.text }}</strong
+              ><small style="display:block">شایستگی: {{ competencies[question.competencyIndex] }}</small>
               <div class="score-row">
      <mat-radio-group [ngModel]="scores[i]" (ngModelChange)="scores[i] = $event">
        @for (anchor of anchors; track anchor; let n = $index) {
@@ -222,7 +226,7 @@ import { Chart } from "../shared/chart";
             <table mat-table [dataSource]="c.assignments" class="royesh-table">
  <ng-container matColumnDef="evaluator"><th mat-header-cell *matHeaderCellDef>ارزیاب</th><td mat-cell *matCellDef="let a">{{ s.person(a.personId).name }}</td></ng-container>
  <ng-container matColumnDef="group"><th mat-header-cell *matHeaderCellDef>گروه</th><td mat-cell *matCellDef="let a">{{ groupLabel(a.group) }}</td></ng-container>
- <ng-container matColumnDef="state"><th mat-header-cell *matHeaderCellDef>وضعیت</th><td mat-cell *matCellDef="let a">{{ a.scores ? "ثبت‌شده" : "در انتظار پاسخ" }}</td></ng-container>
+ <ng-container matColumnDef="state"><th mat-header-cell *matHeaderCellDef>وضعیت</th><td mat-cell *matCellDef="let a">{{ s.hasAnswered(c, a) ? "ثبت‌شده" : "در انتظار پاسخ" }}</td></ng-container>
  <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>عملیات</th><td mat-cell *matCellDef="let a">
    @if (c.status === "preparing" && s.role() === "hr") {
      <button mat-button (click)="s.removeEvaluator(c.id, a.id)">حذف</button>
@@ -358,7 +362,7 @@ import { Chart } from "../shared/chart";
  <ng-container matColumnDef="count"><th mat-header-cell *matHeaderCellDef>پاسخ</th><td mat-cell *matCellDef="let row">{{ row.count | fa }}</td></ng-container>
  @for (comp of competencies; track comp; let i = $index) {
   <ng-container [matColumnDef]="'score' + i"><th mat-header-cell *matHeaderCellDef>{{ comp }}</th><td mat-cell *matCellDef="let row">
-    {{ row.scores ? (row.scores[i] | fa) : "نمونه ناکافی" }}
+    {{ !row.scores ? "نمونه ناکافی" : row.scores[i] === null ? "سنجیده‌نشده" : (row.scores[i] | fa) }}
   </td></ng-container>
  }
  <tr mat-header-row *matHeaderRowDef="groupColumns"></tr><tr mat-row *matRowDef="let row; columns: groupColumns"></tr>
@@ -445,23 +449,16 @@ export default class Evaluations {
   competencies = competencies;
   groups = groups;
   groupEntries = Object.entries(groups) as [Group, string][];
-  scores: number[] = [0, 0, 0, 0, 0];
+  scores: number[] = [];
   selected = signal("");
   answerCycle = "";
-  anchors = [
-    "به‌ندرت",
-    "با کمک مستمر",
-    "مستقل و قابل اتکا",
-    "فراتر از انتظار",
-    "الگوی دیگران",
-  ];
-  questions = [
-    "پیام و انتظار خود را روشن و قابل فهم منتقل می‌کند.",
-    "برای حل مسائل مشترک با دیگران همکاری می‌کند.",
-    "علت مسئله و راه‌حل‌های جایگزین را بررسی می‌کند.",
-    "مسئولیت نتیجه و پیگیری تعهدات را می‌پذیرد.",
-    "به اعضای تیم بازخورد و فرصت رشد می‌دهد.",
-  ];
+  anchors = evaluationAnchors;
+  readonly answerQuestions = computed(() => {
+    const assignmentId = this.selected();
+    const c = this.s.cycle(this.answerCycle);
+    const a = c?.assignments.find((a) => a.id === assignmentId);
+    return c && a ? this.s.questionsFor(c, a.group) : [];
+  });
   constructor() {
     effect(() => {
       const job = this.jobFilter();
@@ -547,7 +544,8 @@ export default class Evaluations {
     return this.cycle()?.assignments.filter((a) => a.group === g).length ?? 0;
   }
   answered(id: string) {
-    return this.s.cycle(id)?.assignments.filter((a) => a.scores).length ?? 0;
+    const c = this.s.cycle(id);
+    return c?.assignments.filter((a) => this.s.hasAnswered(c, a)).length ?? 0;
   }
   create() {
     const id = this.s.createCycle(
@@ -562,17 +560,21 @@ export default class Evaluations {
   asEvaluator() {
     this.s.role.set("evaluator");
     this.s.actor.set(
-      this.cycle()!.assignments.find((a) => !a.scores)?.personId ?? "p2",
+      this.cycle()!.assignments.find((a) => !this.s.hasAnswered(this.cycle()!, a))?.personId ?? "p2",
     );
     this.router.navigateByUrl("/evaluations/inbox");
   }
   openAnswer(c: string, a: string) {
     this.answerCycle = c;
     this.selected.set(a);
-    this.scores = [0, 0, 0, 0, 0];
+    this.scores = Array(this.answerQuestions().length).fill(0);
   }
   send() {
-    if (this.s.submit(this.answerCycle, this.selected(), this.scores))
+    const c = this.s.cycle(this.answerCycle);
+    const answers = c?.questions ? this.answerQuestions().map((question, i) => ({
+      questionId: question.id, score: this.scores[i],
+    })) : this.scores;
+    if (this.s.submit(this.answerCycle, this.selected(), answers))
       this.selected.set("");
   }
   reportGap(i: number) {
