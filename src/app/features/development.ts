@@ -2,11 +2,13 @@ import { Component, computed, inject, input, signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute } from "@angular/router";
 import { Store } from "../core/store";
-import { Action, competencies } from "../core/models";
+import { Action, EffectivenessOutcome, competencies } from "../core/models";
+import { developmentTemplates, templatesForCompetency } from "../core/development-templates";
+import { GrowthComparison } from "../shared/growth-comparison";
 import { UI } from "../shared/ui";
 @Component({
   standalone: true,
-  imports: UI,
+  imports: [...UI, GrowthComparison],
   template: `<div class="page-header">
       <div>
         <div class="eyebrow">از بازخورد تا اقدام</div>
@@ -114,6 +116,42 @@ import { UI } from "../shared/ui";
         } @else {
           <div class="info">مبنای شایستگی این برنامه پیش از ثبت نسخه‌های تاریخی ایجاد شده است.</div>
         }
+        @if (p.cycleId) {
+          <app-growth-comparison
+            [personId]="p.personId" [jobId]="p.jobId"
+            [currentCycleId]="p.cycleId" />
+        }
+        @if (s.isCurrentPlan(p) && s.editable()) {
+          <mat-card class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>انتخاب اقدام متناسب با شایستگی</h2>
+                <small>انتخاب از پیشنهادها؛ عنوان و معیار موفقیت بعد از افزودن قابل ویرایش‌اند</small>
+              </div>
+            </div>
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>شایستگی هدف</mat-label>
+                <mat-select [ngModel]="newCompetency" (ngModelChange)="chooseCompetency($event)">
+                  @for (comp of competencies; track comp; let i = $index) {
+                    <mat-option [value]="i">{{ comp }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>الگوی اقدام توسعه</mat-label>
+                <mat-select [(ngModel)]="newTemplateId">
+                  @for (t of templates(); track t.id) {
+                    <mat-option [value]="t.id">{{ t.title }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div class="actions">
+              <button mat-button class="primary" (click)="addAction()">افزودن اقدام توسعه</button>
+            </div>
+          </mat-card>
+        }
         <div class="grid three">
           @for (a of p.actions; track a.id; let i = $index) {
             <mat-card class="panel">
@@ -133,11 +171,28 @@ import { UI } from "../shared/ui";
                 <span class="grow">مهلت</span><span>{{ a.due | faDate }}</span>
               </div>
               <p style="margin:16px 0">شاخص موفقیت: {{ a.indicator }}</p>
-              @if (s.isCurrentPlan(p) && (s.editable() || s.role() === "employee")) {
-                <button mat-button class="secondary" (click)="edit(a)">
-                  ویرایش و پیگیری
-                </button>
+              <p>شواهد اجرا: {{ a.evidence || "هنوز ثبت نشده است" }}</p>
+              @if (a.effectiveness; as review) {
+                <div class="info">
+                  نظر مدیر: {{ outcomeLabel(review.outcome) }} · {{ review.reviewedAt | faDate }}
+                  <p>{{ review.note }}</p>
+                  <small>{{ review.reviewer }}</small>
+                </div>
+              } @else if (a.status === "completed") {
+                <div class="warning">تکمیل فعالیت ثبت شده؛ بررسی اثربخشی هنوز انجام نشده است.</div>
               }
+              <div class="actions">
+                @if (s.isCurrentPlan(p) && !a.effectiveness &&
+                     (s.editable() || s.role() === "employee")) {
+                  <button mat-button class="secondary" (click)="edit(a)">
+                    ویرایش و پیگیری
+                  </button>
+                }
+                @if (s.isCurrentPlan(p) && s.role() === "manager" && s.allowedPerson(p.personId)
+                     && a.status === "completed") {
+                  <button mat-button (click)="reviewAction(a)">ثبت / اصلاح نظر اثربخشی</button>
+                }
+              </div>
             </mat-card>
           }
         </div>
@@ -145,7 +200,16 @@ import { UI } from "../shared/ui";
           <mat-card class="panel">
             <h2>پیگیری اقدام</h2>
             <div class="form-grid">
-              <mat-form-field appearance="outline"><mat-label>عنوان اقدام</mat-label><input matInput [(ngModel)]="draft.title" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مسئول</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><app-date-field
+              <mat-form-field appearance="outline">
+                <mat-label>شایستگی مرتبط</mat-label>
+                <mat-select [(ngModel)]="draft.competency">
+                  @for (comp of competencies; track comp; let i = $index) {
+                    <mat-option [value]="i">{{ comp }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>عنوان اقدام</mat-label><input matInput [(ngModel)]="draft.title" /></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>نوع اقدام</mat-label><input matInput [(ngModel)]="draft.kind" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مسئول</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><app-date-field
                  label="مهلت اقدام" [(ngModel)]="draft.due" /><mat-form-field appearance="outline"
                 ><mat-label>وضعیت</mat-label><mat-select [(ngModel)]="draft.status">
                   @for (st of statuses; track st) {
@@ -153,6 +217,10 @@ import { UI } from "../shared/ui";
                   }
                 </mat-select></mat-form-field><mat-form-field appearance="outline" class="full"
                 ><mat-label>شاخص موفقیت</mat-label><textarea matInput [(ngModel)]="draft.indicator"></textarea></mat-form-field>
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>شواهد انجام اقدام</mat-label>
+                <textarea matInput [(ngModel)]="draft.evidence" placeholder="لینک خروجی، گزارش، نتیجه مشاهده‌شده یا توضیح مستند"></textarea>
+              </mat-form-field>
             </div>
             <div class="actions">
               <button mat-button class="primary" (click)="save()">
@@ -161,9 +229,33 @@ import { UI } from "../shared/ui";
             </div>
           </mat-card>
         }
+        @if (reviewDraft && s.isCurrentPlan(p) && s.role() === "manager") {
+          <mat-card class="panel">
+            <h2>بررسی اثربخشی اقدام توسط مدیر واحد</h2>
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>نتیجه بررسی اثربخشی</mat-label>
+                <mat-select [(ngModel)]="reviewDraft.outcome">
+                  <mat-option value="effective">مؤثر</mat-option>
+                  <mat-option value="partial">تاحدی مؤثر</mat-option>
+                  <mat-option value="ineffective">بدون اثربخشی مشاهده‌شده</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>شواهد و توضیح مدیر</mat-label>
+                <textarea matInput [(ngModel)]="reviewDraft.note"></textarea>
+              </mat-form-field>
+            </div>
+            <div class="actions">
+              <button mat-button class="primary" (click)="saveReview()">ثبت نظر اثربخشی</button>
+              <button mat-button (click)="reviewDraft = undefined">انصراف</button>
+            </div>
+          </mat-card>
+        }
         <div class="info">
-          درصد پیشرفت از تعداد اقدام‌های انجام‌شده محاسبه می‌شود؛ تکمیل فعالیت
-          به‌تنهایی اثبات افزایش شایستگی یا آمادگی انتصاب نیست.
+          درصد پیشرفت از تعداد فعالیت‌های تکمیل‌شده محاسبه می‌شود.
+          نظر اثربخشی مدیر جداگانه ثبت می‌شود و رشد شایستگی فقط از نتایج ارزیابی
+          دوره‌ای قابل بررسی است؛ هیچ‌کدام به معنی آمادگی قطعی انتصاب نیست.
         </div>
       } @else {
         <div class="warning">این برنامه در محدوده نقش فعلی نیست.</div>
@@ -196,6 +288,11 @@ export default class Development {
   id = input<string>();
   search = signal("");
   draft?: Action;
+  reviewDraft?: { actionId: string; outcome: EffectivenessOutcome; note: string };
+  newCompetency = 4;
+  newTemplateId = "leadership-delegate";
+  readonly templates = () => templatesForCompetency(this.newCompetency);
+  readonly templateCatalog = developmentTemplates;
   competencies = competencies;
   statuses = ["planned", "progress", "completed", "blocked", "cancelled"];
   plan = computed(() => this.s.state().plans.find((p) => p.id === this.id()));
@@ -210,10 +307,41 @@ export default class Development {
           this.s.person(p.personId).name.includes(this.search()),
       ),
   );
-  edit(a: Action) {
-    this.draft = structuredClone(a);
+  chooseCompetency(value: number) {
+    this.newCompetency = value;
+    this.newTemplateId = templatesForCompetency(value)[0]?.id ?? "";
   }
+  addAction() {
+    if (this.s.addDevelopmentAction(this.id()!, this.newCompetency, this.newTemplateId)) {
+      this.newTemplateId = templatesForCompetency(this.newCompetency)
+        .find((t) => !this.plan()?.actions.some((a) => a.templateId === t.id))?.id
+        ?? this.newTemplateId;
+    }
+  }
+  outcomeLabel(outcome: EffectivenessOutcome) {
+    return {
+      effective: "مؤثر",
+      partial: "تاحدی مؤثر",
+      ineffective: "بدون اثربخشی مشاهده‌شده",
+    }[outcome];
+  }
+  edit(a: Action) { this.draft = structuredClone(a); }
   save() {
-    if (this.s.saveAction(this.id()!, this.draft!)) this.draft = undefined;
+    if (this.draft && this.s.saveAction(this.id()!, this.draft))
+      this.draft = undefined;
+  }
+  reviewAction(a: Action) {
+    this.draft = undefined;
+    this.reviewDraft = {
+      actionId: a.id,
+      outcome: a.effectiveness?.outcome ?? "partial",
+      note: a.effectiveness?.note ?? "",
+    };
+  }
+  saveReview() {
+    if (!this.reviewDraft) return;
+    if (this.s.reviewActionEffectiveness(
+      this.id()!, this.reviewDraft.actionId, this.reviewDraft.outcome, this.reviewDraft.note,
+    )) this.reviewDraft = undefined;
   }
 }
