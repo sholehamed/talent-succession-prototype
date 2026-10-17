@@ -303,6 +303,7 @@ test("two evaluation cycles create distinct IDP versions with preserved history"
 test("IDP supports competency-led additions, evidence and separate manager effectiveness review", async ({ page }) => {
   await nav(page, "/evaluations/reports/c0");
   await page.getByRole("button", { name: "ایجاد برنامه توسعه این دوره" }).click();
+  await expect(page).toHaveURL(/\/development\/idp\/[^/]+$/);
   const planPath = new URL(page.url()).pathname;
   await expect(page.locator("main")).toContainText("انتخاب اقدام متناسب با شایستگی");
   await selectMaterial(page, "شایستگی هدف", "هدایت تیم");
