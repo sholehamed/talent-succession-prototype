@@ -275,6 +275,8 @@ test("two evaluation cycles create distinct IDP versions with preserved history"
   await expect(page.locator("main")).toContainText("نسخه ۲");
   await expect(page.locator("main")).toContainText("ارزیابی پاییز ۱۴۰۵");
   await expect(page.locator("main")).toContainText("مبنای شایستگی در زمان ایجاد این نسخه");
+  await expect(page.locator("main")).toContainText("مقایسه شایستگی در دو دوره ارزیابی");
+  await expect(page.locator("main")).toContainText("تغییر میانگین شکاف");
   const secondUrl = page.url();
   expect(secondUrl).not.toBe(firstUrl);
 
@@ -296,6 +298,43 @@ test("two evaluation cycles create distinct IDP versions with preserved history"
   expect(second.baseline).toBeTruthy();
   await page.reload();
   await expect(page.locator("main")).toContainText("نسخه قبلی برنامه");
+});
+
+test("IDP supports competency-led additions, evidence and separate manager effectiveness review", async ({ page }) => {
+  await nav(page, "/evaluations/reports/c0");
+  await page.getByRole("button", { name: "ایجاد برنامه توسعه این دوره" }).click();
+  const planPath = new URL(page.url()).pathname;
+  await expect(page.locator("main")).toContainText("انتخاب اقدام متناسب با شایستگی");
+  await selectMaterial(page, "شایستگی هدف", "هدایت تیم");
+  await selectMaterial(page, "الگوی اقدام توسعه", "راهبری تیم کوچک و تفویض مسئولیت");
+  await page.getByRole("button", { name: "افزودن اقدام توسعه" }).click();
+  const card = page.locator("mat-card.panel")
+    .filter({ has: page.getByRole("heading", { name: "راهبری تیم کوچک و تفویض مسئولیت" }) });
+  await expect(card).toContainText("توزیع مسئولیت‌ها");
+  await card.getByRole("button", { name: "ویرایش و پیگیری" }).click();
+  await page.getByLabel("شواهد انجام اقدام").fill("خروجی پروژه و بازخورد مکتوب تیم ثبت شد");
+  await selectMaterial(page, "وضعیت", "انجام‌شده");
+  await page.getByRole("button", { name: "ذخیره اقدام" }).click();
+  await expect(card).toContainText("بررسی اثربخشی هنوز انجام نشده");
+
+  await role(page, "manager");
+  await nav(page, planPath);
+  await page.locator("mat-card.panel")
+    .filter({ has: page.getByRole("heading", { name: "راهبری تیم کوچک و تفویض مسئولیت" }) })
+    .getByRole("button", { name: "ثبت / اصلاح نظر اثربخشی" }).click();
+  await selectMaterial(page, "نتیجه بررسی اثربخشی", "تاحدی مؤثر");
+  await page.getByLabel("شواهد و توضیح مدیر").fill("خروجی تأیید شد؛ بازخورد اعضا بهبود نسبی را نشان می‌دهد");
+  await page.getByRole("button", { name: "ثبت نظر اثربخشی" }).click();
+  await expect(card).toContainText("نظر مدیر: تاحدی مؤثر");
+
+  await page.reload();
+  await expect(card).toContainText("بازخورد اعضا بهبود نسبی");
+  await expect(card.getByRole("button", { name: "ویرایش و پیگیری" })).toHaveCount(0);
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  const action = state.plans.find((p: any) => p.cycleId === "c0").actions
+    .find((a: any) => a.templateId === "leadership-delegate");
+  expect(action.effectiveness.outcome).toBe("partial");
+  expect(action.evidence).toContain("بازخورد مکتوب");
 });
 
 test("AAR review, publication and job linkage", async ({ page }) => {
