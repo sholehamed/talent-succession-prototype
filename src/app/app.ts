@@ -113,6 +113,7 @@ export class App {
     { path: "/hiring", title: "ارزیابی بدو استخدام", icon: "⊕" },
     { path: "/people", title: "افراد و استعدادها", icon: "♧" },
     { path: "/evaluations/cycles", title: "ارزیابی چندمنبعی", icon: "◎" },
+    { path: "/evaluations/questions", title: "مدیریت سؤالات ارزیابی", icon: "☷" },
     { path: "/evaluations/inbox", title: "کارتابل ارزیابی", icon: "☑" },
     { path: "/development", title: "توسعه فردی", icon: "◷" },
     { path: "/talent/succession", title: "جانشین‌پروری", icon: "◇" },
@@ -128,7 +129,7 @@ export class App {
       ["/jobs", "/career-paths", "/knowledge", "/settings"].includes(path)
     )
       return true;
-    if (path === "/hiring") return false;
+    if (path === "/hiring" || path === "/evaluations/questions") return false;
     if (r === "evaluator") return path === "/evaluations/inbox";
     if (r === "owner") return false;
     if (r === "employee") return ["/people", "/development"].includes(path);
