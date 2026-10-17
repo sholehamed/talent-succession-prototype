@@ -27,6 +27,16 @@ export const routes: Routes = [
   { path: "jobs/:id", loadComponent: () => import("./features/jobs") },
   { path: "career-paths", loadComponent: () => import("./features/career") },
   {
+    path: "hiring",
+    canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/hiring"),
+  },
+  {
+    path: "hiring/:id",
+    canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/hiring"),
+  },
+  {
     path: "people",
     canActivate: [permit([...management, "employee"])],
     loadComponent: () => import("./features/people"),
