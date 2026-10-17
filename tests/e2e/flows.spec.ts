@@ -198,7 +198,7 @@ test("full evaluation, calibration, IDP and shared progress", async ({
     await pending.click();
     if (person === "p2") {
       await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
-      await expect(page.getByRole("status")).toContainText("پنج سؤال");
+      await expect(page.getByRole("status")).toContainText("تمام سؤالات");
     }
     for (let i = 0; i < 5; i++)
       await page
