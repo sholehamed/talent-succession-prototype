@@ -207,7 +207,7 @@ export class Store {
     if (outcome === "hired") {
       if (!employment?.code.trim() || !employment.managerId ||
           !this.person(employment.managerId) ||
-          !/^\\d{4}-\\d{2}-\\d{2}$/.test(employment.hiredAt) ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(employment.hiredAt) ||
           !Number.isFinite(Date.parse(employment.hiredAt + "T00:00:00Z")) ||
           this.state().people.some((p) => p.code === employment.code.trim()))
         return this.fail("کد پرسنلی یکتا، مدیر مستقیم و تاریخ استخدام معتبر الزامی است.");
