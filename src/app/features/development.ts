@@ -20,10 +20,12 @@ import { UI } from "../shared/ui";
       >
     </div>
     @if (!id()) {
-      @if (jobFilter() || personFilter()) {
+      @if (jobFilter() || personFilter() || periodFilter() || unitFilter()) {
         <div class="info">
           @if (jobFilter()) { برنامه‌های شغل «{{ s.job(jobFilter()).title }}» }
           @if (personFilter()) { · فرد: {{ s.person(personFilter()).name }} }
+          @if (periodFilter()) { · دوره: {{ periodFilter() }} }
+          @if (unitFilter()) { · واحد: {{ unitFilter() }} }
           <a routerLink="/development">نمایش همه برنامه‌ها</a>
         </div>
       }
@@ -278,6 +280,11 @@ export default class Development {
     const person = this.queryParams().get("person");
     return person && this.s.state().people.some((p) => p.id === person) ? person : "";
   });
+  readonly periodFilter = computed(() => this.queryParams().get("period") ?? "");
+  readonly unitFilter = computed(() => {
+    const unit = this.queryParams().get("unit");
+    return unit && this.s.units().includes(unit) ? unit : "";
+  });
   readonly developmentColumns = ["person","job","source","actions","progress","action"];
   readonly baselineColumns = ["competency", "expected", "observed", "gap"];
   sourceTitle(cycleId?: string) {
@@ -304,6 +311,8 @@ export default class Development {
           this.s.allowedPerson(p.personId) &&
           (!this.jobFilter() || p.jobId === this.jobFilter()) &&
           (!this.personFilter() || p.personId === this.personFilter()) &&
+          (!this.periodFilter() || p.period === this.periodFilter()) &&
+          (!this.unitFilter() || this.s.person(p.personId).unit === this.unitFilter()) &&
           this.s.person(p.personId).name.includes(this.search()),
       ),
   );
