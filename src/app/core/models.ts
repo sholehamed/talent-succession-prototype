@@ -76,6 +76,13 @@ export interface Cycle {
   notes: string;
   created: string;
 }
+export type EffectivenessOutcome = "effective" | "partial" | "ineffective";
+export interface EffectivenessReview {
+  outcome: EffectivenessOutcome;
+  note: string;
+  reviewer: string;
+  reviewedAt: string;
+}
 export interface Action {
   id: string;
   competency: number;
@@ -85,6 +92,10 @@ export interface Action {
   due: string;
   indicator: string;
   status: "planned" | "progress" | "completed" | "blocked" | "cancelled";
+  /** Optional fields preserve previously saved browser plans. */
+  templateId?: string;
+  evidence?: string;
+  effectiveness?: EffectivenessReview;
 }
 export interface Plan {
   id: string;

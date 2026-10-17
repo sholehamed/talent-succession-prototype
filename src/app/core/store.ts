@@ -3,6 +3,7 @@ import {
   Action,
   Cycle,
   DemoState,
+  EffectivenessOutcome,
   Group,
   JobContent,
   Knowledge,
@@ -11,6 +12,7 @@ import {
   competencies,
 } from "./models";
 import { seed } from "./seed";
+import { developmentTemplates, templatesForCompetency } from "./development-templates";
 import {
   aggregate,
   canStart,
@@ -385,40 +387,150 @@ export class Store {
         version,
         createdAt: new Date().toISOString(),
         baseline,
-        actions: top.map((c, i) => ({
-          id: crypto.randomUUID(),
-          competency: c,
-          title: `${["مأموریت عملی", "مربیگری", "آموزش هدفمند"][i]}: ${competencies[c]}`,
-          kind: ["تجربه عملی", "مربیگری", "آموزش"][i],
-          owner: this.person(personId).name,
-          due: "2026-12-21",
-          indicator: "ثبت یک خروجی و بازخورد تأییدشده مدیر",
-          status: "planned",
-        })),
+        actions: top.map((c, i) => {
+          const template = templatesForCompetency(c)[i % 2];
+          return {
+            id: crypto.randomUUID(),
+            competency: c,
+            templateId: template.id,
+            title: template.title,
+            kind: template.kind,
+            owner: this.person(personId).name,
+            due: "2026-12-21",
+            indicator: template.indicator,
+            status: "planned" as const,
+            evidence: "",
+          };
+        }),
       }),
     );
     return id;
   }
   saveAction(planId: string, a: Action) {
-    const p = this.state().plans.find((p) => p.id === planId);
+    const p = this.state().plans.find((plan) => plan.id === planId);
+    const original = p?.actions.find((x) => x.id === a.id);
     if (
       !p ||
+      !this.allowedPerson(p.personId) ||
       !(this.editable() || (this.role() === "employee" && p.personId === "p1"))
-    )
-      return false;
+    ) return this.fail("اجازه ویرایش این اقدام را ندارید.");
     if (!this.isCurrentPlan(p))
       return this.fail("این نسخه از برنامه توسعه آرشیوی است؛ فقط آخرین نسخه قابل ویرایش است.");
-    if (!a.title.trim() || !a.owner.trim() || !a.due || !a.indicator.trim())
-      return this.fail("عنوان، مسئول، مهلت و شاخص موفقیت را تکمیل کنید.");
-    if (!p.actions.some((x) => x.id === a.id))
-      return this.fail("اقدام موردنظر در این برنامه وجود ندارد.");
-    this.commit("اقدام توسعه به‌روزرسانی شد", planId, (s) => {
-      const x = s.plans.find((p) => p.id === planId)!;
-      x.actions = x.actions.map((v) =>
-        v.id === a.id ? structuredClone(a) : v,
+    if (!original) return this.fail("اقدام موردنظر در این برنامه وجود ندارد.");
+    if (original.effectiveness)
+      return this.fail("اقدام بررسی‌شده توسط مدیر قفل است؛ ثبت نتیجه جدید از طریق بازبینی مدیر انجام می‌شود.");
+    if (
+      !Number.isInteger(a.competency) || a.competency < 0 || a.competency >= competencies.length ||
+      !a.title.trim() || !a.owner.trim() || !a.due ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(a.due) || !a.indicator.trim()
+    ) return this.fail("شایستگی، عنوان، مسئول، مهلت معتبر و شاخص موفقیت را تکمیل کنید.");
+    this.commit("اقدام توسعه به‌روزرسانی شد", planId, (state) => {
+      const plan = state.plans.find((x) => x.id === planId)!;
+      plan.actions = plan.actions.map((v) =>
+        v.id === a.id ? { ...structuredClone(a), effectiveness: undefined } : v,
       );
     });
     return true;
+  }
+  addDevelopmentAction(planId: string, competency: number, templateId: string) {
+    const p = this.state().plans.find((x) => x.id === planId);
+    if (!p || !this.editable() || !this.allowedPerson(p.personId) || !this.isCurrentPlan(p))
+      return this.fail("ثبت اقدام برای این برنامه مجاز نیست.");
+    const template = developmentTemplates.find(
+      (x) => x.id === templateId && x.competency === competency,
+    );
+    if (!template) return this.fail("الگوی انتخاب‌شده با شایستگی مطابقت ندارد.");
+    if (p.actions.some((a) => a.templateId === templateId))
+      return this.fail("این الگوی توسعه قبلاً به برنامه افزوده شده است.");
+    this.commit("اقدام توسعه متناسب با شایستگی افزوده شد", planId, (state) => {
+      state.plans.find((x) => x.id === planId)!.actions.push({
+        id: crypto.randomUUID(),
+        competency,
+        templateId,
+        title: template.title,
+        kind: template.kind,
+        owner: this.person(p.personId).name,
+        due: "2026-12-21",
+        indicator: template.indicator,
+        status: "planned",
+        evidence: "",
+      });
+    });
+    return true;
+  }
+  reviewActionEffectiveness(
+    planId: string, actionId: string, outcome: EffectivenessOutcome, note: string,
+  ) {
+    const p = this.state().plans.find((x) => x.id === planId);
+    const action = p?.actions.find((x) => x.id === actionId);
+    if (
+      !p || !action || this.role() !== "manager" ||
+      !this.allowedPerson(p.personId) || !this.isCurrentPlan(p)
+    ) return this.fail("بررسی اثربخشی به مدیر واحد مربوط به فرد نیاز دارد.");
+    if (action.status !== "completed")
+      return this.fail("ابتدا اقدام باید در وضعیت انجام‌شده باشد.");
+    if (!action.evidence?.trim())
+      return this.fail("برای بررسی اثربخشی ابتدا شواهد انجام اقدام ثبت شود.");
+    if (!["effective", "partial", "ineffective"].includes(outcome) || !note.trim())
+      return this.fail("نتیجه اثربخشی و توضیح مستند مدیر الزامی است.");
+    this.commit("نظر مدیر درباره اثربخشی ثبت شد", planId, (state) => {
+      state.plans.find((x) => x.id === planId)!.actions
+        .find((x) => x.id === actionId)!.effectiveness = {
+          outcome,
+          note: note.trim(),
+          reviewer: "مدیر واحد",
+          reviewedAt: new Date().toISOString(),
+        };
+    });
+    return true;
+  }
+  /**
+   * Compare the same person's published evaluation periods for the same target job.
+   * IDP baseline snapshots win over today's job requirements for historic comparisons.
+   * This is observed change, never a causal claim about development actions.
+   */
+  assessmentComparison(personId: string, jobId: string, cycleId?: string) {
+    if (!this.state().people.some((p) => p.id === personId) ||
+        !this.state().jobs.some((j) => j.id === jobId)) return null;
+    const cycles = this.state().cycles
+      .filter((c) =>
+        c.subjectId === personId && c.jobId === jobId &&
+        ["feedback", "closed"].includes(c.status))
+      .sort((a, b) => a.created.localeCompare(b.created));
+    const currentIndex = cycleId
+      ? cycles.findIndex((c) => c.id === cycleId)
+      : cycles.length - 1;
+    if (currentIndex < 1) return null;
+    const previous = cycles[currentIndex - 1];
+    const current = cycles[currentIndex];
+    const snapshot = (c: Cycle) => {
+      const fromPlan = this.state().plans.find((p) => p.cycleId === c.id)?.baseline;
+      const observed = fromPlan?.observed ?? aggregate(c).scores;
+      if (!observed) return null;
+      const expected = fromPlan?.expected ?? this.job(jobId).expected;
+      return {
+        cycleId: c.id, title: c.title, expected: [...expected],
+        observed: [...observed],
+        gaps: fromPlan?.gaps ? [...fromPlan.gaps] : gap(expected, observed),
+      };
+    };
+    const older = snapshot(previous), newer = snapshot(current);
+    if (!older || !newer) return null;
+    const rows = competencies.map((competency, i) => ({
+      competency,
+      oldScore: older.observed[i],
+      newScore: newer.observed[i],
+      oldGap: older.gaps[i],
+      newGap: newer.gaps[i],
+      improvement: Math.round((older.gaps[i] - newer.gaps[i]) * 100) / 100,
+    }));
+    return {
+      older, newer, rows,
+      meanGapImprovement: Math.round(
+        rows.reduce((sum, r) => sum + r.improvement, 0) / rows.length * 100,
+      ) / 100,
+      expectationsChanged: older.expected.some((v, i) => v !== newer.expected[i]),
+    };
   }
   saveKnowledge(k: Knowledge) {
     if (!["hr", "manager", "employee"].includes(this.role())) return "";

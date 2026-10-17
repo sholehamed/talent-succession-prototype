@@ -5,9 +5,10 @@ import { Store } from "../core/store";
 import { bands, competencies } from "../core/models";
 import { UI } from "../shared/ui";
 import { Chart } from "../shared/chart";
+import { GrowthComparison } from "../shared/growth-comparison";
 @Component({
   standalone: true,
-  imports: [...UI, Chart],
+  imports: [...UI, Chart, GrowthComparison],
   template: `@if (!id()) {
       <div class="page-header">
         <div>
@@ -165,6 +166,7 @@ import { Chart } from "../shared/chart";
             </div>
           </div>
         </div>
+        <app-growth-comparison [personId]="p.id" [jobId]="target()" />
         <div class="grid two">
           <mat-card class="panel">
             <h2>سوابق ارزیابی</h2>
