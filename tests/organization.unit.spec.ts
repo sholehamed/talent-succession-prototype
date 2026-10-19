@@ -141,4 +141,23 @@ describe("organizational structure and effective-dated appointments", () => {
     expect(s.person(personId as string).observed).toEqual([4,4,4,3,5]);
     expect(s.candidate(id)?.decision?.personId).toBe(personId);
   });
+  it("proposes chart-derived evaluators without creating fake external assignments", () => {
+    const s = new Store();
+    const cycleId = s.createCycle("دوره تشکیلاتی", "p1", "j7", 540);
+    expect(cycleId).toBeTruthy();
+    const proposed = s.organizationalEvaluatorSuggestions("p1", 540);
+    expect(proposed.some((x) => x.group === "supervisor" && x.personId === "p11")).toBe(true);
+    expect(proposed.some((x) => x.group === "external")).toBe(false);
+    expect(proposed.some((x) => x.personId === "p1")).toBe(false);
+    expect(s.cycle(cycleId)!.assignments).toHaveLength(0);
+    expect(s.addOrganizationalEvaluators(cycleId)).toBe(true);
+    const assignments = s.cycle(cycleId)!.assignments;
+    expect(assignments.length).toBe(proposed.length);
+    expect(new Set(assignments.map((a) => a.personId)).size).toBe(assignments.length);
+    expect(s.addOrganizationalEvaluators(cycleId)).toBe(false);
+    s.role.set("manager");
+    expect(s.addOrganizationalEvaluators(cycleId)).toBe(false);
+    expect(s.cycle(cycleId)!.assignments).toHaveLength(assignments.length);
+  });
+
 });
