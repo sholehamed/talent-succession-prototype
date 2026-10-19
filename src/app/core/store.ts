@@ -7,6 +7,8 @@ import {
   DemoState,
   EffectivenessOutcome,
   EvaluationQuestion,
+  EntryQuestion,
+  EntryCommitteeStage,
   QuestionAnswer,
   Assignment,
   Group,
@@ -35,6 +37,7 @@ import {
 import { performanceBand, performanceScore } from "./performance";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, rolesForPerson } from "./auth";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
+import { activeEntryQuestions, combinedEntryScores, defaultEntryQuestions, entryBankError, entryScores } from "./entry-committees";
 import { DevelopmentTemplate, defaultDevelopmentTemplates, templatesForCompetency } from "./development-templates";
 import {
   aggregate,
@@ -161,6 +164,7 @@ export class Store {
             performanceReviews: Array.isArray(d.performanceReviews) ? d.performanceReviews : [],
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
             questions: Array.isArray(d.questions) ? d.questions : defaultEvaluationQuestions(),
+            entryQuestions: Array.isArray(d.entryQuestions) ? d.entryQuestions : defaultEntryQuestions(d.jobs),
             developmentTemplates: Array.isArray(d.developmentTemplates)
               ? d.developmentTemplates.map((t: DevelopmentTemplate) => ({ ...t, isActive: t.isActive !== false }))
               : defaultDevelopmentTemplates(),
