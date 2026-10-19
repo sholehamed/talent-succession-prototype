@@ -29,9 +29,11 @@ test("sidebar accordion keeps exactly one section open, supports closing and dee
   await evaluation.click();
   await expect(page.locator('.nav-group-toggle[aria-expanded="true"]')).toHaveCount(0);
 
-  await page.goto("/hiring/committee/general");
+  await page.goto("/hiring/questions");
   await expect(page.getByRole("button", { name: "جذب و استخدام" }))
     .toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("link", { name: "بانک سؤالات استخدام" }))
+    .toHaveAttribute("aria-current", "page");
   await page.goto("/jobs/j1?job=j1");
   await expect(jobs).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByRole("link", { name: "شناسنامه‌های شغلی" }))
