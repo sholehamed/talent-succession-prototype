@@ -29,13 +29,22 @@
 ۶. در **موبایل**، drawer با دکمه منو باز می‌شود؛ انتخاب زیرمنو یا تنظیمات drawer را می‌بندد. بازشدن بعدی منو گروه مربوط به صفحه جاری را نشان می‌دهد.
 ۷. کنترل گروه‌ها `button` واقعی با `aria-label` و `aria-expanded` است و از Tab / Enter / Space پشتیبانی می‌کند. زیرمنوها لینک واقعی Angular و نقش‌هایشان قابل استفاده با صفحه‌خوان‌اند.
 
+## آیکن‌های Material (بدون وابستگی به اینترنت)
+
+- تمام ۷ آیکن گروه‌ها، ۲۶ آیکن زیرمنو، «تنظیمات»، فلش‌ها، دکمه همبرگری و نشان کاربر از **SVGهای رسمی Google Material Design Icons** تهیه شده‌اند.
+- نمایش آیکن‌ها توسط `MatIconModule` و `MatIconRegistry.addSvgIconLiteral` در Angular Material انجام می‌شود. SVGها در `navigation-icons.primary.ts` و `navigation-icons.secondary.ts` در بسته برنامه قرار می‌گیرند؛ هیچ فونت یا CDN خارجی برای نمایش آن‌ها لازم نیست.
+- نام آیکن کنار هر آیتم در `navigation.config.ts` تعریف می‌شود و رجیستری مرکزی در `navigation-icons.ts` قرار دارد. آیکن‌ها رنگ حالت فعال، اندازه و حالت جمع‌شده را از CSS به ارث می‌برند.
+- منبع: [Google Material Design Icons](https://github.com/google/material-design-icons) با مجوز Apache 2.0؛ نسخه مجوز در [پوشه مجوزها](licenses/material-design-icons-LICENSE.txt) نگهداری شده است.
+- تست واحد وجود SVG محلی برای همه آیتم‌ها را کنترل می‌کند و Playwright نمایش آیکن‌ها بدون دسترسی به Google Fonts را می‌سنجد.
+
 ## ساختار کد
 
 - `src/app/navigation.config.ts`: ساختار گروه‌ها، تمام لینک‌های سابق، سیاست دیدپذیری مطابق منوی قبل و نگاشت مسیرهای جزئیات به گروه.
+- `src/app/navigation-icons.ts` و `src/app/navigation-icons.*.ts`: رجیستری و SVGهای رسمی Material برای نمایش کاملاً آفلاین.
 - `src/app/app.ts`: نمایش گروه‌ها، یک `expandedGroup` از نوع Signal، واکنش به رویداد `NavigationEnd` و نقش انتخابی، کنترل Collapse/موبایل.
 - `src/styles.scss`: ظاهر RTL آکاردئون، حالت فعال، Focus و Collapse.
-- `tests/sidebar-navigation.unit.spec.ts`: تمام مسیرها و گروه‌ها، عدم تکرار و نشت دسترسی و نگاشت Deep Link.
-- `tests/e2e/sidebar-accordion.spec.ts`: باز/بسته‌شدن گروه‌ها، مسیر فعال، تنظیمات، نقش کارمند و حالت Collapsed.
+- `tests/sidebar-navigation.unit.spec.ts`: تمام مسیرها و گروه‌ها، عدم تکرار و نشت دسترسی، وجود Material SVG و نگاشت Deep Link.
+- `tests/e2e/sidebar-accordion.spec.ts`: باز/بسته‌شدن گروه‌ها، مسیر فعال، تنظیمات، نقش کارمند، Material SVG آفلاین و حالت Collapsed.
 - `tests/e2e/flows.spec.ts`: سناریوی رگرسیونی بازشدن Drawer موبایل و رفتن به شناسنامه شغلی با زیرمنوی جدید.
 
 ## محدودیت‌ها و تضمین سازگاری
