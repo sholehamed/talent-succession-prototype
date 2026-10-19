@@ -9,7 +9,7 @@ export const SESSION_KEY = "royesh.session.v1";
 const managerGrants: Record<string, Role[]> = {
   p1: ["hr"],
   p2: ["manager"],
-  p11: ["executive"],
+  p11: ["executive", "manager"],
   p12: ["owner"],
 };
 export function rolesForPerson(id: string): Role[] {
