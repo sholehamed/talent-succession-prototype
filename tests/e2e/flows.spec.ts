@@ -342,7 +342,7 @@ test("IDP supports competency-led additions, evidence and separate manager effec
   await expect(page).toHaveURL(/\/development\/idp\/[^/]+$/);
   await expect(page.locator("main")).toContainText("انتخاب اقدام متناسب با شایستگی");
   await selectMaterial(page, "شایستگی هدف", "هدایت تیم");
-  await selectMaterial(page, "الگوی اقدام توسعه", "راهبری تیم کوچک و تفویض مسئولیت");
+  await selectMaterial(page, "الگوی اقدام توسعه", "راهبری تیم کوچک و تفویض مسئولیت · مأموریت عملی");
   await page.getByRole("button", { name: "افزودن اقدام توسعه" }).click();
   const card = page.locator("mat-card.panel")
     .filter({ has: page.getByRole("heading", { name: "راهبری تیم کوچک و تفویض مسئولیت" }) });
@@ -639,6 +639,5 @@ test("HR template catalog dynamically feeds competency IDP and preserves action 
   await expect(page.getByRole("option", { name: /عنوان جدید فقط برای انتخاب‌های آینده/ })).toHaveCount(0);
   await page.keyboard.press("Escape");
   await role(page, "manager");
-  await page.goto("/development/templates");
-  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.locator("mat-sidenav a.nav-item").filter({ hasText: "الگوهای اقدام توسعه" })).toHaveCount(0);
 });
