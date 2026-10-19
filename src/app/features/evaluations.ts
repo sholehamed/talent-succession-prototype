@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, input, signal } from "@angular/cor
 import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router } from "@angular/router";
 import { Store } from "../core/store";
-import { Group, competencies, groups, EvaluationQuestion } from "../core/models";
+import { Group, competencies, groups, EvaluationQuestion, Cycle } from "../core/models";
 import { evaluationAnchors } from "../core/evaluation-questions";
 import { UI } from "../shared/ui";
 import { Chart } from "../shared/chart";
@@ -226,6 +226,25 @@ import { Chart } from "../shared/chart";
  </table>
           </div>
           @if (c.status === "preparing" && s.role() === "hr") {
+            <div class="info">
+              ارزیابان از متصدی پست بالاسری، هم‌سطح‌های همان بالاسری و پست‌های زیرمجموعه مستقیم پیشنهاد می‌شوند.
+              این پیشنهاد فقط با تأیید منابع انسانی ثبت می‌شود؛ ذی‌نفع بیرونی ۵۴۰ درجه نیازمند انتخاب دستی است.
+              افراد فاقد رابطه معتبر اضافه نمی‌شوند.
+            </div>
+            @for (candidate of organizationalSuggestions(c); track candidate.personId) {
+              <div class="metric-line">
+                <span class="grow">{{ s.person(candidate.personId).name }}</span>
+                <small>{{ groupLabel(candidate.group) }} · {{ candidate.reason }}</small>
+              </div>
+            } @empty {
+              <div class="empty">پیشنهاد جدیدی از چارت سازمانی موجود نیست.</div>
+            }
+            <div class="actions" style="margin-bottom:18px">
+              <button mat-stroked-button [disabled]="!organizationalSuggestions(c).length"
+                (click)="s.addOrganizationalEvaluators(c.id)">
+                افزودن ارزیاب‌های پیشنهادی از چارت
+              </button>
+            </div>
             <div class="filterbar">
               <mat-form-field appearance="outline" class="search"
                 ><mat-label>ارزیاب</mat-label><mat-select [(ngModel)]="evaluator">
@@ -520,6 +539,10 @@ export default class Evaluations {
       competencies.filter((_, i) => this.reportGap(i) > 0).join("، ") ||
       "شکاف مثبت مشاهده نشد",
   );
+  organizationalSuggestions(c: Cycle) {
+    return this.s.organizationalEvaluatorSuggestions(c.subjectId, c.mode)
+      .filter((item) => !c.assignments.some((a) => a.personId === item.personId));
+  }
   count(g: Group) {
     return this.cycle()?.assignments.filter((a) => a.group === g).length ?? 0;
   }
