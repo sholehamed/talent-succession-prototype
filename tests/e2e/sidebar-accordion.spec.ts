@@ -73,7 +73,7 @@ test("all sidebar icons render as local Material SVGs without an icon font conne
   await page.route("https://fonts.googleapis.com/**", route => route.abort());
   await page.route("https://fonts.gstatic.com/**", route => route.abort());
   await page.goto("/dashboard/hr");
-  await expect(page.locator(".nav-group-toggle mat-icon svg")).toHaveCount(7);
+  await expect(page.locator(".nav-group-toggle mat-icon.nav-group-icon svg")).toHaveCount(7);
   await expect(page.locator(".sidebar-settings mat-icon svg")).toHaveCount(1);
   await expect(page.locator(".workspace mat-icon svg")).toHaveCount(1);
   await expect(page.locator(".menu-toggle mat-icon svg")).toHaveCount(1);
