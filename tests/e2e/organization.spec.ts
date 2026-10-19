@@ -61,3 +61,17 @@ test("HR creates organization structure, staffs a vacancy and preserves old eval
   await page.goto("/organization/chart");
   await expect(page.locator("main")).toContainText("کارشناس فناوری غرب");
 });
+
+test("blocks non-HR access to global staffing history while allowing read-only chart", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("textbox", { name: "شناسه کاربری" }).fill("p11");
+  await page.getByLabel("رمز عبور").fill("Royesh1405!");
+  await page.getByRole("button", { name: "ورود به رویش" }).click();
+
+  await page.goto("/organization/chart");
+  await expect(page.getByRole("heading", { name: "چارت سازمانی" })).toBeVisible();
+  await expect(page.locator('main a[href="/organization/appointments"]')).toHaveCount(0);
+  await page.goto("/organization/appointments");
+  await expect(page).not.toHaveURL(/\/organization\/appointments$/);
+  await expect(page.locator("main")).not.toContainText("تاریخچه انتصاب‌ها");
+});
