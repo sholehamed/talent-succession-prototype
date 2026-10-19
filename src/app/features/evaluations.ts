@@ -28,6 +28,7 @@ import { Chart } from "../shared/chart";
       <div class="actions">
         @if (s.role() === "hr") {
           <a mat-button class="secondary" routerLink="/evaluations/questions">مدیریت سؤالات</a>
+          <a mat-button class="primary" routerLink="/evaluations/campaigns">ایجاد ارزیابی گروهی ←</a>
         }
         <a mat-button class="secondary" routerLink="/evaluations/cycles">دوره‌های ارزیابی</a>
       </div>
@@ -67,7 +68,7 @@ import { Chart } from "../shared/chart";
         </mat-card>
         @if (s.role() === "hr") {
           <mat-card class="panel">
-            <h2>ایجاد دوره جدید</h2>
+            <h2>ایجاد پرونده فردی (سازگاری با روال قدیمی)</h2>
             <mat-form-field appearance="outline"
               ><mat-label>عنوان دوره</mat-label><input matInput
                 [(ngModel)]="title"
