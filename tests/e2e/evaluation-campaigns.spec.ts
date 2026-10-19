@@ -16,7 +16,7 @@ test("HR enrolls people on creating period, but only explicitly starts response 
   await page.getByRole("button", { name: "مرحله بعد" }).click();
   await expect(page.getByRole("combobox", { name: "جامعه هدف" })).toBeVisible();
   await page.getByRole("button", { name: "مرحله بعد" }).click();
-  await expect(page.locator("main")).toContainText("واجد تخصیص خودکار");
+  await expect(page.locator("main")).toContainText("واجد ایجاد پرونده");
   await page.getByRole("button", { name: "ایجاد دوره برای افراد منتخب" }).click();
   await expect(page).toHaveURL(/\/evaluations\/campaigns\/[^/]+$/);
   await expect(page.locator("main")).toContainText("آماده‌سازی");
