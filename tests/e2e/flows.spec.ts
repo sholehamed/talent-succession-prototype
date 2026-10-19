@@ -34,6 +34,7 @@ test("all main routes render, RTL, lazy charts and responsive layout", async ({
     "/evaluations/c1",
     "/evaluations/reports/c0",
     "/development",
+    "/development/templates",
     "/development/idp/d1",
     "/talent/succession",
     "/talent/9box",
@@ -585,4 +586,58 @@ test("HR edits peer questions; evaluator sees only its snapped questionnaire eve
   expect(new Set(response.answers.map((a: any) => a.questionId)).size).toBe(6);
   expect(cycle.questions.find((q: any) => q.id === response.answers[5].questionId).text)
     .toBe("در تصمیم‌های گروهی به نظرات همکاران گوش می‌دهد؟");
+});
+
+test("HR template catalog dynamically feeds competency IDP and preserves action snapshots", async ({ page }) => {
+  const title = "کارگاه تحلیل داده برای حل مسائل پروژه";
+  const indicator = "تدوین دو تحلیل مسئله و دریافت تأیید مدیر";
+  await nav(page, "/development/templates");
+  await expect(page.getByRole("heading", { name: "مدیریت الگوهای اقدام توسعه" })).toBeVisible();
+  await selectMaterial(page, "شایستگی هدف", "حل مسئله");
+  await page.getByRole("textbox", { name: "عنوان اقدام پیشنهادی" }).fill(title);
+  await selectMaterial(page, "نوع اقدام", "آموزش");
+  await page.getByRole("textbox", { name: "شاخص موفقیت اقدام" }).fill(indicator);
+  await page.getByRole("button", { name: "ثبت الگوی جدید" }).click();
+  await expect(page.locator("main")).toContainText(title);
+  await page.reload();
+  await expect(page.locator("main")).toContainText(title);
+
+  await nav(page, "/development/idp/d1");
+  await selectMaterial(page, "شایستگی هدف", "حل مسئله");
+  await selectMaterial(page, "الگوی اقدام توسعه", title + " · آموزش");
+  await page.getByRole("button", { name: "افزودن اقدام توسعه" }).click();
+  await expect(page.locator("main")).toContainText(title);
+  await expect(page.locator("main")).toContainText(indicator);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  const template = saved.developmentTemplates.find((x: any) => x.title === title);
+  const action = saved.plans.find((p: any) => p.id === "d1").actions.find((a: any) => a.templateId === template.id);
+  expect(action).toMatchObject({ title, indicator, kind: "آموزش", competency: 2 });
+  expect(action.due).toMatch(/^\\d{4}-\\d{2}-\\d{2}$/);
+
+  await nav(page, "/development/templates");
+  await selectMaterial(page, "انتخاب شایستگی", "حل مسئله (۳ فعال)");
+  const templateCard = page.locator(".metric-line").filter({ hasText: title });
+  await expect(templateCard.getByRole("link", { name: /سارا مهر.*نسخه/ })).toBeVisible();
+  await expect(templateCard.getByRole("button", { name: "حذف" })).toBeDisabled();
+  await templateCard.getByRole("button", { name: "ویرایش" }).click();
+  await page.getByRole("textbox", { name: "عنوان اقدام پیشنهادی" })
+    .fill("عنوان جدید فقط برای انتخاب‌های آینده");
+  await page.getByRole("textbox", { name: "شاخص موفقیت اقدام" })
+    .fill("شاخص جدید کاتالوگ");
+  await page.getByRole("button", { name: "ذخیره تغییرات" }).click();
+  const changed = page.locator(".metric-line").filter({hasText:"عنوان جدید فقط برای انتخاب‌های آینده"});
+  await changed.getByRole("button", { name: "غیرفعال کردن" }).click();
+
+  await nav(page, "/development/idp/d1");
+  const updated = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  expect(updated.plans.find((p: any) => p.id === "d1").actions
+    .find((a: any) => a.id === action.id)).toMatchObject({title, indicator, templateId: template.id});
+  await nav(page, "/development/idp/d2");
+  await selectMaterial(page, "شایستگی هدف", "حل مسئله");
+  await page.getByRole("combobox", { name: "الگوی اقدام توسعه" }).click();
+  await expect(page.getByRole("option", { name: /عنوان جدید فقط برای انتخاب‌های آینده/ })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await role(page, "manager");
+  await page.goto("/development/templates");
+  await expect(page).toHaveURL(/\/settings$/);
 });
