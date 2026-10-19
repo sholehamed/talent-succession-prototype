@@ -142,17 +142,6 @@ export class Store {
             developmentTemplates: Array.isArray(d.developmentTemplates)
               ? d.developmentTemplates.map((t: DevelopmentTemplate) => ({ ...t, isActive: t.isActive !== false }))
               : defaultDevelopmentTemplates(),
-            plans: d.plans.map((plan: Plan) => ({
-              ...plan,
-              actions: plan.actions.map((action: Action) => ({
-                ...action,
-                assigneeId: action.assigneeId ??
-                  (d.people.find((p: {id: string; name: string}) => p.name === action.owner)?.id ??
-                    (action.owner === "مدیر مستقیم"
-                      ? d.people.find((p: {id: string}) => p.id === plan.personId)?.managerId
-                      : undefined)),
-              })),
-            })),
           };
         this.storageWarning.set(
           "اطلاعات ذخیره‌شده ناسازگار بود؛ وضعیت اولیه بازیابی شد.",
