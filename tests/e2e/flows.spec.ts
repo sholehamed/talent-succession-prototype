@@ -600,6 +600,7 @@ test("HR template catalog dynamically feeds competency IDP and preserves action 
   await page.getByRole("button", { name: "ثبت الگوی جدید" }).click();
   await expect(page.locator("main")).toContainText(title);
   await page.reload();
+  await selectMaterial(page, "انتخاب شایستگی", "حل مسئله (۳ فعال)");
   await expect(page.locator("main")).toContainText(title);
 
   await nav(page, "/development/idp/d1");
