@@ -1041,16 +1041,12 @@ mat-sidenav.sidebar .mat-drawer-inner-container {
   border-right: 2px solid #e1ebe9;
 }
 mat-nav-list.nav-accordion a.nav-child-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-height: 36px;
   margin-bottom: 2px;
   padding-inline: 9px;
-  font-size: 11px;
-}
-mat-nav-list.nav-accordion a.nav-child-item .mdc-list-item__primary-text {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
   font-size: 11px;
   white-space: nowrap;
 }
@@ -1064,6 +1060,7 @@ mat-nav-list.nav-accordion a.nav-child-item .mdc-list-item__primary-text {
   color: #087864;
 }
 .nav-item-title {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1074,13 +1071,11 @@ mat-nav-list.nav-accordion a.nav-child-item .mdc-list-item__primary-text {
   border-top: 1px solid var(--line);
 }
 .sidebar-settings a.nav-settings-item {
-  min-height: 42px;
-  padding-inline: 10px;
-}
-.sidebar-settings a.nav-settings-item .mdc-list-item__primary-text {
   display: flex;
   align-items: center;
   gap: 11px;
+  min-height: 42px;
+  padding-inline: 10px;
   white-space: nowrap;
   font-size: 12px;
 }
@@ -1099,8 +1094,9 @@ mat-sidenav-container.collapsed .nav-children,
 mat-sidenav-container.collapsed .nav-settings-title {
   display: none;
 }
-mat-sidenav-container.collapsed .sidebar-settings a.nav-settings-item .mdc-list-item__primary-text {
+mat-sidenav-container.collapsed .sidebar-settings a.nav-settings-item {
   justify-content: center;
+  padding-inline: 0;
 }
 @media (prefers-reduced-motion: reduce) {
   .nav-group-toggle,
