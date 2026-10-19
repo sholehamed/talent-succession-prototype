@@ -217,6 +217,17 @@ import { UI } from "../shared/ui";
               <input matInput [ngModel]="employeeCode()" (ngModelChange)="employeeCode.set($event)" />
             </mat-form-field>
             <mat-form-field appearance="outline">
+              <mat-label>پست سازمانی بلاتصدی (ترجیحی)</mat-label>
+              <mat-select [ngModel]="positionId()" (ngModelChange)="positionId.set($event)">
+                <mat-option value="">ایجاد پست جدید طبق مدیر انتخابی</mat-option>
+                @for (position of s.vacantPositions(c.jobId, hiredAt()); track position.id) {
+                  <mat-option [value]="position.id">
+                    {{ position.title }} · {{ position.code }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
               <mat-label>مدیر مستقیم (فقط برای استخدام)</mat-label>
               <mat-select [ngModel]="managerId()" (ngModelChange)="managerId.set($event)">
                 @for (person of s.state().people; track person.id) {
@@ -270,6 +281,7 @@ export default class Hiring {
   readonly decisionReason = signal("");
   readonly employeeCode = signal("");
   readonly managerId = signal("p11");
+  readonly positionId = signal("");
   readonly hiredAt = signal(new Date().toISOString().slice(0, 10));
   readonly candidates = computed(() => this.s.state().candidates);
   readonly candidate = computed(() => this.candidates().find((c) => c.id === this.id()));
@@ -309,7 +321,8 @@ export default class Hiring {
     const result = this.s.decideCandidate(
       this.id()!, outcome, this.decisionReason(),
       outcome === "hired" ? {
-        code: this.employeeCode(), managerId: this.managerId(), hiredAt: this.hiredAt(),
+        code: this.employeeCode(), managerId: this.managerId(),
+        positionId: this.positionId() || undefined, hiredAt: this.hiredAt(),
       } : undefined,
     );
     if (result && result !== "declined") {
