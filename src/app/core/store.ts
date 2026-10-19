@@ -18,7 +18,7 @@ import {
 } from "./models";
 import { seed } from "./seed";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
-import { developmentTemplates, templatesForCompetency } from "./development-templates";
+import { DevelopmentTemplate, defaultDevelopmentTemplates, templatesForCompetency } from "./development-templates";
 import {
   aggregate,
   canStart,
@@ -75,6 +75,9 @@ export class Store {
           return { ...d,
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
             questions: Array.isArray(d.questions) ? d.questions : defaultEvaluationQuestions(),
+            developmentTemplates: Array.isArray(d.developmentTemplates)
+              ? d.developmentTemplates.map((t: DevelopmentTemplate) => ({ ...t, isActive: t.isActive !== false }))
+              : defaultDevelopmentTemplates(),
           };
         this.storageWarning.set(
           "اطلاعات ذخیره‌شده ناسازگار بود؛ وضعیت اولیه بازیابی شد.",
@@ -499,6 +502,52 @@ export class Store {
     });
     return true;
   }
+  /** Runtime catalog is sourced only from persisted state, not hardcoded data. */
+  templatesForCompetency(index: number, includeInactive = false) {
+    return templatesForCompetency(this.state().developmentTemplates, index, includeInactive);
+  }
+  templateUsageCount(id: string) {
+    return this.state().plans.reduce((count, plan) =>
+      count + plan.actions.filter((a) => a.templateId === id).length, 0);
+  }
+  saveDevelopmentTemplate(draft: DevelopmentTemplate) {
+    if (this.role() !== "hr")
+      return this.fail("مدیریت الگوهای توسعه فقط برای منابع انسانی مجاز است.");
+    if (!Number.isInteger(draft.competency) || draft.competency < 0 ||
+      draft.competency >= competencies.length ||
+      !draft.title.trim() || !draft.kind.trim() || !draft.indicator.trim())
+      return this.fail("عنوان، نوع، شاخص موفقیت و شایستگی معتبر برای الگو الزامی است.");
+    const current = this.state().developmentTemplates.find((t) => t.id === draft.id);
+    if (current && current.competency !== draft.competency && this.templateUsageCount(current.id))
+      return this.fail("شایستگی الگویی که در برنامه استفاده شده قابل تغییر نیست؛ الگوی جدید تعریف کنید.");
+    if (this.state().developmentTemplates.some((t) =>
+      t.id !== current?.id && t.competency === draft.competency &&
+      t.title.trim().toLocaleLowerCase() === draft.title.trim().toLocaleLowerCase()))
+      return this.fail("الگویی با همین عنوان برای این شایستگی وجود دارد.");
+    const id = current?.id ?? crypto.randomUUID();
+    this.commit(current ? "الگوی اقدام توسعه ویرایش شد" : "الگوی اقدام توسعه ثبت شد", id, (state) => {
+      const value: DevelopmentTemplate = {
+        id, title: draft.title.trim(), kind: draft.kind.trim(),
+        indicator: draft.indicator.trim(), competency: draft.competency,
+        isActive: draft.isActive,
+      };
+      const i = state.developmentTemplates.findIndex((t) => t.id === id);
+      if (i < 0) state.developmentTemplates.push(value);
+      else state.developmentTemplates[i] = value;
+    });
+    return true;
+  }
+  deleteDevelopmentTemplate(id: string) {
+    if (this.role() !== "hr") return this.fail("اجازه حذف الگوی توسعه ندارید.");
+    if (!this.state().developmentTemplates.some((t) => t.id === id))
+      return this.fail("الگوی موردنظر یافت نشد.");
+    if (this.templateUsageCount(id))
+      return this.fail("این الگو در برنامه‌های توسعه استفاده شده است؛ برای حفظ رابطه با سوابق، آن را غیرفعال کنید.");
+    this.commit("الگوی توسعه حذف شد", id, (state) => {
+      state.developmentTemplates = state.developmentTemplates.filter((t) => t.id !== id);
+    });
+    return true;
+  }
   /** Older browser data may not have explicit version numbers. */
   planVersion(p: { version?: number }) {
     return p.version ?? 1;
@@ -552,8 +601,26 @@ export class Store {
       observed: [...observed],
       gaps: gap(expected, observed),
     };
-    const top = [0, 1, 2, 3, 4]
-      .sort((a, b) => baseline.gaps[b] - baseline.gaps[a]).slice(0, 3);
+    // Highest observed competency gaps first, using only active templates.
+    // Prefer separate competencies, then fill remaining slots from the same gaps.
+    const ranked = competencies.map((_, i) => i)
+      .sort((a, b) => baseline.gaps[b] - baseline.gaps[a] || a - b);
+    const byCompetency = ranked.map((c) =>
+      this.templatesForCompetency(c));
+    const selected = byCompetency.flatMap((items) => items.slice(0, 1));
+    if (selected.length < 3) {
+      const already = new Set(selected.map((t) => t.id));
+      for (const items of byCompetency) for (const item of items) {
+        if (selected.length === 3) break;
+        if (!already.has(item.id)) {
+          selected.push(item);
+          already.add(item.id);
+        }
+      }
+    }
+    if (selected.length < 3)
+      return (this.fail("برای ایجاد برنامه حداقل سه الگوی فعال توسعه لازم است؛ از بانک الگوها تعریف یا فعال کنید."), "");
+    const chosen = selected.slice(0, 3);
     const older = this.state().plans.filter(
       (p) => p.personId === personId && p.jobId === jobId,
     );
@@ -569,8 +636,8 @@ export class Store {
         version,
         createdAt: new Date().toISOString(),
         baseline,
-        actions: top.map((c, i) => {
-          const template = templatesForCompetency(c)[i % 2];
+        actions: chosen.map((template) => {
+          const c = template.competency;
           return {
             id: crypto.randomUUID(),
             competency: c,
@@ -578,7 +645,7 @@ export class Store {
             title: template.title,
             kind: template.kind,
             owner: this.person(personId).name,
-            due: "2026-12-21",
+            due: this.defaultDevelopmentDue(),
             indicator: template.indicator,
             status: "planned" as const,
             evidence: "",
@@ -609,17 +676,27 @@ export class Store {
     this.commit("اقدام توسعه به‌روزرسانی شد", planId, (state) => {
       const plan = state.plans.find((x) => x.id === planId)!;
       plan.actions = plan.actions.map((v) =>
-        v.id === a.id ? { ...structuredClone(a), effectiveness: undefined } : v,
+        v.id === a.id ? {
+          ...structuredClone(a),
+          /** Changed competency means a customized action, not the original template. */
+          templateId: original.competency === a.competency ? original.templateId : undefined,
+          effectiveness: undefined,
+        } : v,
       );
     });
     return true;
+  }
+  defaultDevelopmentDue() {
+    const date = new Date();
+    date.setUTCDate(date.getUTCDate() + 60);
+    return date.toISOString().slice(0, 10);
   }
   addDevelopmentAction(planId: string, competency: number, templateId: string) {
     const p = this.state().plans.find((x) => x.id === planId);
     if (!p || !this.editable() || !this.allowedPerson(p.personId) || !this.isCurrentPlan(p))
       return this.fail("ثبت اقدام برای این برنامه مجاز نیست.");
-    const template = developmentTemplates.find(
-      (x) => x.id === templateId && x.competency === competency,
+    const template = this.state().developmentTemplates.find(
+      (x) => x.id === templateId && x.competency === competency && x.isActive,
     );
     if (!template) return this.fail("الگوی انتخاب‌شده با شایستگی مطابقت ندارد.");
     if (p.actions.some((a) => a.templateId === templateId))
@@ -632,7 +709,7 @@ export class Store {
         title: template.title,
         kind: template.kind,
         owner: this.person(p.personId).name,
-        due: "2026-12-21",
+        due: this.defaultDevelopmentDue(),
         indicator: template.indicator,
         status: "planned",
         evidence: "",
