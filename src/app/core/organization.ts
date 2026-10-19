@@ -62,20 +62,29 @@ export function hydrateOrganization(state: DemoState): DemoState {
       });
     }
   }
-  // Older projects had only 15 succession positions, but >30 employed people.
-  // Fill the missing links without changing existing position IDs or nominations.
-  for (const p of state.people) {
-    if (existing.has(p.id)) continue;
-    const position: Position = {
-      id: `staff-${p.id}`, code: `POST-${p.code}`,
-      title: state.jobs.find((job) => job.id === p.jobId)?.title ?? "پست سازمانی",
-      jobId: p.jobId, holderId: p.id, unit: p.unit,
-      unitId: resolveUnit(p.unit), locationId: defaultLocation,
-      parentPositionId: null, isActive: true,
-      critical: false, reason: "", probability: 1, impact: 1, months: 6,
-    };
-    positions.push(position);
-    existing.set(p.id, position);
+  // Only the *legacy* schema has to manufacture missing staffing positions.
+  // On subsequent restores a worker may legitimately have no active appointment,
+  // and historic positions (including staff-IDs) must never be duplicated.
+  if (!Array.isArray(state.appointments)) {
+    for (const p of state.people) {
+      if (existing.has(p.id)) continue;
+      const id = `staff-${p.id}`;
+      const previous = positions.find((position) => position.id === id);
+      if (previous) {
+        existing.set(p.id, previous);
+        continue;
+      }
+      const position: Position = {
+        id, code: `POST-${p.code}`,
+        title: state.jobs.find((job) => job.id === p.jobId)?.title ?? "پست سازمانی",
+        jobId: p.jobId, holderId: p.id, unit: p.unit,
+        unitId: resolveUnit(p.unit), locationId: defaultLocation,
+        parentPositionId: null, isActive: true,
+        critical: false, reason: "", probability: 1, impact: 1, months: 6,
+      };
+      positions.push(position);
+      existing.set(p.id, position);
+    }
   }
   // Avoid manufacturing a management cycle from legacy demo managerId values:
   // p11 and p21 pointed at each other in the original seed. Build a sensible
