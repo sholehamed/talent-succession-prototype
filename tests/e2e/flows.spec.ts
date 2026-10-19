@@ -612,7 +612,7 @@ test("HR template catalog dynamically feeds competency IDP and preserves action 
   const template = saved.developmentTemplates.find((x: any) => x.title === title);
   const action = saved.plans.find((p: any) => p.id === "d1").actions.find((a: any) => a.templateId === template.id);
   expect(action).toMatchObject({ title, indicator, kind: "آموزش", competency: 2 });
-  expect(action.due).toMatch(/^\\d{4}-\\d{2}-\\d{2}$/);
+  expect(action.due).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
   await nav(page, "/development/templates");
   await selectMaterial(page, "انتخاب شایستگی", "حل مسئله (۳ فعال)");
