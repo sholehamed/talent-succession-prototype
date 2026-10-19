@@ -1,6 +1,7 @@
 import {
   DemoState, OrganizationUnit, Person, Position, PositionAppointment, WorkLocation,
 } from "./models";
+import { rolesForPerson } from "./auth";
 
 /**
  * Backwards-compatible, deterministic migration for v1 browser snapshots.
@@ -95,6 +96,14 @@ export function hydrateOrganization(state: DemoState): DemoState {
       const position = existing.get(person.id)!;
       if (!leads.has(person.unit) && position.id.startsWith("pos"))
         leads.set(person.unit, person.id);
+    }
+    // Demo management grants must still map to people who supervise their unit.
+    // Without this, p2 (a designated manager) becomes a leaf while a non-manager
+    // position is treated as the unit lead, breaking the existing manager role.
+    for (const person of state.people) {
+      if (rolesForPerson(person.id).includes("manager")) {
+        leads.set(person.unit, person.id);
+      }
     }
     const top = existing.get("p21") ? "p21" : state.people.at(-1)?.id;
     for (const person of state.people) {
