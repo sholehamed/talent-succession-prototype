@@ -19,5 +19,7 @@ export function homeForRole(role: Role, personId: string) {
   if (role === "evaluator") return "/evaluations/inbox";
   if (role === "employee") return `/people/${personId}`;
   if (role === "owner") return "/jobs";
+  if (role === "manager") return "/dashboard/unit";
+  if (role === "executive") return "/dashboard/executive";
   return "/dashboard/hr";
 }
