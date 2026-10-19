@@ -14,6 +14,10 @@ import {
   Job,
   Knowledge,
   Nomination,
+  OrganizationUnit,
+  WorkLocation,
+  Position,
+  PositionAppointment,
   Plan,
   PerformanceKpiInput,
   PerformanceReview,
@@ -21,6 +25,13 @@ import {
   competencies,
 } from "./models";
 import { seed } from "./seed";
+import {
+  hydrateOrganization, appointmentOn, positionOf, positionHolder, managerOf,
+  directReports, organizationTree,
+} from "./organization";
+import {
+  saveLocation, saveUnit, savePosition, assignPosition, finishAppointment, projectStaffing,
+} from "./organization-actions";
 import { performanceBand, performanceScore } from "./performance";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, rolesForPerson } from "./auth";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
@@ -107,7 +118,11 @@ export class Store {
   /** Only a published version can be used for hiring, evaluation, career paths or staffing. */
   readonly publishedJobs = computed(() => this.state().jobs.filter((j) => j.version > 0));
   readonly units = computed(() => [
-    ...new Set(this.state().jobs.map((j) => j.unit)),
+    ...new Set([
+      ...this.state().organizationUnits.filter((u) => u.isActive).map((u) => u.name),
+      ...this.state().jobs.map((j) => j.unit),
+      ...this.state().people.map((p) => p.unit),
+    ]),
   ]);
   readonly editable = computed(() => this.activeRoleAllowed() && ["hr", "manager"].includes(this.role()));
   readonly canReport = computed(() => this.activeRoleAllowed() &&
@@ -142,14 +157,14 @@ export class Store {
           d.cycles.every((c: any) => Array.isArray(c.assignments)) &&
           d.plans.every((p: any) => Array.isArray(p.actions))
         )
-          return { ...d,
+          return hydrateOrganization({ ...d,
             performanceReviews: Array.isArray(d.performanceReviews) ? d.performanceReviews : [],
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
             questions: Array.isArray(d.questions) ? d.questions : defaultEvaluationQuestions(),
             developmentTemplates: Array.isArray(d.developmentTemplates)
               ? d.developmentTemplates.map((t: DevelopmentTemplate) => ({ ...t, isActive: t.isActive !== false }))
               : defaultDevelopmentTemplates(),
-          };
+          });
         this.storageWarning.set(
           "اطلاعات ذخیره‌شده ناسازگار بود؛ وضعیت اولیه بازیابی شد.",
         );
@@ -195,14 +210,89 @@ export class Store {
   cycle(id: string) {
     return this.state().cycles.find((c) => c.id === id);
   }
+  /** Canonical staffing navigation; existing plans/evaluations retain their historical jobId. */
+  currentAppointment(personId: string, date?: string) { return appointmentOn(this.state(), personId, date); }
+  currentPosition(personId: string, date?: string) { return positionOf(this.state(), personId, date); }
+  currentPositionHolder(positionId: string, date?: string) { return positionHolder(this.state(), positionId, date); }
+  positionRecord(id: string) { return this.state().positions.find((p) => p.id === id); }
+  currentJob(personId: string, date?: string) {
+    const p = this.currentPosition(personId, date);
+    return this.state().jobs.find((j) => j.id === p?.jobId);
+  }
+  currentUnit(personId: string, date?: string) {
+    const p = this.currentPosition(personId, date);
+    return this.state().organizationUnits.find((u) => u.id === p?.unitId);
+  }
+  currentLocation(personId: string, date?: string) {
+    const p = this.currentPosition(personId, date);
+    return this.state().workLocations.find((l) => l.id === p?.locationId);
+  }
+  currentManager(personId: string, date?: string) { return managerOf(this.state(), personId, date); }
+  directReports(personId: string, date?: string) { return directReports(this.state(), personId, date); }
+  subordinateIds(personId: string) {
+    const seen = new Set([personId]), result: string[] = [];
+    const pending = [personId];
+    while (pending.length) {
+      for (const person of this.directReports(pending.shift()!)) {
+        if (seen.has(person.id)) continue;
+        seen.add(person.id); result.push(person.id); pending.push(person.id);
+      }
+    }
+    return result;
+  }
+  positionTree() { return organizationTree(this.state().positions); }
+  vacantPositions(jobId?: string, date = new Date().toISOString().slice(0, 10)) {
+    return this.state().positions.filter((p) =>
+      p.isActive !== false && (!jobId || p.jobId === jobId) && !this.currentPositionHolder(p.id, date));
+  }
+  canManageOrganization() { return this.canAccess(["hr"]); }
+  /** Apply a validated mutation inside the existing audit + LocalStorage commit flow. */
+  private orgMutation(action: string, entity: string, change: (draft: DemoState) => string) {
+    if (!this.canManageOrganization()) return this.fail("مدیریت تشکیلات فقط برای منابع انسانی مجاز است.");
+    const next = structuredClone(this.state());
+    const error = change(next);
+    if (error) return this.fail(error);
+    this.commit(action, entity, (state) => {
+      state.organizationUnits = next.organizationUnits;
+      state.workLocations = next.workLocations;
+      state.positions = next.positions;
+      state.appointments = next.appointments;
+      state.people = next.people;
+    });
+    return true;
+  }
+  saveWorkLocation(value: WorkLocation) {
+    const id = value.id || crypto.randomUUID();
+    return this.orgMutation("محل خدمت ثبت شد", id, (s) => saveLocation(s, {...value, id}));
+  }
+  saveOrganizationUnit(value: OrganizationUnit) {
+    const id = value.id || crypto.randomUUID();
+    return this.orgMutation("واحد سازمانی ثبت شد", id, (s) => saveUnit(s, {...value, id}));
+  }
+  saveOrganizationPosition(value: Position) {
+    const id = value.id || crypto.randomUUID();
+    return this.orgMutation("پست سازمانی ثبت شد", id, (s) => savePosition(s, {...value, id}));
+  }
+  appointPerson(personId: string, positionId: string, effectiveFrom: string,
+    referenceNo = "", note = "") {
+    const id = crypto.randomUUID();
+    const value: PositionAppointment = {
+      id, personId, positionId, type: "primary", effectiveFrom,
+      effectiveTo: null, referenceNo, note,
+    };
+    return this.orgMutation("انتصاب ثبت شد", positionId, (s) => assignPosition(s, value)) ? id : "";
+  }
+  endPositionAppointment(id: string, day: string) {
+    return this.orgMutation("انتصاب پایان یافت", id, (s) => finishAppointment(s, id, day));
+  }
+
   /** Person-aware access: managers see their own unit; staff see themselves. */
   allowedPerson(id: string) {
     if (!this.activeRoleAllowed()) return false;
     if (this.role() === "hr" || this.role() === "executive") return true;
     if (id === this.actor()) return true;
     if (this.role() === "manager") {
-      const target = this.state().people.find((p) => p.id === id);
-      return !!target && target.unit === this.currentPerson()?.unit;
+      return this.subordinateIds(this.actor()).includes(id);
     }
     return false;
   }
@@ -210,7 +300,7 @@ export class Store {
     if (action.assigneeId) return action.assigneeId;
     return this.state().people.find((p) => p.name === action.owner)?.id ??
       (action.owner === "مدیر مستقیم"
-        ? this.state().people.find((p) => p.id === plan.personId)?.managerId
+        ? this.currentManager(plan.personId)?.id
         : undefined);
   }
   canEditAction(plan: Plan, action: Action) {
@@ -390,7 +480,7 @@ export class Store {
   }
   decideCandidate(
     candidateId: string, outcome: "hired" | "declined", reason: string,
-    employment?: { code: string; managerId: string; hiredAt: string },
+    employment?: { code: string; managerId?: string; positionId?: string; hiredAt: string },
   ) {
     const candidate = this.candidate(candidateId);
     const assessment = candidate?.assessments.at(-1);
@@ -399,8 +489,12 @@ export class Store {
     if (!assessment || !reason.trim() || !["hired", "declined"].includes(outcome))
       return this.fail("ارزیابی اولیه و دلیل تصمیم انسانی الزامی است.");
     if (outcome === "hired") {
-      if (!employment?.code.trim() || !employment.managerId ||
-          !this.person(employment.managerId) ||
+      const vacant = employment?.positionId
+        ? this.vacantPositions(candidate.jobId, employment.hiredAt).find((p) => p.id === employment.positionId)
+        : undefined;
+      if (!employment?.code.trim() || (!vacant && (!employment.managerId ||
+          !this.state().people.some((p) => p.id === employment.managerId))) ||
+          (employment.positionId && !vacant) ||
           !/^\d{4}-\d{2}-\d{2}$/.test(employment.hiredAt) ||
           !Number.isFinite(Date.parse(employment.hiredAt + "T00:00:00Z")) ||
           this.state().people.some((p) => p.code === employment.code.trim()))
@@ -423,7 +517,7 @@ export class Store {
         const job = state.jobs.find((j) => j.id === c.jobId)!;
         state.people.push({
           id: personId, name: c.name, code: employment.code.trim(),
-          jobId: c.jobId, unit: job.unit, managerId: employment.managerId,
+          jobId: c.jobId, unit: job.unit, managerId: employment.managerId ?? "",
           performance: null, potential: assessment.potential,
           observed: [...assessment.scores],
           evidence: "ارزیابی اولیه بدو استخدام: " + assessment.evidence,
@@ -432,6 +526,30 @@ export class Store {
             hiredAt: employment.hiredAt, potentialReviewedAt: assessment.evaluatedAt,
           },
         });
+        // Explicit vacancy selection is canonical. Existing hiring flows may still
+        // supply a manager: create the missing position for backwards compatibility.
+        let positionId = employment.positionId;
+        if (!positionId) {
+          const parent = employment.managerId
+            ? positionOf(state, employment.managerId) : undefined;
+          positionId = `staff-${personId}`;
+          const unitId = state.organizationUnits.find((u) => u.name === job.unit)?.id
+            ?? state.organizationUnits[0].id;
+          state.positions.push({
+            id: positionId, code: `POST-${employment.code.trim()}`,
+            title: job.title, jobId: c.jobId, unit: job.unit, holderId: "",
+            unitId, locationId: parent?.locationId ?? state.workLocations[0].id,
+            parentPositionId: parent?.id ?? null, isActive: true,
+            critical: false, reason: "", probability: 1, impact: 1, months: 6,
+          });
+        }
+        const error = assignPosition(state, {
+          id: crypto.randomUUID(), personId, positionId,
+          type: "primary", effectiveFrom: employment.hiredAt, effectiveTo: null,
+          referenceNo: "HIRING", note: "انتصاب اولیه پس از استخدام",
+        });
+        if (error) throw new Error(error); // Prevalidated above.
+        projectStaffing(state);
       }
     });
     return personId ?? "declined";
@@ -628,6 +746,52 @@ export class Store {
       }),
     );
     return id;
+  }
+  /** Suggestions based on position hierarchy; HR must explicitly accept. */
+  organizationalEvaluatorSuggestions(personId: string, mode: 360 | 540) {
+    const position = this.currentPosition(personId);
+    if (!position) return [] as { personId: string; group: Group; reason: string }[];
+    const manager = this.currentManager(personId);
+    const peers = this.state().positions
+      .filter((p) => p.id !== position.id &&
+        p.parentPositionId === position.parentPositionId &&
+        !!position.parentPositionId)
+      .flatMap((p) => {
+        const person = this.currentPositionHolder(p.id);
+        return person ? [person] : [];
+      });
+    const juniors = this.directReports(personId);
+    const raw: { personId: string; group: Group; reason: string }[] = [
+      ...(manager ? [{ personId: manager.id, group: "supervisor" as const, reason: "متصدی پست بالاسری" }] : []),
+      ...peers.map((p) => ({ personId: p.id, group: "peer" as const, reason: "هم‌سطح در چارت پست‌ها" })),
+      ...juniors.map((p) => ({ personId: p.id, group: "subordinate" as const, reason: "متصدی پست زیرمجموعه مستقیم" })),
+    ];
+    const seen = new Set([personId]);
+    // Only create proposal records from occupied posts, never fake evaluators
+    // to satisfy group minima; 540 external relations remain manually selected.
+    return raw.filter((r) => {
+      if (seen.has(r.personId)) return false;
+      seen.add(r.personId);
+      return mode === 540 || r.group !== "external";
+    });
+  }
+  addOrganizationalEvaluators(cycleId: string) {
+    const cycle = this.cycle(cycleId);
+    if (!this.canAccess(["hr"]) || !cycle || cycle.status !== "preparing")
+      return this.fail("افزودن ارزیاب خودکار فقط در آماده‌سازی دوره مجاز است.");
+    const assigned = new Set([cycle.subjectId, ...cycle.assignments.map((a) => a.personId)]);
+    const suggestions = this.organizationalEvaluatorSuggestions(cycle.subjectId, cycle.mode)
+      .filter((x) => !assigned.has(x.personId));
+    if (!suggestions.length)
+      return this.fail("ارزیاب سازمانی جدیدی برای پیشنهاد وجود ندارد.");
+    this.commit("ارزیابان پیشنهادی از چارت سازمانی افزوده شدند", cycleId, (state) => {
+      const target = state.cycles.find((c) => c.id === cycleId)!;
+      for (const item of suggestions) {
+        if (target.assignments.some((a) => a.personId === item.personId)) continue;
+        target.assignments.push({ id: crypto.randomUUID(), personId: item.personId, group: item.group });
+      }
+    });
+    return true;
   }
   addEvaluator(id: string, personId: string, group: Group) {
     const c = this.cycle(id);
@@ -1096,8 +1260,7 @@ export class Store {
     if (!["hr", "manager"].includes(this.role())) return false;
     if (!n.evidence.trim()) return this.fail("شواهد و نظر انسانی الزامی است.");
     if (
-      this.state().positions.find((p) => p.id === n.positionId)?.holderId ===
-      n.personId
+      this.currentPositionHolder(n.positionId)?.id === n.personId
     )
       return this.fail("دارنده فعلی نمی‌تواند جانشین خودش باشد.");
     this.commit("نظر انسانی درباره آمادگی ثبت شد", n.positionId, (s) => {

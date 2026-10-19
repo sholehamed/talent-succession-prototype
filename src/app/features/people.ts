@@ -88,6 +88,34 @@ import { GrowthComparison } from "../shared/growth-comparison";
           </div>
           <a mat-button class="secondary" routerLink="/people" [queryParams]="jobFilter() ? { job: jobFilter() } : {}">فهرست افراد</a>
         </div>
+        <mat-card class="panel" style="margin-bottom:22px">
+          <div class="panel-head">
+            <div>
+              <h2>اطلاعات تشکیلاتی و انتصاب</h2>
+              <small>منبع: انتصاب جاری و پست سازمانی؛ مستقل از شناسنامه شغلی</small>
+            </div>
+            @if (s.role() === 'hr') {
+              <a routerLink="/organization/appointments">مدیریت انتصاب‌ها ←</a>
+            }
+          </div>
+          <div class="grid two" style="margin-bottom:12px">
+            <div><small>پست سازمانی</small><p>{{ s.currentPosition(p.id)?.title ?? 'فاقد انتصاب جاری' }}</p></div>
+            <div><small>محل خدمت</small><p>{{ s.currentLocation(p.id)?.name ?? '—' }}</p></div>
+            <div><small>واحد سازمانی</small><p>{{ s.currentUnit(p.id)?.name ?? '—' }}</p></div>
+            <div><small>مدیر مستقیم</small><p>{{ s.currentManager(p.id)?.name ?? 'پست بالاسری بلاتصدی / ریشه' }}</p></div>
+          </div>
+          <details>
+            <summary>سوابق انتصاب فرد</summary>
+            @for (a of s.state().appointments; track a.id) {
+              @if (a.personId === p.id) {
+                <div class="metric-line">
+                  <span class="grow">{{ s.positionRecord(a.positionId)?.title ?? a.positionId }} · حکم: {{ a.referenceNo || '—' }}</span>
+                  <span>{{ a.effectiveFrom | fa }} — {{ a.effectiveTo ?? 'جاری' | fa }}</span>
+                </div>
+              }
+            }
+          </details>
+        </mat-card>
         <div class="grid four" style="margin-bottom:22px">
           <div class="stat">
             <span class="label">عملکرد فعلی</span

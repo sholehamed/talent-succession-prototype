@@ -101,9 +101,11 @@ import { Chart } from "../shared/chart";
             <div>
               <small>دارنده فعلی</small>
               <h3>
-                <a [routerLink]="['/people', p.holderId]">{{
-                  s.person(p.holderId).name
-                }}</a>
+                @if (s.currentPositionHolder(p.id); as holder) {
+                  <a [routerLink]="['/people', holder.id]">{{ holder.name }}</a>
+                } @else {
+                  <span>بلاتصدی</span>
+                }
               </h3>
               <p>{{ p.reason }}</p>
             </div>

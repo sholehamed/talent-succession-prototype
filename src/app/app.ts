@@ -114,6 +114,11 @@ export class App {
     { path: "/dashboard/development", title: "داشبورد توسعه سرمایه انسانی", icon: "↗" },
     { path: "/jobs", title: "شناسنامه‌های شغلی", icon: "▤" },
     { path: "/career-paths", title: "مسیرهای رشد", icon: "↗" },
+    { path: "/organization/chart", title: "چارت سازمانی", icon: "♧" },
+    { path: "/organization/units", title: "واحدهای سازمانی", icon: "▤" },
+    { path: "/organization/locations", title: "محل‌های خدمت", icon: "⌖" },
+    { path: "/organization/positions", title: "پست‌های سازمانی", icon: "▦" },
+    { path: "/organization/appointments", title: "انتصاب کارکنان", icon: "⇄" },
     { path: "/hiring", title: "ارزیابی بدو استخدام", icon: "⊕" },
     { path: "/people", title: "افراد و استعدادها", icon: "♧" },
     { path: "/performance", title: "ارزیابی عملکرد دوره‌ای", icon: "◫" },
@@ -133,6 +138,7 @@ export class App {
     if (!this.s.canAccess()) return false;
     const r = this.s.role();
     if (r === "hr") return path !== "/development/tasks";
+    if (path === "/organization/appointments") return false;
     if (r === "evaluator")
       return ["/evaluations/inbox", "/settings"].includes(path);
     if (r === "employee")

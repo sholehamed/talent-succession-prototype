@@ -30,6 +30,13 @@ export const routes: Routes = [
   { path: "jobs", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/jobs") },
   { path: "jobs/:id", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/jobs") },
   { path: "career-paths", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/career") },
+  ...(["chart", "units", "locations", "positions", "appointments"] as const).map((view) => ({
+    path: "organization/" + view,
+    canActivate: [permit(view === "appointments" ? ["hr"] : ["hr", "manager", "executive", "owner"])],
+    data: { view },
+    loadComponent: () => import("./features/organization"),
+  })),
+  { path: "organization", redirectTo: "organization/chart", pathMatch: "full" },
   {
     path: "hiring",
     canActivate: [permit(["hr"])],

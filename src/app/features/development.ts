@@ -67,7 +67,7 @@ import { UI } from "../shared/ui";
                 {{ s.person(p.personId).name }} ← {{ s.job(p.jobId).title }}
               </h2>
               <small>
-                مدیر مستقیم: {{ s.person(s.person(p.personId).managerId).name }}
+                مدیر مستقیم: {{ s.currentManager(p.personId)?.name ?? 'بلاتصدی' }}
                 · نسخه {{ s.planVersion(p) | fa }}
                 · {{ sourceTitle(p.cycleId) }}
                 · دوره {{ p.period }}
