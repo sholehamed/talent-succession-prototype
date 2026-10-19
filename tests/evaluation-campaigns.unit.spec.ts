@@ -88,6 +88,19 @@ describe("periodic evaluation campaigns", () => {
     expect(s.state().cycles.filter(c => c.status === "collecting" && c.campaignId === id)).toHaveLength(0);
   });
 
+  it("does not allow per-person manual evaluator changes or early starts inside a campaign", () => {
+    const s = new Store(), id = create(s);
+    const cycle = s.state().cycles.find(c => c.campaignId === id)!;
+    const assignments = structuredClone(cycle.assignments);
+    expect(s.addOrganizationalEvaluators(cycle.id)).toBe(false);
+    expect(s.addEvaluator(cycle.id, "p4", "peer")).toBe(false);
+    s.removeEvaluator(cycle.id, cycle.assignments[0].id);
+    expect(s.cycle(cycle.id)?.assignments).toEqual(assignments);
+    expect(s.advance(cycle.id)).toBe(false);
+    expect(s.cycle(cycle.id)?.status).toBe("preparing");
+    expect(s.state().campaigns.find(c => c.id === id)?.status).toBe("draft");
+  });
+
   it("starts response collection only on explicit HR action and is idempotent", () => {
     const s = new Store(), id = create(s);
     const count = s.state().cycles.filter(c => c.campaignId === id).length;
