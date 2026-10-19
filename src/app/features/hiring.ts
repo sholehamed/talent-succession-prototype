@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { Store } from "../core/store";
-import { Band, bands, Candidate, EntryCommitteeStage, competencies } from "../core/models";
+import { Band, bands, Candidate, EntryCommitteeStage, Position, competencies } from "../core/models";
 import { combinedEntryScores } from "../core/entry-committees";
 import { UI } from "../shared/ui";
 
@@ -325,11 +325,13 @@ import { UI } from "../shared/ui";
               <mat-label>کد پرسنلی جدید (فقط برای استخدام)</mat-label>
               <input matInput [ngModel]="employeeCode()" (ngModelChange)="employeeCode.set($event)" />
             </mat-form-field>
+            <app-date-field label="تاریخ استخدام و انتصاب (فقط برای استخدام)"
+              [ngModel]="hiredAt()" (ngModelChange)="hiredAt.set($event)" />
             <mat-form-field appearance="outline">
-              <mat-label>پست سازمانی بلاتصدی (ترجیحی)</mat-label>
-              <mat-select [ngModel]="positionId()" (ngModelChange)="positionId.set($event)">
-                <mat-option value="">ایجاد پست جدید طبق مدیر انتخابی</mat-option>
-                @for (position of s.vacantPositions(c.jobId, hiredAt()); track position.id) {
+              <mat-label>پست سازمانی بلاتصدی (الزامی)</mat-label>
+              <mat-select [ngModel]="positionId()" (ngModelChange)="positionId.set($event)" required>
+                <mat-option value="">انتخاب پست سازمانی</mat-option>
+                @for (position of s.hireablePositions(c.jobId, hiredAt()); track position.id) {
                   <mat-option [value]="position.id">
                     {{ position.title }} · {{ position.code }}
                   </mat-option>
@@ -337,16 +339,28 @@ import { UI } from "../shared/ui";
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>مدیر مستقیم (فقط برای استخدام)</mat-label>
-              <mat-select [ngModel]="managerId()" (ngModelChange)="managerId.set($event)">
-                @for (person of s.state().people; track person.id) {
-                  <mat-option [value]="person.id">{{ person.name }} · {{ person.unit }}</mat-option>
-                }
-              </mat-select>
+              <mat-label>شماره حکم انتصاب (اختیاری)</mat-label>
+              <input matInput [ngModel]="appointmentReference()" (ngModelChange)="appointmentReference.set($event)" />
             </mat-form-field>
-            <app-date-field label="تاریخ استخدام (فقط برای استخدام)"
-              [ngModel]="hiredAt()" (ngModelChange)="hiredAt.set($event)" />
           </div>
+          @if (selectedPosition(); as post) {
+            <div class="info">
+              <strong>اطلاعات تشکیلاتی پست انتخاب‌شده (فقط خواندنی)</strong>
+              <div>شناسنامه شغلی: {{ s.job(post.jobId).title }}</div>
+              <div>واحد سازمانی: {{ positionUnit(post) }}</div>
+              <div>محل خدمت: {{ positionLocation(post) }}</div>
+              <div>پست بالاسری: {{ parentPosition(post) }}</div>
+              <div>مدیر مستقیم: {{ positionManager(post) }}</div>
+            </div>
+          } @else if (!s.hireablePositions(c.jobId, hiredAt()).length) {
+            <div class="warning">
+              برای این شغل و تاریخ انتخاب‌شده پست قابل انتصاب وجود ندارد.
+              ابتدا در <a routerLink="/organization/positions">مدیریت پست‌های سازمانی</a>
+              یک پست فعال و بلاتصدی تعریف کنید. پست در مرحله استخدام ساخته نمی‌شود.
+            </div>
+          } @else {
+            <div class="info">پست سازمانی را انتخاب کنید؛ بالاسری و مدیر از چارت به‌صورت خودکار نمایش داده می‌شوند.</div>
+          }
           <div class="actions">
             <button mat-button class="primary" (click)="decide('hired')">تأیید استخدام و تشکیل پرونده</button>
             <button mat-button class="secondary" (click)="decide('declined')">ثبت عدم استخدام</button>
@@ -389,13 +403,32 @@ export default class Hiring {
   readonly potentialReason = signal("");
   readonly decisionReason = signal("");
   readonly employeeCode = signal("");
-  readonly managerId = signal("p11");
+  readonly appointmentReference = signal("");
   readonly generalAssignee = signal("");
   readonly specialistAssignee = signal("");
   readonly positionId = signal("");
   readonly hiredAt = signal(new Date().toISOString().slice(0, 10));
   readonly candidates = computed(() => this.s.state().candidates);
   readonly candidate = computed(() => this.candidates().find((c) => c.id === this.id()));
+  readonly selectedPosition = computed(() => this.s.hireablePositions(
+    this.candidate()?.jobId ?? "", this.hiredAt(),
+  ).find((p) => p.id === this.positionId()));
+  positionUnit(post: Position) {
+    return this.s.state().organizationUnits.find((u) => u.id === post.unitId)?.name ?? post.unit;
+  }
+  positionLocation(post: Position) {
+    return this.s.state().workLocations.find((l) => l.id === post.locationId)?.name ?? "نامشخص";
+  }
+  parentPosition(post: Position) {
+    return post.parentPositionId
+      ? this.s.positionRecord(post.parentPositionId)?.title ?? "نامشخص"
+      : "بدون پست بالاسری";
+  }
+  positionManager(post: Position) {
+    return post.parentPositionId
+      ? this.s.currentPositionHolder(post.parentPositionId, this.hiredAt())?.name ?? "پست بالاسری بلاتصدی"
+      : "بدون مدیر مستقیم";
+  }
   readonly filtered = computed(() => this.candidates().filter(
     (c) => c.name.includes(this.search()) &&
       (!this.stage() || this.stageCode(c) === this.stage()),
@@ -451,8 +484,8 @@ export default class Hiring {
     const result = this.s.decideCandidate(
       this.id()!, outcome, this.decisionReason(),
       outcome === "hired" ? {
-        code: this.employeeCode(), managerId: this.managerId(),
-        positionId: this.positionId() || undefined, hiredAt: this.hiredAt(),
+        code: this.employeeCode(), positionId: this.positionId(),
+        hiredAt: this.hiredAt(), referenceNo: this.appointmentReference(),
       } : undefined,
     );
     if (result && result !== "declined") {

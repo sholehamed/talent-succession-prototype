@@ -566,7 +566,10 @@ test("general then specialist committees lead to documented hiring and unknown p
   await page.getByRole("textbox", { name: "دلیل تصمیم انسانی" })
     .fill("بررسی دو کمیته و تأیید انسانی شرایط احراز");
   await page.getByRole("textbox", { name: "کد پرسنلی جدید (فقط برای استخدام)" }).fill("EMP-8008");
-  await selectMaterial(page, "مدیر مستقیم (فقط برای استخدام)", "پویان فرهمند · دفتر پروژه‌ها");
+  await selectMaterial(page, "پست سازمانی بلاتصدی (الزامی)", "مدیر پروژه — پست بلاتصدی · POST-VAC-j1");
+  await expect(page.locator("main")).toContainText("اطلاعات تشکیلاتی پست انتخاب‌شده");
+  await expect(page.locator("main")).toContainText("مدیر مستقیم: پویان فرهمند");
+  await page.getByRole("textbox", { name: "شماره حکم انتصاب (اختیاری)" }).fill("HIR-8008");
   await page.getByRole("button", { name: "تأیید استخدام و تشکیل پرونده" }).click();
   await expect(page).toHaveURL(/\/people\/[^/]+$/);
   await expect(page.locator("main h1")).toHaveText("سارا روشن");
@@ -585,6 +588,12 @@ test("general then specialist committees lead to documented hiring and unknown p
   expect(hired.entry.assessmentId).toBe(candidate.assessments[0].id);
   expect(hired.observed).toEqual([4,4,4,4,4]);
   expect(hired.performance).toBe(null);
+  const appointment = state.appointments.find((a: any) => a.personId === hired.id);
+  expect(appointment?.positionId).toBe("vac-j1");
+  expect(appointment?.referenceNo).toBe("HIR-8008");
+  expect(hired.managerId).toBe("p11");
+  expect(state.positions.filter((p: any) => p.id === "vac-j1")).toHaveLength(1);
+  expect(state.positions.some((p: any) => p.id === `staff-${hired.id}`)).toBe(false);
   expect(candidate.entryWorkflow.general.completedAt).toBeTruthy();
   expect(candidate.entryWorkflow.specialist.completedAt).toBeTruthy();
   expect(candidate.decision.personId).toBe(hired.id);

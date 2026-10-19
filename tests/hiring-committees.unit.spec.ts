@@ -128,13 +128,15 @@ describe("sequential general/specialist hiring committees",()=>{
     s.actor.set("p5");s.role.set("evaluator");
     expect(s.submitEntryReview(id,"specialist",answers(s.candidate(id)!.entryWorkflow!.specialist!.questions,3),"بررسی فنی")).toBe(true);
     s.actor.set("p1");s.role.set("hr");
-    expect(s.decideCandidate(id,"hired","هنوز تأیید نشده",{code:"EMP-9908",managerId:"p11",hiredAt:"2026-10-19"})).toBe(false);
+    expect(s.decideCandidate(id,"hired","هنوز تأیید نشده",{code:"EMP-9908",positionId:"vac-j1",hiredAt:"2026-10-19"})).toBe(false);
     expect(s.finalizeEntryReview(id,"medium","آمادگی یادگیری مستند","تجمیع دو نتیجه")).toBe(true);
-    const personId=s.decideCandidate(id,"hired","تأیید انسانی",{code:"EMP-9908",managerId:"p11",hiredAt:"2026-10-19"});
+    const personId=s.decideCandidate(id,"hired","تأیید انسانی",{code:"EMP-9908",positionId:"vac-j1",hiredAt:"2026-10-19"});
     expect(personId).toBeTruthy();
     expect(s.person(personId as string).observed).toEqual([4,4,4,4,4]);
     expect(s.person(personId as string).performance).toBeNull();
     expect(s.currentAppointment(personId as string)).toBeTruthy();
+    expect(s.currentPosition(personId as string)?.id).toBe("vac-j1");
+    expect(s.currentManager(personId as string)?.id).toBe("p11");
     expect(s.latestEntryAssessment("cand1")?.scores).toEqual([4,3,4,4,3]);
   });
 });

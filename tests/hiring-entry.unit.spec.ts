@@ -78,23 +78,33 @@ describe("entry assessment and hiring lifecycle", () => {
     const s = new Store();
     const id = s.registerCandidate("صبا فرهمند", "j1");
     expect(s.decideCandidate(id, "hired", "قابل استخدام",
-      { code: "EMP-2009", managerId: "p11", hiredAt: "2026-10-17" })).toBe(false);
+      { code: "EMP-2009", positionId: "vac-j1", hiredAt: "2026-10-17" })).toBe(false);
     expect(record(s, id)).toBe(true);
     expect(s.decideCandidate(id, "hired", " ",
-      { code: "EMP-2009", managerId: "p11", hiredAt: "2026-10-17" })).toBe(false);
+      { code: "EMP-2009", positionId: "vac-j1", hiredAt: "2026-10-17" })).toBe(false);
     expect(s.decideCandidate(id, "hired", "تأیید",
-      { code: "EMP-1001", managerId: "p11", hiredAt: "2026-10-17" })).toBe(false);
+      { code: "EMP-1001", positionId: "vac-j1", hiredAt: "2026-10-17" })).toBe(false);
     expect(s.decideCandidate(id, "hired", "تأیید",
-      { code: "EMP-2009", managerId: "bad", hiredAt: "2026-10-17" })).toBe(false);
+      { code: "EMP-2009", positionId: "bad", hiredAt: "2026-10-17" })).toBe(false);
     expect(s.decideCandidate(id, "hired", "تأیید",
-      { code: "EMP-2009", managerId: "p11", hiredAt: "2026-02-30" })).toBe(false);
+      { code: "EMP-2009", positionId: "vac-j9", hiredAt: "2026-10-17" })).toBe(false);
+    expect(s.decideCandidate(id, "hired", "تأیید",
+      { code: "EMP-2009", positionId: "pos1", hiredAt: "2026-10-17" })).toBe(false);
+    expect(s.decideCandidate(id, "hired", "تأیید")).toBe(false);
+    const positionsBefore = s.state().positions.length;
+    expect(s.decideCandidate(id, "hired", "تأیید",
+      { code: "EMP-2009", positionId: "vac-j1", hiredAt: "2026-02-30" })).toBe(false);
     s.role.set("manager");
     expect(s.decideCandidate(id, "hired", "تأیید",
-      { code: "EMP-2009", managerId: "p11", hiredAt: "2026-10-17" })).toBe(false);
+      { code: "EMP-2009", positionId: "vac-j1", hiredAt: "2026-10-17" })).toBe(false);
     s.role.set("hr");
     const personId = s.decideCandidate(id, "hired", "تطابق نیاز شغل با شواهد",
-      { code: "EMP-2009", managerId: "p11", hiredAt: "2026-10-17" });
+      { code: "EMP-2009", positionId: "vac-j1", hiredAt: "2026-10-17", referenceNo: "HR-2009" });
     expect(typeof personId).toBe("string");
+    expect(s.state().positions).toHaveLength(positionsBefore);
+    expect(s.currentPosition(personId as string)?.id).toBe("vac-j1");
+    expect(s.currentManager(personId as string)?.id).toBe("p11");
+    expect(s.state().appointments.find((a) => a.personId === personId)?.referenceNo).toBe("HR-2009");
     const p = s.person(personId as string);
     expect(p.code).toBe("EMP-2009");
     expect(p.unit).toBe(s.job("j1").unit);
@@ -106,9 +116,31 @@ describe("entry assessment and hiring lifecycle", () => {
     expect(p.entry?.assessmentId).toBe(s.latestEntryAssessment(id)!.id);
     expect(s.candidate(id)?.decision?.personId).toBe(personId);
     expect(s.decideCandidate(id, "hired", "تکرار",
-      { code: "EMP-2010", managerId: "p11", hiredAt: "2026-10-17" })).toBe(false);
+      { code: "EMP-2010", positionId: "vac-j1", hiredAt: "2026-10-17" })).toBe(false);
     expect(record(s, id)).toBe(false);
     expect(new Store().person(personId as string).entry).toEqual(p.entry);
+  });
+
+  it("rejects hiring to a post reserved for a future appointment without changing candidate history", () => {
+    const s = new Store();
+    const id = s.registerCandidate("رزرو آینده", "j1");
+    expect(record(s, id)).toBe(true);
+    expect(s.appointPerson("p1", "vac-j1", "2026-11-01")).toBeTruthy();
+    expect(s.currentPositionHolder("vac-j1", "2026-10-20")).toBeUndefined();
+    expect(s.hireablePositions("j1", "2026-10-20").some((p) => p.id === "vac-j1")).toBe(false);
+    const before = {
+      people: s.state().people.length,
+      positions: s.state().positions.length,
+      appointments: s.state().appointments.length,
+      decisions: s.candidate(id)?.decision,
+    };
+    expect(s.decideCandidate(id, "hired", "تأیید",
+      {code: "EMP-2222", positionId: "vac-j1", hiredAt: "2026-10-20"})).toBe(false);
+    expect(s.state().people).toHaveLength(before.people);
+    expect(s.state().positions).toHaveLength(before.positions);
+    expect(s.state().appointments).toHaveLength(before.appointments);
+    expect(s.candidate(id)?.decision).toBeUndefined();
+    expect(s.hireablePositions("j1", "not-a-date")).toEqual([]);
   });
 
   it("retains a declined candidate for review without creating an employee", () => {
