@@ -607,7 +607,8 @@ export class Store {
       .sort((a, b) => baseline.gaps[b] - baseline.gaps[a] || a - b);
     const byCompetency = ranked.map((c) =>
       this.templatesForCompetency(c));
-    const selected = byCompetency.flatMap((items) => items.slice(0, 1));
+    const selected = byCompetency.flatMap((items, rank) =>
+      items.length ? [items[rank % items.length]] : []);
     if (selected.length < 3) {
       const already = new Set(selected.map((t) => t.id));
       for (const items of byCompetency) for (const item of items) {
