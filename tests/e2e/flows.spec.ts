@@ -505,28 +505,66 @@ test("Material datepicker writes an ISO day into the existing IDP model", async 
   await expect(page.locator("app-date-field input")).toHaveValue(displayedJalali);
 });
 
-test("candidate entry assessment leads to documented hiring and an employee with unknown performance", async ({ page }) => {
+test("general then specialist committees lead to documented hiring and unknown performance", async ({ page }) => {
   await nav(page, "/hiring");
   await page.getByRole("textbox", { name: "نام و نام خانوادگی داوطلب" }).fill("سارا روشن");
   await selectMaterial(page, "شغل هدف استخدام", "مدیر پروژه · دفتر پروژه‌ها");
   await page.getByRole("button", { name: "ثبت و آغاز ارزیابی" }).click();
   await expect(page).toHaveURL(/\/hiring\/[^/]+$/);
+  const detailUrl = page.url();
+  const candidateId = detailUrl.split("/").at(-1);
   await expect(page.locator("main h1")).toHaveText("سارا روشن");
   await expect(page.locator("main")).toContainText("در انتظار ارزیابی");
+  await expect(page.getByRole("button", {name:"ثبت نسخه ارزیابی"})).toHaveCount(0);
 
-  await selectMaterial(page, "ارتباط مؤثر", "۴");
-  await selectMaterial(page, "نتیجه بررسی پتانسیل", "بالا");
-  await page.getByRole("textbox", { name: "شواهد مصاحبه و سنجش شایستگی‌ها" })
-    .fill("مصاحبه رفتاری و اجرای تمرین برنامه‌ریزی در نقش مدیر پروژه");
-  await page.getByRole("textbox", { name: "استدلال ارزیاب درباره پتانسیل رشد" })
-    .fill("یادگیری سریع و سازگاری با سناریوی جدید مستند شد");
-  await page.getByRole("button", { name: "ثبت نسخه ارزیابی" }).click();
-  await expect(page.locator("main")).toContainText("تاریخچه ارزیابی‌های ورودی");
-  await expect(page.locator("main")).toContainText("یادگیری سریع و سازگاری");
+  await selectMaterial(page, "ارزیاب کمیته عمومی", "نیما روشن · EMP-1003");
+  await page.getByRole("button", { name: "ارجاع به کمیته عمومی" }).click();
+  await expect(page.locator("main")).toContainText("در انتظار پاسخ");
+  await signIn(page, "p3", "evaluator");
+  await expect(page.locator("mat-sidenav")).toContainText("ارزیابی عمومی");
+  await expect(page.locator("mat-sidenav")).toContainText("ارزیابی تخصصی");
+  await nav(page, "/hiring/committee/general");
+  await expect(page.locator("main")).toContainText("سارا روشن");
+  await page.getByRole("link", { name: "تکمیل پرسشنامه" }).click();
+  await expect(page).toHaveURL(new RegExp(`/hiring/committee/general/${candidateId}`));
+  const generalInputs = page.getByRole("combobox",{name:"امتیاز سؤال"});
+  await expect(generalInputs).toHaveCount(5);
+  for (let i=0;i<5;i++) {
+    await generalInputs.nth(i).click();
+    await page.getByRole("option", {name:"۴ از ۵"}).click();
+  }
+  await page.getByRole("textbox",{name:"شواهد و توضیح کمیته"}).fill("شواهد مصاحبه عمومی ثبت شد");
+  await page.getByRole("button", {name:"ثبت نتیجه کمیته ارزیابی عمومی"}).click();
+
+  await signIn(page, "p1", "hr");
+  await page.goto(detailUrl);
+  await expect(page.locator("main")).toContainText("شواهد مصاحبه عمومی ثبت شد");
+  await selectMaterial(page,"ارزیاب کمیته تخصصی","کارمند شماره ۵ · EMP-1005");
+  await page.getByRole("button",{name:"ارجاع به کمیته تخصصی"}).click();
+
+  await signIn(page,"p5","evaluator");
+  await nav(page,"/hiring/committee/specialist");
+  await expect(page.locator("main")).toContainText("سارا روشن");
+  await page.getByRole("link",{name:"تکمیل پرسشنامه"}).click();
+  const specialistInputs = page.getByRole("combobox",{name:"امتیاز سؤال"});
+  await expect(specialistInputs).toHaveCount(5);
+  for(let i=0;i<5;i++){
+    await specialistInputs.nth(i).click();
+    await page.getByRole("option",{name:"۴ از ۵"}).click();
+  }
+  await page.getByRole("textbox",{name:"شواهد و توضیح کمیته"}).fill("شواهد تحلیل مسئله تخصصی ثبت شد");
+  await page.getByRole("button",{name:"ثبت نتیجه کمیته ارزیابی تخصصی"}).click();
+
+  await signIn(page,"p1","hr");
+  await page.goto(detailUrl);
+  await expect(page.locator("main")).toContainText("شواهد تحلیل مسئله تخصصی ثبت شد");
+  await selectMaterial(page,"قضاوت انسانی درباره پتانسیل","بالا");
+  await page.getByRole("textbox",{name:"جمع‌بندی و شواهد منابع انسانی"}).fill("مصاحبه عمومی و سنجش تخصصی مستند است");
+  await page.getByRole("textbox",{name:"استدلال پتانسیل"}).fill("توان یادگیری و رشد مشاهده شد");
+  await page.getByRole("button",{name:"تأیید جمع‌بندی دو کمیته"}).click();
   await expect(page.locator("main")).toContainText("در انتظار تصمیم");
-
   await page.getByRole("textbox", { name: "دلیل تصمیم انسانی" })
-    .fill("بررسی شواهد و تأیید انسانی شرایط احراز");
+    .fill("بررسی دو کمیته و تأیید انسانی شرایط احراز");
   await page.getByRole("textbox", { name: "کد پرسنلی جدید (فقط برای استخدام)" }).fill("EMP-8008");
   await selectMaterial(page, "مدیر مستقیم (فقط برای استخدام)", "پویان فرهمند · دفتر پروژه‌ها");
   await page.getByRole("button", { name: "تأیید استخدام و تشکیل پرونده" }).click();
@@ -542,7 +580,10 @@ test("candidate entry assessment leads to documented hiring and an employee with
   const hired = state.people.find((x: any) => x.code === "EMP-8008");
   expect(hired.entry.candidateId).toBe(candidate.id);
   expect(hired.entry.assessmentId).toBe(candidate.assessments[0].id);
+  expect(hired.observed).toEqual([4,4,4,4,4]);
   expect(hired.performance).toBe(null);
+  expect(candidate.entryWorkflow.general.completedAt).toBeTruthy();
+  expect(candidate.entryWorkflow.specialist.completedAt).toBeTruthy();
   expect(candidate.decision.personId).toBe(hired.id);
   await nav(page, "/talent/9box");
   await expect(page.locator("main")).toContainText("هنوز ارزیابی عملکرد یا پتانسیل لازم");
