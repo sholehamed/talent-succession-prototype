@@ -138,6 +138,7 @@ export class App {
     if (!this.s.canAccess()) return false;
     const r = this.s.role();
     if (r === "hr") return path !== "/development/tasks";
+    if (path === "/organization/appointments") return false;
     if (r === "evaluator")
       return ["/evaluations/inbox", "/settings"].includes(path);
     if (r === "employee")
