@@ -2,7 +2,7 @@ import { Component, computed, inject, input, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { Store } from "../core/store";
 import {
-  CampaignScope, Cycle, EvaluationCampaign, Group, groups,
+  CampaignScope, Cycle, EvaluationCampaign,
 } from "../core/models";
 import { UI } from "../shared/ui";
 
@@ -14,7 +14,7 @@ import { UI } from "../shared/ui";
       <div>
         <div class="eyebrow">منابع انسانی · ارزیابی چندمنبعی</div>
         <h1>کمپین‌های ارزیابی دوره‌ای</h1>
-        <p>تعریف دوره برای تمام یا گروهی از کارکنان؛ استخراج ارزیاب‌ها از چارت و ثبت یکجای تکالیف</p>
+        <p>انتخاب گروهی کارکنان، تشکیل پرونده‌های آماده‌سازی و شروع پاسخ‌گیری فقط با تأیید منابع انسانی</p>
       </div>
       <a mat-button class="secondary" routerLink="/evaluations/cycles">دوره‌ها و ارزیابی‌های فردی ←</a>
     </div>
@@ -58,11 +58,11 @@ import { UI } from "../shared/ui";
             <mat-form-field appearance="outline" style="width:100%">
               <mat-label>روش ارزیابی</mat-label>
               <mat-select [ngModel]="mode()" (ngModelChange)="mode.set($event)">
-                <mat-option [value]="360">۳۶۰ درجه · قابل انتشار گروهی</mat-option>
+                <mat-option [value]="360">۳۶۰ درجه · ایجاد گروهی</mat-option>
                 <mat-option [value]="540" disabled>۵۴۰ درجه · نیازمند روابط ثبت‌شده ذی‌نفع بیرونی</mat-option>
               </mat-select>
             </mat-form-field>
-            <div class="info">دوره‌های تاریخی بدون تغییر باقی می‌مانند. تاریخ مبنا، روابط و شغل افراد را در لحظه انتشار تثبیت می‌کند.</div>
+            <div class="info">دوره‌های تاریخی بدون تغییر باقی می‌مانند. تاریخ مبنا، روابط و شغل افراد را در لحظه ایجاد دوره تثبیت می‌کند.</div>
           } @else if (step() === 1) {
             <mat-form-field appearance="outline" style="width:100%">
               <mat-label>جامعه هدف</mat-label>
@@ -97,7 +97,7 @@ import { UI } from "../shared/ui";
           } @else {
             <div class="grid two" style="margin-bottom:16px">
               <div class="stat"><small class="label">افراد قابل بررسی</small><strong>{{ preview().length | fa }}</strong></div>
-              <div class="stat"><small class="label">واجد تخصیص خودکار</small><strong>{{ eligibleCount() | fa }}</strong></div>
+              <div class="stat"><small class="label">واجد ایجاد پرونده</small><strong>{{ eligibleCount() | fa }}</strong></div>
             </div>
             @for (row of preview(); track row.personId) {
               <div class="metric-line">
@@ -111,7 +111,7 @@ import { UI } from "../shared/ui";
             } @empty {
               <div class="warning">برای این فیلتر و تاریخ، فردی پیدا نشد.</div>
             }
-            <div class="info">این پیش‌نمایش هیچ تکلیف و امتیازی ثبت نمی‌کند؛ انتشار نهایی بعد از ایجاد پیش‌نویس انجام می‌شود.</div>
+            <div class="info">با ثبت دوره، تمام افراد واجد شرایط همین حالا پروندهٔ آماده‌سازی می‌گیرند؛ دریافت پاسخ بعداً و صرفاً با دستور منابع انسانی آغاز می‌شود.</div>
           }
           <div class="actions">
             @if (step() > 0) {
@@ -120,7 +120,7 @@ import { UI } from "../shared/ui";
             @if (step() < 2) {
               <button mat-button class="primary" (click)="next()">مرحله بعد</button>
             } @else {
-              <button mat-button class="primary" (click)="create()">ثبت پیش‌نویس کمپین</button>
+              <button mat-button class="primary" (click)="create()">ایجاد دوره برای افراد منتخب</button>
             }
           </div>
         </mat-card>
@@ -137,53 +137,41 @@ import { UI } from "../shared/ui";
         <div class="grid three">
           <div class="stat"><small class="label">پرونده‌های ساخته‌شده</small><strong>{{ cycles().length | fa }}</strong></div>
           <div class="stat"><small class="label">پاسخ‌های دریافت‌شده</small><strong>{{ completedAssignments() | fa }} / {{ totalAssignments() | fa }}</strong></div>
-          <div class="stat"><small class="label">موارد نیازمند بررسی</small><strong>{{ c.status === 'draft' ? draftExceptions() : c.exclusions.length | fa }}</strong></div>
+          <div class="stat"><small class="label">موارد نیازمند بررسی</small><strong>{{ c.exclusions.length | fa }}</strong></div>
         </div>
         @if (c.status === 'draft') {
-          <div class="info">پیش از انتشار، ارزیاب‌های سرپرست، هم‌سطح و زیردست از چارت تاریخ مبنا استخراج می‌شوند. گروه یک‌نفره محرمانه ساخته نمی‌شود. انتقال یا ویرایش چارت پیش از انتشار ممکن است نتیجه پیش‌نمایش را تغییر دهد.</div>
-          @for (row of draftPreview(); track row.personId) {
-            <div class="metric-line">
-              <div class="grow">
-                <strong>{{ s.person(row.personId).name }}</strong>
-                <small>{{ row.reason || (row.assignments.length + ' ارزیاب') }}</small>
-                @if (row.notes.length) { <small>{{ row.notes.join(' · ') }}</small> }
-                @if (!row.reason) {
-                  <small>{{ assignmentText(row.assignments) }}</small>
-                }
-              </div>
-              <span class="badge">{{ row.reason ? 'استثنا' : 'آماده انتشار' }}</span>
-            </div>
-          }
-          <div class="actions">
-            <button mat-button class="primary" [disabled]="!draftEligible()"
-              (click)="publish()">تأیید و انتشار گروهی تکالیف</button>
+          <div class="info">
+            پروندهٔ همه افراد واجد شرایط در زمان ایجاد دوره با ارزیاب‌های استخراج‌شده از چارت
+            ساخته و در وضعیت آماده‌سازی نگهداری شده است. هنوز هیچ تکلیفی در کارتابل
+            ارزیاب‌ها برای پاسخ‌گویی فعال نشده است.
           </div>
-          @if (c.mode === 540) {
-            <div class="warning">به دلیل نبود رابطه معتبر برای ذی‌نفع بیرونی در مدل فعلی، انتشار خودکار ۵۴۰ مسدود است.</div>
-          }
+          <div class="actions">
+            <button mat-button class="primary" [disabled]="!allPrepared()"
+              (click)="start()">تأیید منابع انسانی و شروع پاسخ‌گیری</button>
+          </div>
         } @else {
-          <div class="info">فهرست تکالیف زمان انتشار Snapshot شده است. جابه‌جایی‌های بعدی چارت، ارزیاب‌های این دوره را تغییر نمی‌دهد.</div>
-          <h2>پرونده‌های ارزیابی افراد</h2>
-          @for (cycle of cycles(); track cycle.id) {
-            <div class="metric-line">
-              <div class="grow">
-                <a [routerLink]="['/evaluations', cycle.id]"><strong>{{ s.person(cycle.subjectId).name }}</strong></a>
-                <small>{{ s.job(cycle.jobId).title }} · {{ cycle.assignments.length | fa }} تکلیف · {{ answered(cycle) | fa }} پاسخ</small>
-              </div>
-              <span class="badge">{{ cycle.status | status }}</span>
-              <a mat-button [routerLink]="['/evaluations', cycle.id]">مدیریت پرونده ←</a>
+          <div class="info">فهرست افراد، ارزیاب‌ها و شغل در زمان ایجاد دوره Snapshot شده است؛ تغییرات بعدی چارت این دوره را تغییر نمی‌دهد.</div>
+        }
+        <h2>پرونده‌های ارزیابی افراد</h2>
+        @for (cycle of cycles(); track cycle.id) {
+          <div class="metric-line">
+            <div class="grow">
+              <a [routerLink]="['/evaluations', cycle.id]"><strong>{{ s.person(cycle.subjectId).name }}</strong></a>
+              <small>{{ s.job(cycle.jobId).title }} · {{ cycle.assignments.length | fa }} ارزیاب · {{ answered(cycle) | fa }} پاسخ</small>
             </div>
+            <span class="badge">{{ cycle.status | status }}</span>
+            <a mat-button [routerLink]="['/evaluations', cycle.id]">مدیریت پرونده ←</a>
+          </div>
+        }
+        @if (c.exclusions.length) {
+          <h2>استثناهای ایجاد دوره</h2>
+          @for (row of c.exclusions; track row.personId) {
+            <div class="metric-line"><strong>{{ s.person(row.personId).name }}</strong><small>{{ row.reason }}</small></div>
           }
-          @if (c.exclusions.length) {
-            <h2>استثناهای ثبت‌شده هنگام انتشار</h2>
-            @for (row of c.exclusions; track row.personId) {
-              <div class="metric-line"><strong>{{ s.person(row.personId).name }}</strong><small>{{ row.reason }}</small></div>
-            }
-          }
-          @if (c.status === 'active') {
-            <button mat-button [disabled]="cycles().some(x => x.status !== 'closed')"
-              (click)="close()">بستن کمپین پس از پایان همه پرونده‌ها</button>
-          }
+        }
+        @if (c.status === 'active') {
+          <button mat-button [disabled]="cycles().some(x => x.status !== 'closed')"
+            (click)="close()">بستن کمپین پس از پایان همه پرونده‌ها</button>
         }
       </mat-card>
     } @else {
@@ -207,23 +195,15 @@ export default class EvaluationCampaignsPage {
   readonly preview = computed(() =>
     this.s.previewCampaign(this.scope(), this.period(), this.asOf(), this.mode()));
   readonly eligibleCount = computed(() => this.preview().filter((x) => !x.reason).length);
-  readonly draftPreview = computed(() => {
-    const c = this.campaign();
-    return c ? this.s.previewCampaign(c.scope, c.period, c.asOf, c.mode) : [];
-  });
-  readonly draftEligible = computed(() =>
-    this.campaign()?.mode === 360 && this.draftPreview().some((x) => !x.reason));
-  readonly draftExceptions = computed(() => this.draftPreview().filter((x) => !!x.reason).length);
+  readonly allPrepared = computed(() => this.cycles().length > 0 &&
+    this.cycles().every((c) => c.status === "preparing" && this.s.canStart(c)));
   readonly totalAssignments = computed(() => this.cycles().reduce((n,c) => n+c.assignments.length,0));
   readonly completedAssignments = computed(() => this.cycles().reduce((n,c) =>
     n+c.assignments.filter((a) => this.s.hasAnswered(c,a)).length,0));
   scope(): CampaignScope { return { type: this.scopeType(), ids: this.scopeIds() }; }
   chooseScope(type: CampaignScope["type"]) { this.scopeType.set(type); this.scopeIds.set([]); }
   statusLabel(c: EvaluationCampaign) {
-    return ({ draft: "پیش‌نویس", active: "در حال اجرا", closed: "بسته‌شده" })[c.status];
-  }
-  assignmentText(rows: {personId:string;group:Group}[]) {
-    return rows.map((a) => this.s.person(a.personId).name + " (" + groups[a.group] + ")").join(" · ");
+    return ({ draft: "آماده‌سازی", active: "دریافت پاسخ", closed: "بسته‌شده" })[c.status];
   }
   answered(c: Cycle) { return c.assignments.filter((a) => this.s.hasAnswered(c,a)).length; }
   next() {
@@ -237,6 +217,6 @@ export default class EvaluationCampaignsPage {
     const id = this.s.createCampaign(this.title(),this.period(),this.asOf(),this.mode(),this.scope());
     if (id) this.router.navigate(["/evaluations/campaigns", id]);
   }
-  publish() { const id = this.campaign()?.id; if (id) this.s.publishCampaign(id); }
+  start() { const id = this.campaign()?.id; if (id) this.s.startCampaign(id); }
   close() { const id = this.campaign()?.id; if (id) this.s.closeCampaign(id); }
 }
