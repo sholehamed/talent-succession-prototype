@@ -44,6 +44,24 @@ export function hydrateOrganization(state: DemoState): DemoState {
       existing.set(position.holderId, position);
     }
   }
+  // A few genuine vacancies make position-based hiring demonstrable without
+  // creating an entirely new HR recruitment subsystem.
+  if (!Array.isArray(state.appointments)) {
+    for (const jobId of ["j1", "j9"]) {
+      const job = state.jobs.find((j) => j.id === jobId);
+      if (!job) continue;
+      const id = `vac-${jobId}`;
+      if (positions.some((p) => p.id === id)) continue;
+      const lead = positions.find((p) => p.jobId === jobId && p.holderId);
+      positions.push({
+        id, code: `POST-VAC-${jobId}`, title: `${job.title} — پست بلاتصدی`,
+        jobId, holderId: "", unit: job.unit, unitId: resolveUnit(job.unit),
+        locationId: defaultLocation, parentPositionId: lead?.id ?? null,
+        isActive: true, critical: false, reason: "",
+        probability: 1, impact: 1, months: 6,
+      });
+    }
+  }
   // Older projects had only 15 succession positions, but >30 employed people.
   // Fill the missing links without changing existing position IDs or nominations.
   for (const p of state.people) {
