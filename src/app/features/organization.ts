@@ -22,7 +22,9 @@ import { UI } from "../shared/ui";
       <a mat-stroked-button routerLink="/organization/units">واحدهای سازمانی</a>
       <a mat-stroked-button routerLink="/organization/locations">محل خدمت</a>
       <a mat-stroked-button routerLink="/organization/positions">پست‌های سازمانی</a>
-      <a mat-stroked-button routerLink="/organization/appointments">انتصاب‌ها</a>
+      @if (s.canManageOrganization()) {
+        <a mat-stroked-button routerLink="/organization/appointments">انتصاب‌ها</a>
+      }
     </div>
     @if (view === "chart") {
       <div class="grid three" style="margin-bottom:22px">
