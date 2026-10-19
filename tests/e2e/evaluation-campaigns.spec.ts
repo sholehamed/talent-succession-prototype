@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { DEFAULT_PASSWORD } from "../../src/app/core/auth";
 
-test("HR creates and publishes chart-driven evaluation campaigns with individual cycle links", async ({ page }) => {
+test("HR enrolls people on creating period, but only explicitly starts response collection", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("textbox", { name: "شناسه کاربری" }).fill("p1");
   await page.getByLabel("رمز عبور").fill(DEFAULT_PASSWORD);
@@ -17,14 +17,19 @@ test("HR creates and publishes chart-driven evaluation campaigns with individual
   await expect(page.getByRole("combobox", { name: "جامعه هدف" })).toBeVisible();
   await page.getByRole("button", { name: "مرحله بعد" }).click();
   await expect(page.locator("main")).toContainText("واجد تخصیص خودکار");
-  await page.getByRole("button", { name: "ثبت پیش‌نویس کمپین" }).click();
+  await page.getByRole("button", { name: "ایجاد دوره برای افراد منتخب" }).click();
   await expect(page).toHaveURL(/\/evaluations\/campaigns\/[^/]+$/);
-  await expect(page.locator("main")).toContainText("پیش‌نویس");
+  await expect(page.locator("main")).toContainText("آماده‌سازی");
+  await expect(page.locator("main")).toContainText("پرونده‌های ارزیابی افراد");
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
   const id = before.campaigns[0].id;
-  expect(before.cycles.some((x: any) => x.campaignId === id)).toBe(false);
+  const prepared = before.cycles.filter((x: any) => x.campaignId === id);
+  expect(prepared.length).toBeGreaterThan(0);
+  expect(prepared.every((x: any) => x.status === "preparing")).toBe(true);
+  // No collection is available to evaluators just by creating the period.
+  expect(prepared.every((x: any) => x.status !== "collecting")).toBe(true);
 
-  await page.getByRole("button", { name: "تأیید و انتشار گروهی تکالیف" }).click();
+  await page.getByRole("button", { name: "تأیید منابع انسانی و شروع پاسخ‌گیری" }).click();
   await expect(page.locator("main")).toContainText("پرونده‌های ارزیابی افراد");
   const state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
   const cycles = state.cycles.filter((x: any) => x.campaignId === id);
