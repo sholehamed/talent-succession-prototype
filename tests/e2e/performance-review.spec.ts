@@ -11,8 +11,9 @@ test("hired employee gets KPI performance only after HR approval, with private e
   await page.getByRole("textbox", { name: "دلیل تصمیم انسانی" })
     .fill("شواهد و نتیجه جلسه جذب تأیید شد");
   await page.getByRole("textbox", { name: "کد پرسنلی جدید (فقط برای استخدام)" }).fill("EMP-8051");
-  await page.getByRole("combobox", { name: "مدیر مستقیم (فقط برای استخدام)" }).click();
-  await page.getByRole("option", { name: "پویان فرهمند · دفتر پروژه‌ها" }).click();
+  await page.getByRole("combobox", { name: "پست سازمانی بلاتصدی (الزامی)" }).click();
+  await page.getByRole("option", { name: "مدیر پروژه — پست بلاتصدی · POST-VAC-j1" }).click();
+  await expect(page.locator("main")).toContainText("مدیر مستقیم: پویان فرهمند");
   await page.getByRole("button", { name: "تأیید استخدام و تشکیل پرونده" }).click();
   await expect(page).toHaveURL(/\/people\/[^/]+$/);
   await expect(page.locator("main")).toContainText("هنوز ارزیابی عملکرد پس از استخدام ثبت نشده");
