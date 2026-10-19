@@ -575,6 +575,9 @@ test("general then specialist committees lead to documented hiring and unknown p
   await expect(page.locator("main")).toContainText("سابقه ورود به سازمان");
   await page.getByRole("link", { name: "پرونده و شواهد ارزیابی ورودی" }).click();
   await expect(page.locator("main")).toContainText("استخدام‌شده");
+  await expect(page.locator("main")).toContainText("نتایج شایستگی به تفکیک کمیته");
+  await expect(page.locator("main")).toContainText("شواهد مصاحبه عمومی ثبت شد");
+  await expect(page.locator("main")).toContainText("شواهد تحلیل مسئله تخصصی ثبت شد");
   const state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
   const candidate = state.candidates.find((x: any) => x.name === "سارا روشن");
   const hired = state.people.find((x: any) => x.code === "EMP-8008");
