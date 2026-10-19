@@ -118,7 +118,11 @@ export class Store {
   /** Only a published version can be used for hiring, evaluation, career paths or staffing. */
   readonly publishedJobs = computed(() => this.state().jobs.filter((j) => j.version > 0));
   readonly units = computed(() => [
-    ...new Set(this.state().jobs.map((j) => j.unit)),
+    ...new Set([
+      ...this.state().organizationUnits.filter((u) => u.isActive).map((u) => u.name),
+      ...this.state().jobs.map((j) => j.unit),
+      ...this.state().people.map((p) => p.unit),
+    ]),
   ]);
   readonly editable = computed(() => this.activeRoleAllowed() && ["hr", "manager"].includes(this.role()));
   readonly canReport = computed(() => this.activeRoleAllowed() &&
