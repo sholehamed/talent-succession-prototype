@@ -120,6 +120,9 @@ export class App {
     { path: "/organization/positions", title: "پست‌های سازمانی", icon: "▦" },
     { path: "/organization/appointments", title: "انتصاب کارکنان", icon: "⇄" },
     { path: "/hiring", title: "ارزیابی بدو استخدام", icon: "⊕" },
+    { path: "/hiring/questions", title: "بانک سؤالات استخدام", icon: "☷" },
+    { path: "/hiring/committee/general", title: "ارزیابی عمومی", icon: "◎" },
+    { path: "/hiring/committee/specialist", title: "ارزیابی تخصصی", icon: "◈" },
     { path: "/people", title: "افراد و استعدادها", icon: "♧" },
     { path: "/performance", title: "ارزیابی عملکرد دوره‌ای", icon: "◫" },
     { path: "/evaluations/cycles", title: "ارزیابی چندمنبعی", icon: "◎" },
@@ -140,13 +143,15 @@ export class App {
     if (r === "hr") return path !== "/development/tasks";
     if (path === "/organization/appointments") return false;
     if (r === "evaluator")
-      return ["/evaluations/inbox", "/settings"].includes(path);
+      return ["/evaluations/inbox", "/hiring/committee/general",
+        "/hiring/committee/specialist", "/settings"].includes(path);
     if (r === "employee")
       return ["/people", "/development", "/development/tasks",
         "/knowledge", "/settings"].includes(path);
     if (r === "owner")
       return ["/jobs", "/career-paths", "/knowledge", "/settings"].includes(path);
-    if (["/hiring", "/evaluations/cycles", "/evaluations/questions",
+    if (["/hiring", "/hiring/questions", "/hiring/committee/general",
+      "/hiring/committee/specialist", "/evaluations/cycles", "/evaluations/questions",
       "/evaluations/inbox", "/development/templates", "/development/tasks"].includes(path))
       return false;
     return true;

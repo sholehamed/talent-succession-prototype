@@ -1,7 +1,8 @@
 import { Component, computed, inject, input, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { Store } from "../core/store";
-import { Band, bands, Candidate, competencies } from "../core/models";
+import { Band, bands, Candidate, EntryCommitteeStage, competencies } from "../core/models";
+import { combinedEntryScores } from "../core/entry-committees";
 import { UI } from "../shared/ui";
 
 @Component({
@@ -15,7 +16,10 @@ import { UI } from "../shared/ui";
           <h1>ارزیابی بدو استخدام</h1>
           <p>ثبت داوطلب، سنجش شایستگی و پتانسیل با شواهد، و تشکیل پرونده پس از تصمیم انسانی</p>
         </div>
-        <span class="badge">{{ candidates().length | fa }} داوطلب</span>
+        <div class="actions">
+          <a mat-button class="secondary" routerLink="/hiring/questions">بانک سؤالات و اعضای کمیته‌ها ←</a>
+          <span class="badge">{{ candidates().length | fa }} داوطلب</span>
+        </div>
       </div>
       <mat-card class="panel">
         <div class="panel-head">
@@ -55,6 +59,8 @@ import { UI } from "../shared/ui";
               <mat-option value="">همه</mat-option>
               <mat-option value="unassessed">در انتظار ارزیابی</mat-option>
               <mat-option value="review">در انتظار تصمیم</mat-option>
+              <mat-option value="general">کمیته عمومی</mat-option>
+              <mat-option value="specialist">کمیته تخصصی</mat-option>
               <mat-option value="hired">استخدام‌شده</mat-option>
               <mat-option value="declined">استخدام‌نشده</mat-option>
             </mat-select>
@@ -107,7 +113,7 @@ import { UI } from "../shared/ui";
         <div class="stat">
           <span class="label">ارزیابی‌های ثبت‌شده</span>
           <strong>{{ c.assessments.length | fa }}</strong>
-          <small>هر ثبت جدید یک نسخه مستقل است.</small>
+          <small>سوابق قبلی و نتایج دو کمیته حفظ می‌شوند.</small>
         </div>
         <div class="stat">
           <span class="label">نتیجه پتانسیل آخرین ارزیابی</span>
@@ -141,7 +147,109 @@ import { UI } from "../shared/ui";
           </table>
         </div>
       </mat-card>
-      @if (!c.decision) {
+      @if (!c.decision || c.entryWorkflow) {
+        <mat-card class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>گردش ارجاع کمیته‌های بدو استخدام</h2>
+              <small>ابتدا عمومی، سپس تخصصی؛ نمره‌ها فقط از پاسخ به بانک سؤالات استخراج می‌شوند.</small>
+            </div>
+            <a routerLink="/hiring/questions">بانک سؤالات ←</a>
+          </div>
+          @if (!c.entryWorkflow && !c.assessments.length) {
+            <div class="info">مرحله اول: یک عضو کمیته عمومی را انتخاب و پرسشنامه را به او ارجاع کنید.</div>
+            <mat-form-field appearance="outline" style="width:100%;max-width:380px">
+              <mat-label>ارزیاب کمیته عمومی</mat-label>
+              <mat-select [ngModel]="generalAssignee()" (ngModelChange)="generalAssignee.set($event)">
+                @for (member of s.entryMembers('general'); track member.id) {
+                  <mat-option [value]="member.id">{{ member.name }} · {{ member.code }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <button mat-button class="primary" (click)="refer('general')">ارجاع به کمیته عمومی</button>
+          } @else if (c.entryWorkflow; as w) {
+            <div class="metric-line">
+              <div class="grow">
+                <strong>۱. ارزیابی عمومی</strong>
+                <small>ارزیاب: {{ s.person(w.general.assignedTo).name }} · {{ w.general.completedAt ? 'تکمیل‌شده' : 'در انتظار پاسخ' }}</small>
+              </div>
+              <span class="badge">{{ w.general.completedAt ? 'ثبت شده' : 'در جریان' }}</span>
+            </div>
+            @if (w.general.completedAt) {
+              <p>امتیازهای کمیته عمومی: {{ scoreText(w.general.scores ?? []) }} · شواهد: {{ w.general.evidence }}</p>
+            }
+            <div class="metric-line">
+              <div class="grow">
+                <strong>۲. ارزیابی تخصصی</strong>
+                @if (w.specialist) {
+                  <small>ارزیاب: {{ s.person(w.specialist.assignedTo).name }} · {{ w.specialist.completedAt ? 'تکمیل‌شده' : 'در انتظار پاسخ' }}</small>
+                } @else { <small>در انتظار ارجاع منابع انسانی</small> }
+              </div>
+              <span class="badge">{{ w.specialist?.completedAt ? 'ثبت شده' : w.specialist ? 'در جریان' : 'ارجاع نشده' }}</span>
+            </div>
+            @if (w.general.completedAt && !w.specialist) {
+              <mat-form-field appearance="outline" style="width:100%;max-width:380px">
+                <mat-label>ارزیاب کمیته تخصصی</mat-label>
+                <mat-select [ngModel]="specialistAssignee()" (ngModelChange)="specialistAssignee.set($event)">
+                  @for (member of s.entryMembers('specialist'); track member.id) {
+                    <mat-option [value]="member.id">{{ member.name }} · {{ member.code }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <button mat-button class="primary" (click)="refer('specialist')">ارجاع به کمیته تخصصی</button>
+            }
+            @if (w.specialist?.completedAt) {
+              <p>امتیازهای کمیته تخصصی: {{ scoreText(w.specialist?.scores ?? []) }} · شواهد: {{ w.specialist?.evidence }}</p>
+              <div class="panel-head">
+                <h3>نتایج شایستگی به تفکیک کمیته</h3>
+                <small>امتیاز هر شایستگی از میانگین سؤال‌های همان مرحله محاسبه شده است.</small>
+              </div>
+              <div class="table-wrap">
+                <table class="royesh-table" style="width:100%">
+                  <thead><tr>
+                    <th>شایستگی</th><th>انتظار شغل</th>
+                    <th>کمیته عمومی</th><th>کمیته تخصصی</th><th>جمع‌بندی</th>
+                  </tr></thead>
+                  <tbody>
+                    @for (name of competencies; track name; let i = $index) {
+                      <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ s.job(c.jobId).expected[i] | fa }}</td>
+                        <td>{{ w.general.scores?.[i] | fa }}</td>
+                        <td>{{ w.specialist.scores?.[i] | fa }}</td>
+                        <td><strong>{{ combined(c)?.[i] | fa }}</strong></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <div class="info">جمع‌بندی کمیته‌ها میانگین مساوی دو مرحله است؛ پتانسیل رشد به‌صورت مستقل و انسانی تأیید می‌شود.</div>
+              @if (!latest(c)) {
+                <div class="form-grid">
+                  <mat-form-field appearance="outline">
+                    <mat-label>قضاوت انسانی درباره پتانسیل</mat-label>
+                    <mat-select [ngModel]="potential()" (ngModelChange)="potential.set($event)">
+                      <mat-option value="low">نیازمند رشد</mat-option>
+                      <mat-option value="medium">متوسط</mat-option>
+                      <mat-option value="high">بالا</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>جمع‌بندی و شواهد منابع انسانی</mat-label>
+                    <textarea matInput rows="2" [ngModel]="evidence()" (ngModelChange)="evidence.set($event)"></textarea>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>استدلال پتانسیل</mat-label>
+                    <textarea matInput rows="2" [ngModel]="potentialReason()" (ngModelChange)="potentialReason.set($event)"></textarea>
+                  </mat-form-field>
+                </div>
+                <button mat-button class="primary" (click)="finalize()">تأیید جمع‌بندی دو کمیته</button>
+              }
+            }
+          }
+        </mat-card>
+      }
+      @if (!c.decision && !c.entryWorkflow && c.assessments.length > 0) {
         <mat-card class="panel">
           <div class="panel-head">
             <div>
@@ -189,6 +297,7 @@ import { UI } from "../shared/ui";
           <div class="metric-line">
             <div class="grow">
               <strong>پتانسیل: {{ bands[a.potential] }} · {{ a.evaluatedAt | faDate }}</strong>
+              @if (a.source === 'committees') { <small>منبع: جمع‌بندی عمومی و تخصصی</small> }
               <small>{{ a.assessor }} · امتیازهای شایستگی: {{ scoreText(a.scores) }}</small>
               <p>{{ a.evidence }}</p>
               <p>استدلال پتانسیل: {{ a.potentialReason }}</p>
@@ -281,6 +390,8 @@ export default class Hiring {
   readonly decisionReason = signal("");
   readonly employeeCode = signal("");
   readonly managerId = signal("p11");
+  readonly generalAssignee = signal("");
+  readonly specialistAssignee = signal("");
   readonly positionId = signal("");
   readonly hiredAt = signal(new Date().toISOString().slice(0, 10));
   readonly candidates = computed(() => this.s.state().candidates);
@@ -291,15 +402,34 @@ export default class Hiring {
   ));
   stageCode(c: Candidate) {
     if (c.decision) return c.decision.outcome;
-    return c.assessments.length ? "review" : "unassessed";
+    if (c.assessments.length) return "review";
+    if (c.entryWorkflow?.specialist) return "specialist";
+    if (c.entryWorkflow) return "general";
+    return "unassessed";
   }
   stageLabel(c: Candidate) {
     return ({
       review: "در انتظار تصمیم", unassessed: "در انتظار ارزیابی",
       hired: "استخدام‌شده", declined: "استخدام‌نشده",
+      general: "در کمیته عمومی", specialist: "در کمیته تخصصی",
     } as Record<string, string>)[this.stageCode(c)];
   }
   latest(c: Candidate) { return c.assessments.at(-1); }
+  combined(c: Candidate) {
+    const w = c.entryWorkflow;
+    return w?.specialist ? combinedEntryScores(w.general, w.specialist) : null;
+  }
+  refer(stage: EntryCommitteeStage) {
+    const c = this.candidate();
+    if (!c) return;
+    this.s.referEntry(c.id, stage,
+      stage === "general" ? this.generalAssignee() : this.specialistAssignee());
+  }
+  finalize() {
+    const c = this.candidate();
+    if (!c) return;
+    this.s.finalizeEntryReview(c.id, this.potential(), this.potentialReason(), this.evidence());
+  }
   scoreText(scores: number[]) { return scores.join(" / "); }
   setScore(index: number, value: number) {
     this.scores.update((s) => s.map((v, i) => i === index ? value : v));

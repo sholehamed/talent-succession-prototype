@@ -38,6 +38,21 @@ export const routes: Routes = [
   })),
   { path: "organization", redirectTo: "organization/chart", pathMatch: "full" },
   {
+    path: "hiring/questions",
+    canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/entry-questions"),
+  },
+  {
+    path: "hiring/committee/:stage/:id",
+    canActivate: [permit(["evaluator"])],
+    loadComponent: () => import("./features/hiring-committee"),
+  },
+  {
+    path: "hiring/committee/:stage",
+    canActivate: [permit(["evaluator"])],
+    loadComponent: () => import("./features/hiring-committee"),
+  },
+  {
     path: "hiring",
     canActivate: [permit(["hr"])],
     loadComponent: () => import("./features/hiring"),
