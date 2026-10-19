@@ -81,7 +81,7 @@ import { Chart } from "../shared/chart";
                   }
                 </mat-select></mat-form-field><mat-form-field appearance="outline"
                 ><mat-label>شغل هدف</mat-label><mat-select [(ngModel)]="target">
-                  @for (j of s.state().jobs; track j.id) {
+                  @for (j of s.publishedJobs(); track j.id) {
                     <mat-option [value]="j.id">{{ j.title }}</mat-option>
                   }
                 </mat-select></mat-form-field><mat-form-field appearance="outline"
