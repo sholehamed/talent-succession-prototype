@@ -333,6 +333,7 @@ import { UI } from "../shared/ui";
                 <mat-form-field appearance="outline"><mat-label>وظیفه</mat-label><input matInput [(ngModel)]="t.title" /></mat-form-field><mat-form-field appearance="outline"
                   ><mat-label>خروجی / شاخص نتیجه</mat-label><input matInput [(ngModel)]="t.output"
                 /></mat-form-field>
+                <button mat-button type="button" (click)="removeTask(t.id)">حذف وظیفه</button>
               </div>
             }
           </div>
@@ -341,13 +342,14 @@ import { UI } from "../shared/ui";
               <h3>شاخص‌های عملکرد</h3>
               <button mat-button (click)="addKpi()">+ شاخص</button>
             </div>
-            @for (k of form.kpis; track $index) {
+            @for (k of form.kpis; track $index; let i = $index) {
               <div class="panel form-grid">
                 @for (field of kpiFields; track field.key) {
                   <mat-form-field appearance="outline"
                     ><mat-label>{{ field.label }}</mat-label><input matInput [(ngModel)]="k[field.key]"
                   /></mat-form-field>
                 }
+                <button mat-button type="button" (click)="removeKpi(i)">حذف شاخص</button>
               </div>
             }
           </div>
@@ -396,13 +398,15 @@ export default class Jobs {
     { key: "source", label: "منبع داده مرجع" },
     { key: "owner", label: "مالک شاخص" },
   ];
-  job = computed(() => this.s.state().jobs.find((j) => j.id === this.id()));
+  job = computed(() => this.s.state().jobs.find((j) =>
+    j.id === this.id() && (this.s.role() !== "manager" || j.unit === this.s.currentPerson()?.unit)));
   relatedPeople = computed(() => this.s.relatedPeople(this.id() ?? ""));
   filtered = computed(() =>
     this.s
       .state()
       .jobs.filter(
         (j) =>
+          (this.s.role() !== "manager" || j.unit === this.s.currentPerson()?.unit) &&
           (!this.unit() || j.unit === this.unit()) &&
           `${j.title} ${j.code}`.includes(this.search()),
       ),
@@ -442,7 +446,13 @@ export default class Jobs {
   addTask() {
     this.draft!.tasks.push({ id: crypto.randomUUID(), title: "", output: "" });
   }
-  addKpi() {
+  removeTask(id: string) {
+    if (this.draft) this.draft.tasks = this.draft.tasks.filter((t) => t.id !== id);
+  }
+  removeKpi(index: number) {
+    this.draft?.kpis.splice(index, 1);
+  }
+    addKpi() {
     this.draft!.kpis.push({
       title: "",
       definition: "",
