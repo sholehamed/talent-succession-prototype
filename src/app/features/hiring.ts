@@ -30,7 +30,7 @@ import { UI } from "../shared/ui";
           <mat-form-field appearance="outline">
             <mat-label>شغل هدف استخدام</mat-label>
             <mat-select [ngModel]="jobId()" (ngModelChange)="jobId.set($event)">
-              @for (job of s.state().jobs; track job.id) {
+              @for (job of s.publishedJobs(); track job.id) {
                 <mat-option [value]="job.id">{{ job.title }} · {{ job.unit }}</mat-option>
               }
             </mat-select>
