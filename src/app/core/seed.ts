@@ -1,5 +1,6 @@
 import { DemoState, Job, Person, Knowledge, Cycle, Plan } from "./models";
 import { defaultEvaluationQuestions } from "./evaluation-questions";
+import { defaultEntryQuestions } from "./entry-committees";
 import { defaultDevelopmentTemplates } from "./development-templates";
 import { hydrateOrganization } from "./organization";
 export function seed(): DemoState {
@@ -258,6 +259,7 @@ export function seed(): DemoState {
     people,
     performanceReviews: [],
     questions: defaultEvaluationQuestions(),
+    entryQuestions: defaultEntryQuestions(jobs),
     developmentTemplates: defaultDevelopmentTemplates(),
     candidates: [
       {
