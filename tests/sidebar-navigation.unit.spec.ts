@@ -1,11 +1,30 @@
 import { describe, expect, it } from "vitest";
 import type { Role } from "../src/app/core/models";
+import { primaryNavigationIcons } from "../src/app/navigation-icons.primary";
+import { secondaryNavigationIcons } from "../src/app/navigation-icons.secondary";
 import {
   activeNavigationPath, navigationGroupForUrl, navigationGroups,
   navigationPathVisible, visibleNavigationGroups,
 } from "../src/app/navigation.config";
 
 describe("grouped sidebar configuration", () => {
+  it("uses locally bundled Material SVG icons for every group and destination", () => {
+    const icons = { ...primaryNavigationIcons, ...secondaryNavigationIcons };
+    const names = [
+      ...navigationGroups.map(group => group.icon),
+      ...navigationGroups.flatMap(group => group.children.map(item => item.icon)),
+      "settings", "expand_more", "chevron_left", "menu", "account_circle",
+    ];
+    expect(names.length).toBeGreaterThan(30);
+    for (const name of names) {
+      expect(icons[name], name + " should be registered locally").toBeDefined();
+      expect(icons[name]).toMatch(/<svg[^>]*viewBox="0 0 24 24"/);
+      expect(icons[name]).toContain("<path");
+    }
+    expect(new Set(names).size).toBeGreaterThan(15);
+  });
+
+
   it("preserves all original destinations and has no duplicated paths", () => {
     const all = navigationGroups.flatMap((g) => g.children.map((x) => x.path));
     expect(navigationGroups).toHaveLength(7);
