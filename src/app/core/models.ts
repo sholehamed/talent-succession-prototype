@@ -315,6 +315,8 @@ export interface DemoState {
   candidates: Candidate[];
   /** Separate scoped bank; 360/540 questions remain unchanged. */
   entryQuestions: EntryQuestion[];
+  /** HR-managed membership in the two interview committees. */
+  entryCommitteeMembers: { stage: EntryCommitteeStage; personId: string }[];
   positions: Position[];
   organizationUnits: OrganizationUnit[];
   workLocations: WorkLocation[];
