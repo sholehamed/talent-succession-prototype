@@ -1,6 +1,7 @@
 import { DemoState, Job, Person, Knowledge, Cycle, Plan } from "./models";
 import { defaultEvaluationQuestions } from "./evaluation-questions";
 import { defaultDevelopmentTemplates } from "./development-templates";
+import { hydrateOrganization } from "./organization";
 export function seed(): DemoState {
   const units = [
     "دفتر پروژه‌ها",
@@ -251,7 +252,7 @@ export function seed(): DemoState {
         }
       : {}),
   }));
-  return {
+  return hydrateOrganization({
     schema: 1,
     jobs,
     people,
@@ -307,5 +308,5 @@ export function seed(): DemoState {
     ],
     audit: [],
     syncs: [],
-  };
+  } as DemoState);
 }
