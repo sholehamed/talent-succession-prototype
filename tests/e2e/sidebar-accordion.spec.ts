@@ -80,7 +80,8 @@ test("all sidebar icons render as local Material SVGs without an icon font conne
   await page.getByRole("button", { name: "ارزیابی‌ها", exact: true }).click();
   const evaluationItems = page.locator(".nav-children .nav-child-item");
   await expect(evaluationItems).toHaveCount(5);
-  await expect(evaluationItems.locator("mat-icon svg")).toHaveCount(5);
+  await expect(evaluationItems.locator("mat-icon.nav-child-icon svg")).toHaveCount(5);
+  await expect(evaluationItems.locator("mat-icon.nav-arrow svg")).toHaveCount(5);
   await expect(page.locator(".nav-group-toggle mat-icon.nav-group-chevron svg")).toHaveCount(7);
   await page.getByRole("button", { name: "نمایش منو" }).click();
   await expect(page.locator("mat-sidenav-container")).toHaveClass(/collapsed/);
