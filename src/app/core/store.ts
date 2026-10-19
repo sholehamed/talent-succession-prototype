@@ -195,8 +195,7 @@ export class Store {
     if (id === this.actor()) return true;
     if (this.role() === "manager") {
       const target = this.state().people.find((p) => p.id === id);
-      return !!target && (target.unit === this.currentPerson()?.unit ||
-        target.managerId === this.actor());
+      return !!target && target.unit === this.currentPerson()?.unit;
     }
     return false;
   }
