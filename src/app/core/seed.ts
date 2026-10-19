@@ -308,5 +308,5 @@ export function seed(): DemoState {
     ],
     audit: [],
     syncs: [],
-  } as DemoState);
+  } as unknown as DemoState);
 }
