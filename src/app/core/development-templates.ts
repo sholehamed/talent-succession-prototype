@@ -6,8 +6,9 @@ export interface DevelopmentTemplate {
   title: string;
   kind: string;
   indicator: string;
+  isActive: boolean;
 }
-export const developmentTemplates: DevelopmentTemplate[] = [
+const initialTemplates: Omit<DevelopmentTemplate, "isActive">[] = [
   { id: "communication-brief", competency: 0, title: "ارائه گزارش وضعیت پروژه به ذی‌نفعان", kind: "تجربه عملی", indicator: "ارائه دو گزارش ساختاریافته و دریافت بازخورد مکتوب از ذی‌نفعان" },
   { id: "communication-coaching", competency: 0, title: "مربیگری در گفت‌وگوی اثربخش", kind: "مربیگری", indicator: "چهار جلسه مربیگری و ثبت نمونه بازخورد پیش و پس از جلسات" },
   { id: "collaboration-cross", competency: 1, title: "هدایت یک مسئله مشترک بین واحدها", kind: "تجربه عملی", indicator: "ثبت توافق مسئولیت‌ها و تأیید نتیجه توسط دو واحد درگیر" },
@@ -19,6 +20,13 @@ export const developmentTemplates: DevelopmentTemplate[] = [
   { id: "leadership-delegate", competency: 4, title: "راهبری تیم کوچک و تفویض مسئولیت", kind: "مأموریت عملی", indicator: "توزیع مسئولیت‌ها، تحقق دو خروجی و بازخورد اعضای تیم" },
   { id: "leadership-mentor", competency: 4, title: "مربیگری یکی از اعضای تیم", kind: "مربیگری", indicator: "ثبت برنامه چهار جلسه‌ای و ارزیابی پیشرفت فرد تحت مربیگری" },
 ];
-export function templatesForCompetency(index: number): DevelopmentTemplate[] {
-  return developmentTemplates.filter((item) => item.competency === index);
+/** Seed and migration defaults only. Runtime selections always use the Store catalog. */
+export function defaultDevelopmentTemplates(): DevelopmentTemplate[] {
+  return initialTemplates.map((template) => ({ ...template, isActive: true }));
+}
+export function templatesForCompetency(
+  templates: DevelopmentTemplate[], competency: number, includeInactive = false,
+): DevelopmentTemplate[] {
+  return templates.filter((item) =>
+    item.competency === competency && (includeInactive || item.isActive));
 }
