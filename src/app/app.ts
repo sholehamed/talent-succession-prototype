@@ -42,7 +42,7 @@ import { UI } from "./shared/ui";
             @if (expandedGroup() === group.id && (!collapsed() || handset())) {
               <div class="nav-children" role="group" [id]="'sidebar-group-' + group.id" [attr.aria-label]="group.title">
                 @for (child of group.children; track child.path) {
-                  <a mat-list-item class="nav-item nav-child-item"
+                  <a class="nav-item nav-child-item"
                     [routerLink]="child.path"
                     [class.active]="activeLink(group.id) === child.path"
                     [attr.aria-current]="activeLink(group.id) === child.path ? 'page' : null"
@@ -59,7 +59,7 @@ import { UI } from "./shared/ui";
       </mat-nav-list>
       @if (s.canAccess()) {
         <div class="sidebar-settings">
-          <a mat-list-item routerLink="/settings" class="nav-item nav-settings-item"
+          <a routerLink="/settings" class="nav-item nav-settings-item"
             [class.active]="currentPath() === '/settings'"
             [attr.aria-current]="currentPath() === '/settings' ? 'page' : null"
             title="تنظیمات سامانه" (click)="mobile.set(false)">
