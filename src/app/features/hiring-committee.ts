@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { Store } from "../core/store";
-import { EntryCommitteeStage, QuestionAnswer, competencies } from "../core/models";
+import { Candidate, EntryCommitteeStage, QuestionAnswer, competencies } from "../core/models";
 import { entryStageLabel } from "../core/entry-committees";
 import { UI } from "../shared/ui";
 
@@ -101,7 +101,7 @@ export default class HiringCommittee {
   readonly evidence = signal("");
   readonly inbox = computed(() => this.s.entryQueue(this.stage));
   readonly candidate = computed(() => this.inbox().find((c) => c.id === this.selectedId));
-  review(c: NonNullable<ReturnType<typeof this.s.candidate>>) {
+  review(c: Candidate) {
     return this.stage === "general" ? c.entryWorkflow?.general : c.entryWorkflow?.specialist;
   }
   score(id: string, value: number) {
