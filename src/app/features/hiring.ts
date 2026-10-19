@@ -147,7 +147,7 @@ import { UI } from "../shared/ui";
           </table>
         </div>
       </mat-card>
-      @if (!c.decision) {
+      @if (!c.decision || c.entryWorkflow) {
         <mat-card class="panel">
           <div class="panel-head">
             <div>
