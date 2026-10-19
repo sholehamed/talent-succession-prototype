@@ -252,7 +252,7 @@ export default class People {
   });
   readonly jobFilter = computed(() => {
     const id = this.queryParams().get("job");
-    return id && this.s.state().jobs.some((j) => j.id === id) ? id : "";
+    return id && this.s.publishedJobs().some((j) => j.id === id) ? id : "";
   });
   target = signal(this.initialTarget());
   competencies = competencies;
@@ -270,7 +270,7 @@ export default class People {
   }
   initialTarget() {
     const requested = this.route.snapshot.queryParamMap.get("job");
-    if (requested && this.s.state().jobs.some((j) => j.id === requested)) return requested;
+    if (requested && this.s.publishedJobs().some((j) => j.id === requested)) return requested;
     const current = this.route.snapshot.paramMap.get("id");
     return this.s.state().people.find((p) => p.id === current)?.jobId
       ?? this.s.state().jobs[0]?.id ?? "";
