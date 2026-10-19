@@ -109,7 +109,7 @@ import { GrowthComparison } from "../shared/growth-comparison";
             @for (a of s.state().appointments; track a.id) {
               @if (a.personId === p.id) {
                 <div class="metric-line">
-                  <span class="grow">{{ s.state().positions.find ? '' : '' }}{{ a.positionId }}</span>
+                  <span class="grow">{{ s.positionRecord(a.positionId)?.title ?? a.positionId }}</span>
                   <span>{{ a.effectiveFrom | fa }} — {{ a.effectiveTo ?? 'جاری' | fa }}</span>
                 </div>
               }
