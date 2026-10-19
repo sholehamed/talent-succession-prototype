@@ -260,6 +260,10 @@ export function seed(): DemoState {
     performanceReviews: [],
     questions: defaultEvaluationQuestions(),
     entryQuestions: defaultEntryQuestions(jobs),
+    entryCommitteeMembers: [
+      { stage: "general", personId: "p3" }, { stage: "general", personId: "p4" },
+      { stage: "specialist", personId: "p5" }, { stage: "specialist", personId: "p6" },
+    ],
     developmentTemplates: defaultDevelopmentTemplates(),
     candidates: [
       {
