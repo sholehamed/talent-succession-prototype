@@ -200,7 +200,30 @@ import { UI } from "../shared/ui";
             }
             @if (w.specialist?.completedAt) {
               <p>امتیازهای کمیته تخصصی: {{ scoreText(w.specialist?.scores ?? []) }} · شواهد: {{ w.specialist?.evidence }}</p>
-              <div class="info">جمع‌بندی کمیته‌ها (میانگین مساوی دو مرحله در هر شایستگی): {{ scoreText(combined(c) ?? []) }}</div>
+              <div class="panel-head">
+                <h3>نتایج شایستگی به تفکیک کمیته</h3>
+                <small>امتیاز هر شایستگی از میانگین سؤال‌های همان مرحله محاسبه شده است.</small>
+              </div>
+              <div class="table-wrap">
+                <table class="royesh-table" style="width:100%">
+                  <thead><tr>
+                    <th>شایستگی</th><th>انتظار شغل</th>
+                    <th>کمیته عمومی</th><th>کمیته تخصصی</th><th>جمع‌بندی</th>
+                  </tr></thead>
+                  <tbody>
+                    @for (name of competencies; track name; let i = $index) {
+                      <tr>
+                        <td>{{ name }}</td>
+                        <td>{{ s.job(c.jobId).expected[i] | fa }}</td>
+                        <td>{{ w.general.scores?.[i] | fa }}</td>
+                        <td>{{ w.specialist.scores?.[i] | fa }}</td>
+                        <td><strong>{{ combined(c)?.[i] | fa }}</strong></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <div class="info">جمع‌بندی کمیته‌ها میانگین مساوی دو مرحله است؛ پتانسیل رشد به‌صورت مستقل و انسانی تأیید می‌شود.</div>
               @if (!latest(c)) {
                 <div class="form-grid">
                   <mat-form-field appearance="outline">
