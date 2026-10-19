@@ -13,7 +13,10 @@ import { UI } from "../shared/ui";
         <h1>مدیریت سؤالات ارزیابی</h1>
         <p>پرسشنامه مستقل برای هر گروه ارزیاب، با ارتباط به شایستگی مشترک.</p>
       </div>
-      <a mat-button class="secondary" routerLink="/evaluations/cycles">بازگشت به دوره‌ها ←</a>
+      <div class="actions">
+        <a mat-button class="secondary" routerLink="/hiring/questions">بانک سؤالات استخدام ←</a>
+        <a mat-button class="secondary" routerLink="/evaluations/cycles">بازگشت به دوره‌ها ←</a>
+      </div>
     </div>
     <div class="info">
       تغییرات این بخش برای دوره‌هایی است که هنوز پاسخ‌گیری را شروع نکرده‌اند.
