@@ -138,6 +138,8 @@ export interface Action {
   title: string;
   kind: string;
   owner: string;
+  /** Person responsible for execution, independent of the IDP subject. */
+  assigneeId?: string;
   due: string;
   indicator: string;
   status: "planned" | "progress" | "completed" | "blocked" | "cancelled";

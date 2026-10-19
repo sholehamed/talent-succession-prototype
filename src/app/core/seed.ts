@@ -203,6 +203,7 @@ export function seed(): DemoState {
       ][n],
       kind: ["تجربه عملی", "مربیگری", "آموزش"][n],
       owner: n === 0 ? names[i + 1] : "مدیر مستقیم",
+      assigneeId: n === 0 ? `p${i + 2}` : "p11",
       due: "2026-12-21",
       indicator: [
         "تحویل یک خروجی تأییدشده",

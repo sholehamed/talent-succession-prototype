@@ -13,10 +13,12 @@ import {
   JobContent,
   Knowledge,
   Nomination,
+  Plan,
   Role,
   competencies,
 } from "./models";
 import { seed } from "./seed";
+import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, rolesForPerson } from "./auth";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
 import { DevelopmentTemplate, defaultDevelopmentTemplates, templatesForCompetency } from "./development-templates";
 import {
@@ -31,19 +33,81 @@ import {
 const KEY = "royesh.demo.v1";
 @Injectable({ providedIn: "root" })
 export class Store {
-  readonly role = signal<Role>("hr");
-  readonly actor = signal("p2");
+  /** The browser starts signed out; Vitest's Node environment uses its legacy HR fixture. */
+  private readonly startingSession = this.readSession();
+  readonly actor = signal(this.startingSession?.id ?? (typeof window === "undefined" ? "p1" : ""));
+  readonly role = signal<Role>(this.startingSession?.role ?? "hr");
+  readonly authenticated = computed(() =>
+    !!this.actor() && this.state().people.some((p) => p.id === this.actor()));
+  readonly currentPerson = computed(() => this.state().people.find((p) => p.id === this.actor()));
+  readonly permittedRoles = computed(() =>
+    this.authenticated() ? rolesForPerson(this.actor()) : []);
+  readonly activeRoleAllowed = computed(() => this.authenticated() &&
+    (this.permittedRoles().includes(this.role()) || typeof window === "undefined"));
+  readonly assignedActions = computed(() => this.state().plans.flatMap((plan) =>
+    plan.actions.filter((a) => this.actionAssigneeId(plan, a) === this.actor())
+      .map((action) => ({ plan, action }))));
+  private readSession(): { id: string; role: Role } | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = sessionStorage.getItem(SESSION_KEY);
+      if (!stored) return null;
+      const value = JSON.parse(stored);
+      if (typeof value.id !== "string" || !rolesForPerson(value.id).includes(value.role))
+        return null;
+      return value;
+    } catch { return null; }
+  }
+  private persistSession() {
+    try {
+      if (typeof window !== "undefined") {
+        if (this.actor()) sessionStorage.setItem(SESSION_KEY,
+          JSON.stringify({ id: this.actor(), role: this.role() }));
+        else sessionStorage.removeItem(SESSION_KEY);
+      }
+    } catch { this.storageWarning.set("نشست در مرورگر قابل نگهداری نیست."); }
+  }
+  login(id: string, password: string) {
+    const normalized = id.trim();
+    const person = this.state().people.find((p) => p.id === normalized);
+    if (!person || password !== DEFAULT_PASSWORD)
+      return this.fail("شناسه کاربری یا رمز عبور صحیح نیست.");
+    this.actor.set(person.id);
+    this.role.set(rolesForPerson(person.id).find((r) =>
+      !["employee", "evaluator"].includes(r)) ?? "employee");
+    this.persistSession();
+    this.notice.set("");
+    return true;
+  }
+  logout() {
+    this.actor.set("");
+    this.role.set("employee");
+    this.persistSession();
+    this.notice.set("");
+  }
+  switchRole(role: Role) {
+    if (!this.authenticated() || !this.permittedRoles().includes(role))
+      return this.fail("این نقش به حساب شما اختصاص داده نشده است.");
+    this.role.set(role);
+    this.persistSession();
+    return true;
+  }
+  home() { return homeForRole(this.role(), this.actor()); }
+  canAccess(roles?: Role[]) {
+    return this.activeRoleAllowed() && (!roles || roles.includes(this.role()));
+  }
+
   readonly notice = signal("");
   readonly storageWarning = signal("");
   readonly state = signal<DemoState>(this.restore());
   readonly units = computed(() => [
     ...new Set(this.state().jobs.map((j) => j.unit)),
   ]);
-  readonly editable = computed(() => ["hr", "manager"].includes(this.role()));
-  readonly canReport = computed(() =>
+  readonly editable = computed(() => this.activeRoleAllowed() && ["hr", "manager"].includes(this.role()));
+  readonly canReport = computed(() => this.activeRoleAllowed() &&
     ["hr", "manager", "executive", "employee"].includes(this.role()),
   );
-  readonly canApprove = computed(() => this.role() === "owner");
+  readonly canApprove = computed(() => this.activeRoleAllowed() && this.role() === "owner");
   restore(): DemoState {
     try {
       const raw = localStorage.getItem(KEY);
@@ -124,14 +188,30 @@ export class Store {
   cycle(id: string) {
     return this.state().cycles.find((c) => c.id === id);
   }
+  /** Person-aware access: managers see their own unit; staff see themselves. */
   allowedPerson(id: string) {
-    return (
-      this.role() === "hr" ||
-      this.role() === "executive" ||
-      (this.role() === "manager" &&
-        this.person(id)?.unit === "دفتر پروژه‌ها") ||
-      (this.role() === "employee" && id === "p1")
-    );
+    if (!this.activeRoleAllowed()) return false;
+    if (this.role() === "hr" || this.role() === "executive") return true;
+    if (id === this.actor()) return true;
+    if (this.role() === "manager") {
+      const target = this.state().people.find((p) => p.id === id);
+      return !!target && target.unit === this.currentPerson()?.unit;
+    }
+    return false;
+  }
+  actionAssigneeId(plan: {personId: string}, action: Action) {
+    if (action.assigneeId) return action.assigneeId;
+    return this.state().people.find((p) => p.name === action.owner)?.id ??
+      (action.owner === "مدیر مستقیم"
+        ? this.state().people.find((p) => p.id === plan.personId)?.managerId
+        : undefined);
+  }
+  canEditAction(plan: Plan, action: Action) {
+    if (!this.activeRoleAllowed() || !this.isCurrentPlan(plan) || !!action.effectiveness)
+      return false;
+    return this.role() === "employee"
+      ? this.actionAssigneeId(plan, action) === this.actor()
+      : this.editable() && this.allowedPerson(plan.personId);
   }
   /**
    * People linked to a target job through their current job, a succession
@@ -472,7 +552,7 @@ export class Store {
     const c = this.cycle(id);
     const a = c?.assignments.find((item) => item.id === aid);
     if (
-      this.role() !== "evaluator" ||
+      !this.canAccess(["evaluator"]) ||
       a?.personId !== this.actor() ||
       c?.status !== "collecting" ||
       this.hasAnswered(c, a)
@@ -646,6 +726,7 @@ export class Store {
             title: template.title,
             kind: template.kind,
             owner: this.person(personId).name,
+            assigneeId: personId,
             due: this.defaultDevelopmentDue(),
             indicator: template.indicator,
             status: "planned" as const,
@@ -659,26 +740,39 @@ export class Store {
   saveAction(planId: string, a: Action) {
     const p = this.state().plans.find((plan) => plan.id === planId);
     const original = p?.actions.find((x) => x.id === a.id);
-    if (
-      !p ||
-      !this.allowedPerson(p.personId) ||
-      !(this.editable() || (this.role() === "employee" && p.personId === "p1"))
-    ) return this.fail("اجازه ویرایش این اقدام را ندارید.");
+    if (!p || !original || !this.canEditAction(p, original))
+      return this.fail("ویرایش این اقدام فقط برای مسئول آن یا مدیر مجاز است.");
     if (!this.isCurrentPlan(p))
       return this.fail("این نسخه از برنامه توسعه آرشیوی است؛ فقط آخرین نسخه قابل ویرایش است.");
     if (!original) return this.fail("اقدام موردنظر در این برنامه وجود ندارد.");
     if (original.effectiveness)
       return this.fail("اقدام بررسی‌شده توسط مدیر قفل است؛ ثبت نتیجه جدید از طریق بازبینی مدیر انجام می‌شود.");
+    if (this.role() === "employee" && (
+      a.id !== original.id || a.title !== original.title || a.kind !== original.kind ||
+      a.competency !== original.competency || a.owner !== original.owner ||
+      a.due !== original.due || a.indicator !== original.indicator ||
+      a.templateId !== original.templateId ||
+      a.assigneeId !== original.assigneeId
+    )) return this.fail("کارمند فقط وضعیت و شواهد اقدام تخصیص‌یافته را تغییر می‌دهد.");
     if (
       !Number.isInteger(a.competency) || a.competency < 0 || a.competency >= competencies.length ||
       !a.title.trim() || !a.owner.trim() || !a.due ||
       !/^\d{4}-\d{2}-\d{2}$/.test(a.due) || !a.indicator.trim()
     ) return this.fail("شایستگی، عنوان، مسئول، مهلت معتبر و شاخص موفقیت را تکمیل کنید.");
+    const resolvedAssignee = this.role() === "employee"
+      ? this.actionAssigneeId(p, original)
+      : (this.state().people.some((person) => person.id === a.assigneeId)
+        ? a.assigneeId
+        : this.state().people.find((person) => person.name === a.owner)?.id);
+    if (!resolvedAssignee)
+      return this.fail("مسئول اقدام را از افراد ثبت‌شده انتخاب کنید.");
     this.commit("اقدام توسعه به‌روزرسانی شد", planId, (state) => {
       const plan = state.plans.find((x) => x.id === planId)!;
       plan.actions = plan.actions.map((v) =>
         v.id === a.id ? {
           ...structuredClone(a),
+          owner: state.people.find((p) => p.id === resolvedAssignee)!.name,
+          assigneeId: resolvedAssignee,
           /** Changed competency means a customized action, not the original template. */
           templateId: original.competency === a.competency ? original.templateId : undefined,
           effectiveness: undefined,
@@ -710,6 +804,7 @@ export class Store {
         title: template.title,
         kind: template.kind,
         owner: this.person(p.personId).name,
+        assigneeId: p.personId,
         due: this.defaultDevelopmentDue(),
         indicator: template.indicator,
         status: "planned",
@@ -724,7 +819,7 @@ export class Store {
     const p = this.state().plans.find((x) => x.id === planId);
     const action = p?.actions.find((x) => x.id === actionId);
     if (
-      !p || !action || this.role() !== "manager" ||
+      !p || !action || !this.canAccess(["manager"]) ||
       !this.allowedPerson(p.personId) || !this.isCurrentPlan(p)
     ) return this.fail("بررسی اثربخشی به مدیر واحد مربوط به فرد نیاز دارد.");
     if (action.status !== "completed")

@@ -266,7 +266,7 @@ export default class Talent {
       .positions.filter(
         (p) =>
           p.critical &&
-          (this.s.role() !== "manager" || p.unit === "دفتر پروژه‌ها"),
+          (this.s.role() !== "manager" || p.unit === this.s.currentPerson()?.unit),
       ),
   );
   position = computed(() =>

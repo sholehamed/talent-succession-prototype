@@ -102,17 +102,7 @@ import { Chart } from "../shared/chart";
       </div>
     } @else if (view === "inbox") {
       <div class="panel">
-        <div class="filterbar">
-          <mat-form-field appearance="outline"
-            ><mat-label>انتخاب ارزیاب</mat-label><mat-select
-              [ngModel]="s.actor()"
-              (ngModelChange)="s.actor.set($event); selected.set('')"
-            >
-              @for (p of evaluators(); track p.id) {
-                <mat-option [value]="p.id">{{ p.name }}</mat-option>
-              }
-            </mat-select></mat-form-field>
-        </div>
+        <div class="info">کارتابل اختصاصی {{ s.currentPerson()?.name }}؛ فقط ارزیابی‌هایی که به حساب شما تخصیص یافته‌اند نمایش داده می‌شوند.</div>
         @for (item of inbox(); track item.a.id) {
           <div class="metric-line">
             <div class="grow">
@@ -274,9 +264,7 @@ import { Chart } from "../shared/chart";
           }
           @if (c.status === "collecting") {
             <div class="actions">
-              <button mat-button class="secondary" (click)="asEvaluator()">
-                ورود به نقش ارزیاب و کارتابل
-              </button>
+              <div class="info">ارزیاب‌های تعیین‌شده باید با شناسه خود وارد شوند و نقش «ارزیاب» را انتخاب کنند.</div>
               @if (s.role() === "hr") {
                 <button
                   mat-button
@@ -492,15 +480,7 @@ export default class Evaluations {
   report = computed(() =>
     this.cycle() ? this.s.aggregate(this.cycle()!) : { rows: [], scores: null },
   );
-  evaluators = computed(() =>
-    this.s
-      .state()
-      .people.filter((p) =>
-        this.s
-          .state()
-          .cycles.some((c) => c.assignments.some((a) => a.personId === p.id)),
-      ),
-  );
+
   inbox = computed(() =>
     this.s
       .state()
@@ -556,13 +536,6 @@ export default class Evaluations {
     );
     if (id) this.router.navigate(["/evaluations", id]);
     else this.s.fail("عنوان دوره را وارد کنید.");
-  }
-  asEvaluator() {
-    this.s.role.set("evaluator");
-    this.s.actor.set(
-      this.cycle()!.assignments.find((a) => !this.s.hasAnswered(this.cycle()!, a))?.personId ?? "p2",
-    );
-    this.router.navigateByUrl("/evaluations/inbox");
   }
   openAnswer(c: string, a: string) {
     this.answerCycle = c;

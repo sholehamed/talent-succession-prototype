@@ -125,6 +125,9 @@ import { UI } from "../shared/ui";
             [personId]="p.personId" [jobId]="p.jobId"
             [currentCycleId]="p.cycleId" />
         }
+        @if (s.role() === "employee") {
+          <div class="info"><a routerLink="/development/tasks">ثبت وضعیت و شواهد اقدامات تخصیص‌یافته در «اقدام‌های من» ←</a></div>
+        }
         @if (s.isCurrentPlan(p) && s.editable()) {
           <mat-card class="panel">
             <div class="panel-head">
@@ -194,7 +197,7 @@ import { UI } from "../shared/ui";
               }
               <div class="actions">
                 @if (s.isCurrentPlan(p) && !a.effectiveness &&
-                     (s.editable() || s.role() === "employee")) {
+                     s.editable()) {
                   <button mat-button class="secondary" (click)="edit(a)">
                     ویرایش و پیگیری
                   </button>
@@ -220,7 +223,15 @@ import { UI } from "../shared/ui";
                 </mat-select>
               </mat-form-field>
               <mat-form-field appearance="outline"><mat-label>عنوان اقدام</mat-label><input matInput [(ngModel)]="draft.title" /></mat-form-field>
-              <mat-form-field appearance="outline"><mat-label>نوع اقدام</mat-label><input matInput [(ngModel)]="draft.kind" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مسئول</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><app-date-field
+              <mat-form-field appearance="outline"><mat-label>نوع اقدام</mat-label><input matInput [(ngModel)]="draft.kind" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مسئول</mat-label>
+                  <mat-select [ngModel]="draft.assigneeId || assigneeOfDraft()" (ngModelChange)="chooseAssignee($event)">
+                    @for (person of s.state().people; track person.id) {
+                      @if (s.allowedPerson(person.id)) {
+                        <mat-option [value]="person.id">{{ person.name }}</mat-option>
+                      }
+                    }
+                  </mat-select>
+                </mat-form-field><app-date-field
                  label="مهلت اقدام" [(ngModel)]="draft.due" /><mat-form-field appearance="outline"
                 ><mat-label>وضعیت</mat-label><mat-select [(ngModel)]="draft.status">
                   @for (st of statuses; track st) {
@@ -344,6 +355,16 @@ export default class Development {
       partial: "تاحدی مؤثر",
       ineffective: "بدون اثربخشی مشاهده‌شده",
     }[outcome];
+  }
+  assigneeOfDraft() {
+    if (!this.draft) return "";
+    return this.s.state().people.find((p) => p.name === this.draft!.owner)?.id ?? "";
+  }
+  chooseAssignee(id: string) {
+    if (this.draft) {
+      this.draft.assigneeId = id;
+      this.draft.owner = this.s.person(id).name;
+    }
   }
   edit(a: Action) { this.draft = structuredClone(a); }
   save() {

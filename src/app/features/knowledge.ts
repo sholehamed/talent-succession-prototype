@@ -399,7 +399,7 @@ export default class Knowledge {
     return (
       ["hr", "owner", "manager"].includes(this.s.role()) ||
       (k.status === "published" &&
-        (k.access === "داخلی" || this.s.job(k.jobId).unit === "دفتر پروژه‌ها"))
+        (k.access === "داخلی" || this.s.job(k.jobId).unit === this.s.currentPerson()?.unit))
     );
   }
   taskTitle(k: Item) {
