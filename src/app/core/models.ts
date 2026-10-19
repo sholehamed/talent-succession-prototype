@@ -82,6 +82,33 @@ export interface PerformanceKpiInput {
   achievement: number;
   evidence: string;
 }
+/** Entry assessment uses the same five competencies as Job and 360/540,
+ * but keeps an independent question bank and immutable referred questionnaires. */
+export type EntryCommitteeStage = "general" | "specialist";
+export interface EntryQuestion {
+  id: string;
+  stage: EntryCommitteeStage;
+  /** Null means organization-wide; specialist questions are job-specific. */
+  jobId: string | null;
+  text: string;
+  competencyIndex: number;
+  order: number;
+  isActive: boolean;
+}
+export interface EntryCommitteeReview {
+  stage: EntryCommitteeStage;
+  assignedTo: string;
+  assignedAt: string;
+  questions: EntryQuestion[];
+  answers?: QuestionAnswer[];
+  scores?: number[];
+  evidence?: string;
+  completedAt?: string;
+}
+export interface EntryWorkflow {
+  general: EntryCommitteeReview;
+  specialist?: EntryCommitteeReview;
+}
 export type HiringOutcome = "hired" | "declined";
 export interface EntryAssessment {
   id: string;
@@ -93,6 +120,10 @@ export interface EntryAssessment {
   potentialReason: string;
   assessor: string;
   evaluatedAt: string;
+  /** Legacy manually recorded entries retain their original model. */
+  source?: "legacy" | "committees";
+  generalReviewAt?: string;
+  specialistReviewAt?: string;
 }
 export interface Candidate {
   id: string;
@@ -100,6 +131,8 @@ export interface Candidate {
   jobId: string;
   createdAt: string;
   assessments: EntryAssessment[];
+  /** Absent on previous browser data; the older assessment remains readable. */
+  entryWorkflow?: EntryWorkflow;
   decision?: {
     outcome: HiringOutcome;
     reason: string;
@@ -280,6 +313,8 @@ export interface DemoState {
   performanceReviews: PerformanceReview[];
   /** Restored from an empty array for browser snapshots predating hiring. */
   candidates: Candidate[];
+  /** Separate scoped bank; 360/540 questions remain unchanged. */
+  entryQuestions: EntryQuestion[];
   positions: Position[];
   organizationUnits: OrganizationUnit[];
   workLocations: WorkLocation[];
