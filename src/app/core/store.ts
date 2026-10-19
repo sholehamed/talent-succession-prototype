@@ -210,6 +210,7 @@ export class Store {
   currentAppointment(personId: string, date?: string) { return appointmentOn(this.state(), personId, date); }
   currentPosition(personId: string, date?: string) { return positionOf(this.state(), personId, date); }
   currentPositionHolder(positionId: string, date?: string) { return positionHolder(this.state(), positionId, date); }
+  positionRecord(id: string) { return this.state().positions.find((p) => p.id === id); }
   currentJob(personId: string, date?: string) {
     const p = this.currentPosition(personId, date);
     return this.state().jobs.find((j) => j.id === p?.jobId);
