@@ -68,3 +68,21 @@ test("collapsed groups remain keyboard-clickable and role changes hide forbidden
   await expect(page.getByRole("button", { name: "توسعه و جانشین‌پروری" })).toBeVisible();
   await expect(page.getByRole("link", { name: "تنظیمات سامانه" })).toBeVisible();
 });
+
+test("all sidebar icons render as local Material SVGs without an icon font connection", async ({ page }) => {
+  await page.route("https://fonts.googleapis.com/**", route => route.abort());
+  await page.route("https://fonts.gstatic.com/**", route => route.abort());
+  await page.goto("/dashboard/hr");
+  await expect(page.locator(".nav-group-toggle mat-icon svg")).toHaveCount(7);
+  await expect(page.locator(".sidebar-settings mat-icon svg")).toHaveCount(1);
+  await expect(page.locator(".workspace mat-icon svg")).toHaveCount(1);
+  await expect(page.locator(".menu-toggle mat-icon svg")).toHaveCount(1);
+  await page.getByRole("button", { name: "ارزیابی‌ها", exact: true }).click();
+  const evaluationItems = page.locator(".nav-children .nav-child-item");
+  await expect(evaluationItems).toHaveCount(5);
+  await expect(evaluationItems.locator("mat-icon svg")).toHaveCount(5);
+  await expect(page.locator(".nav-group-toggle mat-icon.nav-group-chevron svg")).toHaveCount(7);
+  await page.getByRole("button", { name: "نمایش منو" }).click();
+  await expect(page.locator("mat-sidenav-container")).toHaveClass(/collapsed/);
+  await expect(page.locator(".nav-group-toggle mat-icon.nav-group-icon svg")).toHaveCount(7);
+});
