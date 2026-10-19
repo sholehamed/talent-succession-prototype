@@ -5,7 +5,7 @@ test("login has no account directory and still authenticates a management accoun
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "ورود کاربران" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "شناسه کاربری" })).toBeVisible();
-  const text = await page.locator("main").innerText();
+  const text = await page.locator("app-root").innerText();
   expect(text).not.toContain("حساب‌های قابل استفاده");
   expect(text).not.toContain("رمز مشترک");
   expect(text).not.toContain(DEFAULT_PASSWORD);
