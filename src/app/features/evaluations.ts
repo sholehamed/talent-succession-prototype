@@ -267,20 +267,21 @@ import { Chart } from "../shared/chart";
                 افزودن ارزیاب
               </button>
             </div>
-            @if (!s.canStart(c)) {
-              <div class="warning">
-                شروع دوره نیازمند حداقل ۱ سرپرست، ۲ هم‌سطح، ۲ زیردست و برای ۵۴۰
-                یک ذی‌نفع بیرونی است.
+            @if (c.campaignId) {
+              <div class="info">
+                این پرونده عضو یک دوره گروهی است. شروع پاسخ‌گیری فقط از مرکز کمپین و با تأیید منابع انسانی انجام می‌شود.
+                <a [routerLink]="['/evaluations/campaigns', c.campaignId]">مدیریت دوره گروهی ←</a>
               </div>
+            } @else {
+              @if (!s.canStart(c)) {
+                <div class="warning">
+                  شروع دوره نیازمند حداقل ۱ سرپرست، ۲ هم‌سطح، ۲ زیردست و برای ۵۴۰
+                  یک ذی‌نفع بیرونی است.
+                </div>
+              }
+              <button mat-button class="primary" [disabled]="!s.canStart(c)"
+                (click)="s.advance(c.id)">شروع دریافت پاسخ‌ها</button>
             }
-            <button
-              mat-button
-              class="primary"
-              [disabled]="!s.canStart(c)"
-              (click)="s.advance(c.id)"
-            >
-              شروع دریافت پاسخ‌ها
-            </button>
           }
           @if (c.status === "collecting") {
             <div class="actions">
