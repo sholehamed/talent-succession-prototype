@@ -475,7 +475,7 @@ export class Store {
   }
   decideCandidate(
     candidateId: string, outcome: "hired" | "declined", reason: string,
-    employment?: { code: string; managerId: string; hiredAt: string },
+    employment?: { code: string; managerId?: string; positionId?: string; hiredAt: string },
   ) {
     const candidate = this.candidate(candidateId);
     const assessment = candidate?.assessments.at(-1);
@@ -484,8 +484,12 @@ export class Store {
     if (!assessment || !reason.trim() || !["hired", "declined"].includes(outcome))
       return this.fail("ارزیابی اولیه و دلیل تصمیم انسانی الزامی است.");
     if (outcome === "hired") {
-      if (!employment?.code.trim() || !employment.managerId ||
-          !this.person(employment.managerId) ||
+      const vacant = employment?.positionId
+        ? this.vacantPositions(candidate.jobId, employment.hiredAt).find((p) => p.id === employment.positionId)
+        : undefined;
+      if (!employment?.code.trim() || (!vacant && (!employment.managerId ||
+          !this.state().people.some((p) => p.id === employment.managerId))) ||
+          (employment.positionId && !vacant) ||
           !/^\d{4}-\d{2}-\d{2}$/.test(employment.hiredAt) ||
           !Number.isFinite(Date.parse(employment.hiredAt + "T00:00:00Z")) ||
           this.state().people.some((p) => p.code === employment.code.trim()))
@@ -508,7 +512,7 @@ export class Store {
         const job = state.jobs.find((j) => j.id === c.jobId)!;
         state.people.push({
           id: personId, name: c.name, code: employment.code.trim(),
-          jobId: c.jobId, unit: job.unit, managerId: employment.managerId,
+          jobId: c.jobId, unit: job.unit, managerId: employment.managerId ?? "",
           performance: null, potential: assessment.potential,
           observed: [...assessment.scores],
           evidence: "ارزیابی اولیه بدو استخدام: " + assessment.evidence,
@@ -517,6 +521,30 @@ export class Store {
             hiredAt: employment.hiredAt, potentialReviewedAt: assessment.evaluatedAt,
           },
         });
+        // Explicit vacancy selection is canonical. Existing hiring flows may still
+        // supply a manager: create the missing position for backwards compatibility.
+        let positionId = employment.positionId;
+        if (!positionId) {
+          const parent = employment.managerId
+            ? positionOf(state, employment.managerId) : undefined;
+          positionId = `staff-${personId}`;
+          const unitId = state.organizationUnits.find((u) => u.name === job.unit)?.id
+            ?? state.organizationUnits[0].id;
+          state.positions.push({
+            id: positionId, code: `POST-${employment.code.trim()}`,
+            title: job.title, jobId: c.jobId, unit: job.unit, holderId: "",
+            unitId, locationId: parent?.locationId ?? state.workLocations[0].id,
+            parentPositionId: parent?.id ?? null, isActive: true,
+            critical: false, reason: "", probability: 1, impact: 1, months: 6,
+          });
+        }
+        const error = assignPosition(state, {
+          id: crypto.randomUUID(), personId, positionId,
+          type: "primary", effectiveFrom: employment.hiredAt, effectiveTo: null,
+          referenceNo: "HIRING", note: "انتصاب اولیه پس از استخدام",
+        });
+        if (error) throw new Error(error); // Prevalidated above.
+        projectStaffing(state);
       }
     });
     return personId ?? "declined";
