@@ -26,6 +26,7 @@ export const routes: Routes = [
     canActivate: [permit(management)],
     loadComponent: () => import("./features/dashboard"),
   },
+  { path: "jobs/new", canActivate: [permit(["hr","manager"])], loadComponent: () => import("./features/jobs") },
   { path: "jobs", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/jobs") },
   { path: "jobs/:id", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/jobs") },
   { path: "career-paths", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/career") },
