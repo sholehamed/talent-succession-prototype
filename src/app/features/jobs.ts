@@ -1,20 +1,35 @@
 import { Component, computed, inject, input, signal } from "@angular/core";
+import { ActivatedRoute, Router } from "@angular/router";
 import { Store } from "../core/store";
 import { JobContent, competencies } from "../core/models";
 import { UI } from "../shared/ui";
 @Component({
   standalone: true,
   imports: UI,
-  template: ` @if (!id()) {
+  template: ` @if (creating()) {
+      <div class="page-header">
+        <div>
+          <div class="eyebrow"><a routerLink="/jobs">شناسنامه‌های شغلی</a> / شغل جدید</div>
+          <h1>ایجاد شناسنامه شغلی</h1>
+          <p>ثبت اطلاعات پایه، سطوح شایستگی، وظایف و شاخص‌های عملکرد</p>
+        </div>
+        <a mat-button class="secondary" routerLink="/jobs">بازگشت به مشاغل ←</a>
+      </div>
+      <div class="info">شناسنامه ابتدا در وضعیت پیش‌نویس ثبت می‌شود؛ پس از بررسی و تأیید مالک خانواده شغلی منتشر خواهد شد و در انتخابگرهای استخدام، ارزیابی و مسیر رشد قابل استفاده است.</div>
+      <ng-container *ngTemplateOutlet="jobEditor"></ng-container>
+    } @else if (!id()) {
       <div class="page-header">
         <div>
           <div class="eyebrow">ساختار سازمان و مشاغل</div>
           <h1>شناسنامه‌های شغلی</h1>
           <p>معیار مشترک برای ارزیابی، رشد و تداوم سازمان</p>
         </div>
-        <a mat-button class="secondary" routerLink="/career-paths"
-          >مسیرهای رشد ↗</a
-        >
+        <div class="actions">
+          @if (s.editable()) {
+            <a mat-button class="primary" routerLink="/jobs/new">+ شناسنامه شغلی جدید</a>
+          }
+          <a mat-button class="secondary" routerLink="/career-paths">مسیرهای رشد ↗</a>
+        </div>
       </div>
       <div class="panel">
         <div class="filterbar">
@@ -53,7 +68,7 @@ import { UI } from "../shared/ui";
             <a routerLink="/jobs">مشاغل</a> / {{ j.code }}
           </div>
           <h1>{{ j.title }}</h1>
-          <p>{{ j.family }} · {{ j.unit }} · نسخه {{ j.version | fa }}</p>
+          <p>{{ j.family }} · {{ j.unit }} · {{ j.version ? "نسخه " + j.version : "پیش‌نویس اولیه" }}</p>
         </div>
         <div class="actions">
           @if (s.editable() && !editing()) {
@@ -61,6 +76,7 @@ import { UI } from "../shared/ui";
               ویرایش شناسنامه
             </button>
           }
+          @if (j.version > 0 && s.role() === "hr") {
           <a
             mat-button
             class="primary"
@@ -68,8 +84,10 @@ import { UI } from "../shared/ui";
             [queryParams]="{ job: j.id }"
             >شروع ارزیابی ←</a
           >
+          }
         </div>
       </div>
+      @if (j.version > 0) {
       <div class="actions" style="margin-bottom:22px">
         <a mat-stroked-button routerLink="/evaluations/cycles" [queryParams]="{ job: j.id }">
           دوره‌های ارزیابی این شغل
@@ -81,6 +99,9 @@ import { UI } from "../shared/ui";
           برنامه‌های توسعه این شغل
         </a>
       </div>
+      } @else {
+        <div class="warning">این شناسنامه هنوز منتشر نشده است؛ تا تأیید مالک، در چرخه‌های عملیاتی استفاده نمی‌شود.</div>
+      }
       @if (s.canReport()) {
         <mat-card class="panel" style="margin-bottom:22px">
           <div class="panel-head">
@@ -153,69 +174,7 @@ import { UI } from "../shared/ui";
         </div>
       }
       @if (editing() && draft) {
-        <mat-card class="panel">
-          <h2>پیش‌نویس بازنگری</h2>
-          <div class="form-grid">
-            <mat-form-field appearance="outline"><mat-label>عنوان</mat-label><input matInput [(ngModel)]="draft.title" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مالک محتوا</mat-label><input matInput [(ngModel)]="draft.owner" /></mat-form-field><mat-form-field appearance="outline"><mat-label>خانواده</mat-label><input matInput [(ngModel)]="draft.family" /></mat-form-field><mat-form-field appearance="outline"><mat-label>سطح</mat-label><input matInput [(ngModel)]="draft.level" /></mat-form-field><mat-form-field appearance="outline" class="full"
-              ><mat-label>مأموریت</mat-label><textarea matInput [(ngModel)]="draft.mission"></textarea></mat-form-field>
-          </div>
-          <div class="form-section">
-            <h3>شایستگی‌ها — سطح ۱ تا ۵</h3>
-            <div class="grid three">
-              @for (c of competencies; track c; let i = $index) {
-                <mat-form-field appearance="outline"
-                  ><mat-label>{{ c
-                  }}</mat-label><input matInput
-                    type="number"
-                    min="1"
-                    max="5"
-                    [(ngModel)]="draft.expected[i]"
-                /></mat-form-field>
-              }
-            </div>
-          </div>
-          <div class="form-section">
-            <div class="panel-head">
-              <h3>وظایف خروجی‌محور</h3>
-              <button mat-button (click)="addTask()">+ وظیفه</button>
-            </div>
-            @for (t of draft.tasks; track t.id) {
-              <div class="form-grid">
-                <mat-form-field appearance="outline"><mat-label>وظیفه</mat-label><input matInput [(ngModel)]="t.title" /></mat-form-field><mat-form-field appearance="outline"
-                  ><mat-label>خروجی / شاخص نتیجه</mat-label><input matInput [(ngModel)]="t.output"
-                /></mat-form-field>
-              </div>
-            }
-          </div>
-          <div class="form-section">
-            <div class="panel-head">
-              <h3>شاخص‌های عملکرد</h3>
-              <button mat-button (click)="addKpi()">+ شاخص</button>
-            </div>
-            @for (k of draft.kpis; track $index) {
-              <div class="panel form-grid">
-                @for (field of kpiFields; track field.key) {
-                  <mat-form-field appearance="outline"
-                    ><mat-label>{{ field.label }}</mat-label><input matInput [(ngModel)]="k[field.key]"
-                  /></mat-form-field>
-                }
-              </div>
-            }
-          </div>
-          <div class="form-grid">
-            <mat-form-field appearance="outline"
-              ><mat-label>مهارت‌ها</mat-label><textarea matInput [(ngModel)]="draft.skills"></textarea></mat-form-field><mat-form-field appearance="outline"
-              ><mat-label>شرایط احراز</mat-label><textarea matInput
-                [(ngModel)]="draft.qualifications"
-              ></textarea></mat-form-field><mat-form-field appearance="outline" class="full"
-              ><mat-label>HSE و حقوقی</mat-label><textarea matInput [(ngModel)]="draft.hse"></textarea></mat-form-field>
-          </div>
-          <div class="actions">
-            <button mat-button class="primary" (click)="save()">
-              ذخیره پیش‌نویس</button
-            ><button mat-button (click)="editing.set(false)">انصراف</button>
-          </div>
-        </mat-card>
+        <ng-container *ngTemplateOutlet="jobEditor"></ng-container>
       }
       <div class="panel">
         <mat-tab-group
@@ -335,9 +294,86 @@ import { UI } from "../shared/ui";
       <div class="empty">
         شغل یافت نشد. <a routerLink="/jobs">بازگشت به مشاغل</a>
       </div>
-    }`,
+    }
+    <ng-template #jobEditor>
+      @if (draft; as form) {
+        <mat-card class="panel">
+          <h2>{{ creating() ? "ثبت شناسنامه شغلی جدید" : "پیش‌نویس بازنگری" }}</h2>
+          @if (creating()) {
+            <mat-form-field appearance="outline" style="width:100%"><mat-label>کد یکتای شغل</mat-label>
+              <input matInput [ngModel]="newCode()" (ngModelChange)="newCode.set($event)" placeholder="JOB-201" />
+            </mat-form-field>
+          }
+          <div class="form-grid">
+            <mat-form-field appearance="outline"><mat-label>عنوان</mat-label><input matInput [(ngModel)]="form.title" /></mat-form-field><mat-form-field appearance="outline"><mat-label>مالک محتوا</mat-label><input matInput [(ngModel)]="form.owner" /></mat-form-field><mat-form-field appearance="outline"><mat-label>واحد سازمانی</mat-label><input matInput [(ngModel)]="form.unit" /></mat-form-field><mat-form-field appearance="outline"><mat-label>خانواده</mat-label><input matInput [(ngModel)]="form.family" /></mat-form-field><mat-form-field appearance="outline"><mat-label>سطح</mat-label><input matInput [(ngModel)]="form.level" /></mat-form-field><mat-form-field appearance="outline" class="full"
+              ><mat-label>مأموریت</mat-label><textarea matInput [(ngModel)]="form.mission"></textarea></mat-form-field>
+          </div>
+          <div class="form-section">
+            <h3>شایستگی‌ها — سطح ۱ تا ۵</h3>
+            <div class="grid three">
+              @for (c of competencies; track c; let i = $index) {
+                <mat-form-field appearance="outline"
+                  ><mat-label>{{ c
+                  }}</mat-label><input matInput
+                    type="number"
+                    min="1"
+                    max="5"
+                    [(ngModel)]="form.expected[i]"
+                /></mat-form-field>
+              }
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="panel-head">
+              <h3>وظایف خروجی‌محور</h3>
+              <button mat-button (click)="addTask()">+ وظیفه</button>
+            </div>
+            @for (t of form.tasks; track t.id) {
+              <div class="form-grid">
+                <mat-form-field appearance="outline"><mat-label>وظیفه</mat-label><input matInput [(ngModel)]="t.title" /></mat-form-field><mat-form-field appearance="outline"
+                  ><mat-label>خروجی / شاخص نتیجه</mat-label><input matInput [(ngModel)]="t.output"
+                /></mat-form-field>
+              </div>
+            }
+          </div>
+          <div class="form-section">
+            <div class="panel-head">
+              <h3>شاخص‌های عملکرد</h3>
+              <button mat-button (click)="addKpi()">+ شاخص</button>
+            </div>
+            @for (k of form.kpis; track $index) {
+              <div class="panel form-grid">
+                @for (field of kpiFields; track field.key) {
+                  <mat-form-field appearance="outline"
+                    ><mat-label>{{ field.label }}</mat-label><input matInput [(ngModel)]="k[field.key]"
+                  /></mat-form-field>
+                }
+              </div>
+            }
+          </div>
+          <div class="form-grid">
+            <mat-form-field appearance="outline"
+              ><mat-label>مهارت‌ها</mat-label><textarea matInput [(ngModel)]="form.skills"></textarea></mat-form-field><mat-form-field appearance="outline"
+              ><mat-label>شرایط احراز</mat-label><textarea matInput
+                [(ngModel)]="form.qualifications"
+              ></textarea></mat-form-field><mat-form-field appearance="outline" class="full"
+              ><mat-label>HSE و حقوقی</mat-label><textarea matInput [(ngModel)]="form.hse"></textarea></mat-form-field>
+          </div>
+          <div class="actions">
+            <button mat-button class="primary" (click)="save()">
+              {{ creating() ? "ثبت شناسنامه و ایجاد پیش‌نویس" : "ذخیره پیش‌نویس" }}</button
+            ><button mat-button (click)="cancel()">{{ creating() ? "بازگشت به مشاغل" : "انصراف" }}</button>
+          </div>
+        </mat-card>
+      }
+    </ng-template>`,
 })
 export default class Jobs {
+  readonly router = inject(Router);
+  readonly route = inject(ActivatedRoute);
+  readonly creating = () => this.route.snapshot.routeConfig?.path === "jobs/new";
+  readonly newCode = signal("");
+
   s = inject(Store);
   readonly jobColumns = ["title","family","version","review","revised","link"];
   readonly kpiColumns = ["metric","formula","unit","source"];
@@ -345,7 +381,11 @@ export default class Jobs {
   search = signal("");
   unit = signal("");
   editing = signal(false);
-  draft?: JobContent;
+  draft?: JobContent = this.creating() ? {
+    title: "", family: "", unit: this.s.role() === "manager" ? this.s.currentPerson()?.unit ?? "" : "",
+    level: "", mission: "", owner: "",
+    tasks: [], kpis: [], expected: [3,3,3,3,3], skills: "", qualifications: "", hse: "",
+  } : undefined;
   competencies = competencies;
   kpiFields: { key: keyof JobContent["kpis"][number]; label: string }[] = [
     { key: "title", label: "عنوان" },
@@ -413,7 +453,17 @@ export default class Jobs {
       owner: "",
     });
   }
+  cancel() {
+    if (this.creating()) this.router.navigateByUrl("/jobs");
+    else this.editing.set(false);
+  }
   save() {
-    if (this.s.saveJob(this.id()!, this.draft!)) this.editing.set(false);
+    if (!this.draft) return;
+    if (this.creating()) {
+      const id = this.s.createJob(this.newCode(), this.draft);
+      if (id) this.router.navigate(["/jobs", id]);
+    } else if (this.s.saveJob(this.id()!, this.draft)) {
+      this.editing.set(false);
+    }
   }
 }
