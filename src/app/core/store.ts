@@ -388,7 +388,7 @@ export class Store {
     if (!this.editable()) return this.fail("نقش فعلی اجازه ویرایش ندارد.");
     const job = this.state().jobs.find((j) => j.id === id);
     if (!job) return this.fail("شناسنامه شغلی یافت نشد.");
-    if (this.role() === "manager" && draft.unit !== this.currentPerson()?.unit)
+    if (this.role() === "manager" && (job.unit !== this.currentPerson()?.unit || draft.unit.trim() !== this.currentPerson()?.unit))
       return this.fail("مدیر نمی‌تواند شناسنامه‌ای خارج از واحد خودش تعریف یا ویرایش کند.");
     const error = validateJob(draft);
     if (error) return this.fail(error);
@@ -1015,7 +1015,9 @@ export class Store {
     return true;
   }
   savePath(from: string, to: string, criteria: string) {
-    if (!this.editable() || from === to || !criteria.trim())
+    if (!this.editable() || from === to || !criteria.trim() ||
+      !this.publishedJobs().some((j) => j.id === from) ||
+      !this.publishedJobs().some((j) => j.id === to))
       return this.fail("مبدأ و مقصد متفاوت و معیار ارتقا الزامی است.");
     this.commit("مسیر رشد ذخیره شد", from, (s) => {
       const old = s.paths.find((p) => p.from === from && p.to === to);
