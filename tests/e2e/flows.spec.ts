@@ -278,7 +278,10 @@ test("development dashboard shows distinct KPIs with correct empty states and fi
   await selectMaterial(page, "دوره ارزیابی و توسعه", "تابستان ۱۴۰۵");
   await expect(page.locator(".stat").nth(0)).toContainText("—");
   await expect(page.locator("main")).toContainText("دو دوره ارزیابی منتشرشده");
-  await selectMaterial(page, "دوره ارزیابی و توسعه", "پاییز ۱۴۰۵");
+  // Dashboard filters can redraw the Material option during selection.
+  // Use a scoped forced option click only here, not for navigation/other selectors.
+  await page.getByRole("combobox", { name: "دوره ارزیابی و توسعه" }).click();
+  await page.getByRole("option", { name: "پاییز ۱۴۰۵", exact: true }).click({ force: true });
   await selectMaterial(page, "واحد سازمانی", "عملیات");
   await page.getByRole("link", { name: "مشاهده برنامه‌ها" }).click();
   await expect(page).toHaveURL(/\/development\?unit=/);

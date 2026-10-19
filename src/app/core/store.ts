@@ -3,7 +3,9 @@ import {
   Action,
   Band,
   Candidate,
+  CampaignScope,
   Cycle,
+  EvaluationCampaign,
   DemoState,
   EffectivenessOutcome,
   EvaluationQuestion,
@@ -35,6 +37,7 @@ import {
   saveLocation, saveUnit, savePosition, assignPosition, finishAppointment, projectStaffing,
 } from "./organization-actions";
 import { performanceBand, performanceScore } from "./performance";
+import { campaignCycle, campaignPreview } from "./evaluation-campaigns";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, rolesForPerson } from "./auth";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
 import { activeEntryQuestions, combinedEntryScores, defaultEntryQuestions, entryBankError, entryScores } from "./entry-committees";
@@ -162,6 +165,7 @@ export class Store {
         )
           return hydrateOrganization({ ...d,
             performanceReviews: Array.isArray(d.performanceReviews) ? d.performanceReviews : [],
+            campaigns: Array.isArray(d.campaigns) ? d.campaigns : [],
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
             questions: Array.isArray(d.questions) ? d.questions : defaultEvaluationQuestions(),
             entryQuestions: Array.isArray(d.entryQuestions) ? d.entryQuestions : defaultEntryQuestions(d.jobs),
@@ -851,6 +855,84 @@ export class Store {
       ? !!a.answers && validQuestionAnswers(this.questionsFor(c, a.group), a.answers)
       : !!a.scores && validScores(a.scores);
   }
+  /** Preview people and chart-derived assignments without persisting records. */
+  previewCampaign(scope: CampaignScope, period: string, asOf: string, mode: 360 | 540) {
+    return campaignPreview(this.state(), { scope, period: period.trim(), asOf, mode });
+  }
+  /** Creating one organizational period immediately enrolls all eligible people,
+   * but leaves every individual Cycle in preparing: evaluator inbox stays empty. */
+  createCampaign(title: string, period: string, asOf: string,
+    mode: 360 | 540, scope: CampaignScope): string {
+    if (!this.canAccess(["hr"]))
+      return (this.fail("ایجاد دوره گروهی فقط برای منابع انسانی مجاز است."), "");
+    if (!title.trim() || period.trim().length < 3 || !validDay(asOf) ||
+      ![360,540].includes(mode) || !scope || !["all","unit","job","people"].includes(scope.type) ||
+      !Array.isArray(scope.ids) || (scope.type !== "all" && !scope.ids.length) ||
+      new Set(scope.ids).size !== scope.ids.length)
+      return (this.fail("عنوان، دوره، تاریخ مبنا و جامعه هدف معتبر الزامی است."), "");
+    const validIds = scope.type === "all" ? [] :
+      scope.type === "unit" ? this.state().organizationUnits.map((u) => u.id) :
+      scope.type === "job" ? this.publishedJobs().map((j) => j.id) :
+      this.state().people.map((p) => p.id);
+    if (scope.type !== "all" && scope.ids.some((id) => !validIds.includes(id)))
+      return (this.fail("شناسه‌های جامعه هدف معتبر نیستند."), "");
+    if (mode === 540)
+      return (this.fail("دوره گروهی ۵۴۰ تا تعریف روابط ذی‌نفعان بیرونی پشتیبانی نمی‌شود."), "");
+    const preview = campaignPreview(this.state(), { scope, period: period.trim(), asOf, mode });
+    if (!preview.length)
+      return (this.fail("جامعه هدف در تاریخ مبنا هیچ فردی ندارد."), "");
+    const eligible = preview.filter((x) => !x.reason);
+    if (!eligible.length)
+      return (this.fail("هیچ فرد واجد شرایطی برای ایجاد پرونده وجود ندارد؛ استثناها را بررسی کنید."), "");
+    const snapshot = this.state().questions;
+    if (eligible.some((row) => {
+      const groups = new Set(row.assignments.map((a) => a.group));
+      const questions = snapshot.filter((q) => q.isActive && groups.has(q.group));
+      return competencies.some((_, i) => !questions.some((q) => q.competencyIndex === i));
+    })) return (this.fail("سؤالات فعال گروه‌های انتخابی باید پنج شایستگی اصلی را پوشش دهند."), "");
+    const id = crypto.randomUUID();
+    this.commit("دوره گروهی و پرونده‌های آماده‌سازی ایجاد شدند", id, (state) => {
+      const campaign: EvaluationCampaign = {
+        id, title: title.trim(), period: period.trim(), asOf, mode,
+        scope: structuredClone(scope), status: "draft",
+        createdAt: new Date().toISOString(), createdBy: this.actor(),
+        exclusions: preview.filter((row) => !!row.reason)
+          .map((row) => ({ personId: row.personId, reason: row.reason! })),
+      };
+      state.campaigns.unshift(campaign);
+      state.cycles.unshift(...eligible.map((row) => campaignCycle(campaign, row, state)));
+    });
+    return id;
+  }
+  /** Explicit HR action; preparing cycles are checked together before any are activated. */
+  startCampaign(id: string): boolean {
+    const campaign = this.state().campaigns.find((x) => x.id === id);
+    if (!this.canAccess(["hr"]) || !campaign || campaign.status !== "draft")
+      return this.fail("شروع دریافت پاسخ فقط برای دوره آماده‌سازی و منابع انسانی مجاز است.");
+    const cycles = this.state().cycles.filter((c) => c.campaignId === id);
+    if (!cycles.length || cycles.some((c) => c.status !== "preparing" || !canStart(c)))
+      return this.fail("تمام پرونده‌ها باید در آماده‌سازی و دارای ترکیب معتبر ارزیاب باشند.");
+    if (cycles.some((c) => !c.questions?.length ||
+      competencies.some((_, i) => !c.questions?.some((q) => q.competencyIndex === i))))
+      return this.fail("بانک سؤال Snapshot شده باید پنج شایستگی را پوشش دهد.");
+    this.commit("شروع دریافت پاسخ کمپین با تأیید منابع انسانی", id, (state) => {
+      state.campaigns.find((x) => x.id === id)!.status = "active";
+      state.campaigns.find((x) => x.id === id)!.startedAt = new Date().toISOString();
+      state.cycles.filter((c) => c.campaignId === id).forEach((c) => { c.status = "collecting"; });
+    });
+    return true;
+  }
+  closeCampaign(id: string): boolean {
+    const campaign = this.state().campaigns.find((x) => x.id === id);
+    const cycles = this.state().cycles.filter((c) => c.campaignId === id);
+    if (!this.canAccess(["hr"]) || !campaign || campaign.status !== "active" ||
+      !cycles.length || cycles.some((c) => c.status !== "closed"))
+      return this.fail("بستن کمپین فقط پس از تکمیل و بستن تمام ارزیابی‌های آن مجاز است.");
+    this.commit("کمپین ارزیابی بسته شد", id, (state) => {
+      state.campaigns.find((x) => x.id === id)!.status = "closed";
+    });
+    return true;
+  }
   createCycle(
     title: string,
     subjectId: string,
@@ -911,8 +993,8 @@ export class Store {
   }
   addOrganizationalEvaluators(cycleId: string) {
     const cycle = this.cycle(cycleId);
-    if (!this.canAccess(["hr"]) || !cycle || cycle.status !== "preparing")
-      return this.fail("افزودن ارزیاب خودکار فقط در آماده‌سازی دوره مجاز است.");
+    if (!this.canAccess(["hr"]) || !cycle || cycle.status !== "preparing" || cycle.campaignId)
+      return this.fail("ارزیابان کمپین هنگام ایجاد دوره تثبیت می‌شوند؛ افزودن فقط برای پرونده‌های فردی مجاز است.");
     const assigned = new Set([cycle.subjectId, ...cycle.assignments.map((a) => a.personId)]);
     const suggestions = this.organizationalEvaluatorSuggestions(cycle.subjectId, cycle.mode)
       .filter((x) => !assigned.has(x.personId));
@@ -929,7 +1011,7 @@ export class Store {
   }
   addEvaluator(id: string, personId: string, group: Group) {
     const c = this.cycle(id);
-    if (this.role() !== "hr" || c?.status !== "preparing") return false;
+    if (this.role() !== "hr" || c?.status !== "preparing" || c.campaignId) return false;
     if (
       personId === c.subjectId ||
       c.assignments.some((a) => a.personId === personId)
@@ -945,7 +1027,7 @@ export class Store {
     return true;
   }
   removeEvaluator(id: string, aid: string) {
-    if (this.role() !== "hr" || this.cycle(id)?.status !== "preparing") return;
+    if (this.role() !== "hr" || this.cycle(id)?.status !== "preparing" || this.cycle(id)?.campaignId) return;
     this.commit("ارزیاب حذف شد", id, (s) => {
       const c = s.cycles.find((c) => c.id === id)!;
       c.assignments = c.assignments.filter((a) => a.id !== aid);
@@ -954,6 +1036,8 @@ export class Store {
   advance(id: string, notes = "") {
     const c = this.cycle(id);
     if (this.role() !== "hr" || !c) return false;
+    if (c.campaignId && c.status === "preparing")
+      return this.fail("شروع پاسخ‌گیری پرونده‌های گروهی فقط از صفحه دوره و با تأیید منابع انسانی مجاز است.");
     if (c.status === "preparing" && !canStart(c))
       return this.fail(
         "حداقل یک سرپرست، دو هم‌سطح، دو زیردست و در ۵۴۰ یک بیرونی لازم است.",

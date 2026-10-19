@@ -1,15 +1,17 @@
 import { Cycle, EvaluationQuestion, Group, JobContent, Plan, QuestionAnswer } from "./models";
 export function canStart(c: Cycle): boolean {
   const n = (g: Group) => c.assignments.filter((a) => a.group === g).length;
-  return (
-    n("supervisor") >= 1 &&
-    n("peer") >= 2 &&
-    n("subordinate") >= 2 &&
-    (c.mode === 360 || n("external") >= 1) &&
+  // Bulk campaigns can assess non-managerial posts without fabricating
+  // subordinate ratings. Historical manual cycles retain the old thresholds.
+  const required = c.requiredGroups ?? {
+    supervisor: 1, peer: 2, subordinate: 2, external: c.mode === 540 ? 1 : 0,
+  };
+  return c.assignments.length > 0 &&
+    (["supervisor", "peer", "subordinate", "external"] as Group[])
+      .every((g) => n(g) >= (required[g] ?? 0)) &&
     new Set(c.assignments.map((a) => a.personId)).size ===
       c.assignments.length &&
-    !c.assignments.some((a) => a.personId === c.subjectId)
-  );
+    !c.assignments.some((a) => a.personId === c.subjectId);
 }
 export function validScores(scores: number[]): boolean {
   return (

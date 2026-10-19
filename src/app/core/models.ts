@@ -209,6 +209,15 @@ export interface Assignment {
   answers?: QuestionAnswer[];
 }
 export interface Cycle {
+  /** Missing for historical, manually created evaluations. */
+  campaignId?: string;
+  /** Dynamic minimums for chart-generated groups; legacy cycles retain their old rule. */
+  requiredGroups?: Partial<Record<Group, number>>;
+  /** Frozen reporting context when this cycle was published. */
+  organizationSnapshot?: {
+    asOf: string; positionId: string; unitId: string;
+    locationId: string; managerId?: string;
+  };
   id: string;
   title: string;
   period: string;
@@ -305,6 +314,26 @@ export interface Audit {
   action: string;
   entity: string;
 }
+export type CampaignScope = {
+  type: "all" | "unit" | "job" | "people";
+  /** IDs of selected organization units, jobs, or people respectively. */
+  ids: string[];
+};
+/** One HR-run period whose individual Cycle records remain compatible with old reports. */
+export interface EvaluationCampaign {
+  id: string;
+  title: string;
+  period: string;
+  asOf: string;
+  mode: 360 | 540;
+  scope: CampaignScope;
+  status: "draft" | "active" | "closed";
+  createdAt: string;
+  createdBy: string;
+  startedAt?: string;
+  /** Creation-time exceptions remain visible for audit and follow-up. */
+  exclusions: { personId: string; reason: string }[];
+}
 export interface DemoState {
   schema: 1;
   jobs: Job[];
@@ -322,6 +351,8 @@ export interface DemoState {
   workLocations: WorkLocation[];
   appointments: PositionAppointment[];
   cycles: Cycle[];
+  /** Empty for old browser snapshots; never fabricate campaigns for legacy cycles. */
+  campaigns: EvaluationCampaign[];
   questions: EvaluationQuestion[];
   /** Editable action templates, keyed by competency index. */
   developmentTemplates: DevelopmentTemplate[];

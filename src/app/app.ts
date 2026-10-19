@@ -125,6 +125,7 @@ export class App {
     { path: "/hiring/committee/specialist", title: "ارزیابی تخصصی", icon: "◈" },
     { path: "/people", title: "افراد و استعدادها", icon: "♧" },
     { path: "/performance", title: "ارزیابی عملکرد دوره‌ای", icon: "◫" },
+    { path: "/evaluations/campaigns", title: "کمپین‌های ارزیابی", icon: "▣" },
     { path: "/evaluations/cycles", title: "ارزیابی چندمنبعی", icon: "◎" },
     { path: "/evaluations/questions", title: "مدیریت سؤالات ارزیابی", icon: "☷" },
     { path: "/evaluations/inbox", title: "کارتابل ارزیابی", icon: "☑" },
@@ -151,7 +152,7 @@ export class App {
     if (r === "owner")
       return ["/jobs", "/career-paths", "/knowledge", "/settings"].includes(path);
     if (["/hiring", "/hiring/questions", "/hiring/committee/general",
-      "/hiring/committee/specialist", "/evaluations/cycles", "/evaluations/questions",
+      "/hiring/committee/specialist", "/evaluations/campaigns", "/evaluations/cycles", "/evaluations/questions",
       "/evaluations/inbox", "/development/templates", "/development/tasks"].includes(path))
       return false;
     return true;
