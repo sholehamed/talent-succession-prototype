@@ -87,22 +87,22 @@ describe("periodic KPI performance lifecycle", () => {
     const s = new Store();
     const id = newEmployee(s);
     const base = kpis(s, id, [79, 80, 81]);
-    expect(s.savePerformanceDraft(id, "q4", base, " ")).toBe("");
-    expect(s.savePerformanceDraft(id, "q4", base.map((k, i) =>
+    expect(s.savePerformanceDraft(id, "1405-q4", base, " ")).toBe("");
+    expect(s.savePerformanceDraft(id, "1405-q4", base.map((k, i) =>
       i === 1 ? { ...k, achievement: 120 } : k), "جمع‌بندی")).toBe("");
-    expect(s.savePerformanceDraft(id, "q4", base.map((k, i) =>
+    expect(s.savePerformanceDraft(id, "1405-q4", base.map((k, i) =>
       i === 1 ? { ...k, evidence: "" } : k), "جمع‌بندی")).toBe("");
-    expect(s.savePerformanceDraft(id, "q4", [...base].reverse(), "جمع‌بندی")).toBe("");
-    const draft = s.savePerformanceDraft(id, "q4", base, "توضیح ارزیابی");
+    expect(s.savePerformanceDraft(id, "1405-q4", [...base].reverse(), "جمع‌بندی")).toBe("");
+    const draft = s.savePerformanceDraft(id, "1405-q4", base, "توضیح ارزیابی");
     expect(draft).toBeTruthy();
-    expect(s.savePerformanceDraft(id, "q4", base, "ثبت موازی")).toBe("");
-    expect(s.savePerformanceDraft(id, "q4", kpis(s, id, [50, 50, 50]),
+    expect(s.savePerformanceDraft(id, "1405-q4", base, "ثبت موازی")).toBe("");
+    expect(s.savePerformanceDraft(id, "1405-q4", kpis(s, id, [50, 50, 50]),
       "بازبینی شواهد", draft)).toBe(draft);
     expect(s.state().performanceReviews).toHaveLength(1);
     expect(s.state().performanceReviews[0].score).toBe(50);
     expect(s.approvePerformanceReview(draft)).toBe(true);
     expect(s.approvePerformanceReview(draft)).toBe(false);
-    expect(s.savePerformanceDraft(id, "q4", base, "ویرایش غیرمجاز", draft)).toBe("");
+    expect(s.savePerformanceDraft(id, "1405-q4", base, "ویرایش غیرمجاز", draft)).toBe("");
     expect(s.state().performanceReviews[0].kpis[0].achievement).toBe(50);
   });
 
