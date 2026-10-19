@@ -3,6 +3,7 @@ import type { Role } from "./core/models";
 export interface NavigationItem {
   path: string;
   title: string;
+  icon: string;
 }
 export interface NavigationGroup {
   id: string;
@@ -16,64 +17,64 @@ export interface NavigationGroup {
 /** The original sidebar URLs, regrouped without changing routes. */
 export const navigationGroups: NavigationGroup[] = [
   {
-    id: "dashboards", title: "داشبوردها", icon: "▦", sections: ["dashboard"],
+    id: "dashboards", title: "داشبوردها", icon: "dashboard", sections: ["dashboard"],
     children: [
-      { path: "/dashboard/hr", title: "داشبورد مدیریتی" },
-      { path: "/dashboard/development", title: "داشبورد توسعه سرمایه انسانی" },
+      { path: "/dashboard/hr", title: "داشبورد مدیریتی", icon: "dashboard" },
+      { path: "/dashboard/development", title: "داشبورد توسعه سرمایه انسانی", icon: "analytics" },
     ],
   },
   {
-    id: "organization", title: "افراد و تشکیلات", icon: "♧", sections: ["people", "organization"],
+    id: "organization", title: "افراد و تشکیلات", icon: "people", sections: ["people", "organization"],
     children: [
-      { path: "/people", title: "افراد و استعدادها" },
-      { path: "/organization/chart", title: "چارت سازمانی" },
-      { path: "/organization/units", title: "واحدهای سازمانی" },
-      { path: "/organization/positions", title: "پست‌های سازمانی" },
-      { path: "/organization/appointments", title: "انتصاب کارکنان" },
-      { path: "/organization/locations", title: "محل‌های خدمت" },
+      { path: "/people", title: "افراد و استعدادها", icon: "people" },
+      { path: "/organization/chart", title: "چارت سازمانی", icon: "groups" },
+      { path: "/organization/units", title: "واحدهای سازمانی", icon: "groups" },
+      { path: "/organization/positions", title: "پست‌های سازمانی", icon: "assignment_ind" },
+      { path: "/organization/appointments", title: "انتصاب کارکنان", icon: "event" },
+      { path: "/organization/locations", title: "محل‌های خدمت", icon: "place" },
     ],
   },
   {
-    id: "jobs", title: "مشاغل و مسیر رشد", icon: "▤", sections: ["jobs", "career-paths"],
+    id: "jobs", title: "مشاغل و مسیر رشد", icon: "work", sections: ["jobs", "career-paths"],
     children: [
-      { path: "/jobs", title: "شناسنامه‌های شغلی" },
-      { path: "/career-paths", title: "مسیرهای رشد" },
+      { path: "/jobs", title: "شناسنامه‌های شغلی", icon: "description" },
+      { path: "/career-paths", title: "مسیرهای رشد", icon: "trending_up" },
     ],
   },
   {
-    id: "hiring", title: "جذب و استخدام", icon: "⊕", sections: ["hiring"],
+    id: "hiring", title: "جذب و استخدام", icon: "person_add", sections: ["hiring"],
     children: [
-      { path: "/hiring", title: "ارزیابی بدو استخدام" },
-      { path: "/hiring/questions", title: "بانک سؤالات استخدام" },
-      { path: "/hiring/committee/general", title: "ارزیابی عمومی" },
-      { path: "/hiring/committee/specialist", title: "ارزیابی تخصصی" },
+      { path: "/hiring", title: "ارزیابی بدو استخدام", icon: "person_add" },
+      { path: "/hiring/questions", title: "بانک سؤالات استخدام", icon: "description" },
+      { path: "/hiring/committee/general", title: "ارزیابی عمومی", icon: "groups" },
+      { path: "/hiring/committee/specialist", title: "ارزیابی تخصصی", icon: "school" },
     ],
   },
   {
-    id: "evaluations", title: "ارزیابی‌ها", icon: "◎", sections: ["evaluations", "performance"],
+    id: "evaluations", title: "ارزیابی‌ها", icon: "assessment", sections: ["evaluations", "performance"],
     children: [
-      { path: "/evaluations/campaigns", title: "کمپین‌های ارزیابی دوره‌ای" },
-      { path: "/evaluations/cycles", title: "ارزیابی چندمنبعی ۳۶۰/۵۴۰" },
-      { path: "/performance", title: "ارزیابی عملکرد KPI" },
-      { path: "/evaluations/inbox", title: "کارتابل ارزیابی" },
-      { path: "/evaluations/questions", title: "مدیریت سؤالات ارزیابی" },
+      { path: "/evaluations/campaigns", title: "کمپین‌های ارزیابی دوره‌ای", icon: "event" },
+      { path: "/evaluations/cycles", title: "ارزیابی چندمنبعی ۳۶۰/۵۴۰", icon: "assessment" },
+      { path: "/performance", title: "ارزیابی عملکرد KPI", icon: "analytics" },
+      { path: "/evaluations/inbox", title: "کارتابل ارزیابی", icon: "inbox" },
+      { path: "/evaluations/questions", title: "مدیریت سؤالات ارزیابی", icon: "description" },
     ],
   },
   {
-    id: "development", title: "توسعه و جانشین‌پروری", icon: "↗", sections: ["development", "talent"],
+    id: "development", title: "توسعه و جانشین‌پروری", icon: "trending_up", sections: ["development", "talent"],
     children: [
-      { path: "/development", title: "توسعه فردی" },
-      { path: "/development/tasks", title: "اقدام‌های من" },
-      { path: "/development/templates", title: "الگوهای اقدام توسعه" },
-      { path: "/talent/succession", title: "جانشین‌پروری" },
-      { path: "/talent/9box", title: "نقشه استعداد ۹ خانه" },
+      { path: "/development", title: "توسعه فردی", icon: "trending_up" },
+      { path: "/development/tasks", title: "اقدام‌های من", icon: "assignment_turned_in" },
+      { path: "/development/templates", title: "الگوهای اقدام توسعه", icon: "description" },
+      { path: "/talent/succession", title: "جانشین‌پروری", icon: "groups" },
+      { path: "/talent/9box", title: "نقشه استعداد ۹ خانه", icon: "dashboard" },
     ],
   },
   {
-    id: "knowledge", title: "دانش و گزارش‌ها", icon: "▥", sections: ["knowledge", "reports"],
+    id: "knowledge", title: "دانش و گزارش‌ها", icon: "menu_book", sections: ["knowledge", "reports"],
     children: [
-      { path: "/knowledge", title: "مدیریت دانش" },
-      { path: "/reports", title: "گزارش‌ها و تحلیل" },
+      { path: "/knowledge", title: "مدیریت دانش", icon: "menu_book" },
+      { path: "/reports", title: "گزارش‌ها و تحلیل", icon: "analytics" },
     ],
   },
 ];
