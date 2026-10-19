@@ -27,7 +27,7 @@ const role = async (p: Page, r: string) => {
     : r === "executive" || r === "manager" ? "p11"
     : "p2";
   const currentId = (await p.locator("mat-sidenav .workspace small").textContent().catch(() => "")) ?? "";
-  if (currentId.includes(id)) {
+  if (currentId.trim().split(" · ")[0] === id) {
     await selectMaterial(p, "نقش فعال", roleLabels[r]);
   } else {
     await signIn(p, id, r);
