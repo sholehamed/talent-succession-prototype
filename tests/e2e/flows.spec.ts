@@ -7,7 +7,35 @@ const selectMaterial = async (p: Page, label: string, option: string) => {
   await p.getByRole("combobox", { name: label }).click();
   await p.getByRole("option", { name: option, exact: true }).click();
 };
-const role = async (p: Page, r: string) => selectMaterial(p, "نقش کاربری", roleLabels[r]);
+const signIn = async (p: Page, id = "p1", activeRole?: string) => {
+  if (await p.getByRole("button", { name: "خروج", exact: true }).count())
+    await p.getByRole("button", { name: "خروج", exact: true }).click();
+  await p.goto("/login");
+  await p.getByRole("textbox", { name: "شناسه کاربری" }).fill(id);
+  await p.getByRole("textbox", { name: "رمز عبور" }).fill("Royesh1405!");
+  await p.getByRole("button", { name: "ورود به رویش" }).click();
+  await expect(p.getByRole("combobox", { name: "نقش فعال" })).toBeVisible();
+  if (activeRole && await p.getByRole("combobox", {name:"نقش فعال"}).inputValue().catch(() => "") !== roleLabels[activeRole]) {
+    // Selecting the role is valid only among this account's granted roles.
+    await selectMaterial(p, "نقش فعال", roleLabels[activeRole]);
+  }
+};
+const role = async (p: Page, r: string) => {
+  const original = new URL(p.url()).pathname;
+  const id = r === "hr" || r === "employee" ? "p1"
+    : r === "owner" ? "p12"
+    : r === "executive" || r === "manager" ? "p11"
+    : "p2";
+  const currentId = (await p.locator("mat-sidenav .workspace small").textContent().catch(() => "")) ?? "";
+  if (currentId.includes(id)) {
+    await selectMaterial(p, "نقش فعال", roleLabels[r]);
+  } else {
+    await signIn(p, id, r);
+  }
+  if (r !== "employee" && r !== "evaluator")
+    await p.goto(original);
+};
+test.beforeEach(async ({page}) => signIn(page, "p1", "hr"));
 const nav = async (p: Page, url: string) => {
   await p.goto(url);
   await expect(p.locator("app-root")).not.toBeEmpty();
@@ -186,14 +214,10 @@ test("full evaluation, calibration, IDP and shared progress", async ({
   await page
     .getByRole("button", { name: "شروع دریافت پاسخ‌ها", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: "ورود به نقش ارزیاب و کارتابل" })
-    .click();
+
   for (const person of ["p2", "p3", "p4", "p5", "p6", "p7"]) {
-    await selectMaterial(page, "انتخاب ارزیاب", ({
-      p2: "سارا مهر", p3: "نیما روشن", p4: "مهسا سپهر",
-      p5: "علی پارسا", p6: "نازنین آذر", p7: "کیان نیک"
-    } as Record<string,string>)[person]);
+    await signIn(page, person, "evaluator");
+    await nav(page, "/evaluations/inbox");
     const pending = page.getByRole("button", { name: "تکمیل پرسشنامه", exact: true });
     await expect(pending).toBeVisible();
     await pending.click();
@@ -284,11 +308,10 @@ test("two evaluation cycles create distinct IDP versions with preserved history"
   // Move the newer seed assessment through the real evaluation workflow.
   await nav(page, "/evaluations/c1");
   await page.getByRole("button", { name: "شروع دریافت پاسخ‌ها" }).click();
-  await page.getByRole("button", { name: "ورود به نقش ارزیاب و کارتابل" }).click();
-  for (const evaluator of [
-    "سارا مهر", "نیما روشن", "مهسا سپهر", "علی پارسا", "نازنین آذر", "کیان نیک"
-  ]) {
-    await selectMaterial(page, "انتخاب ارزیاب", evaluator);
+
+  for (const person of ["p2","p3","p4","p5","p6","p7"]) {
+    await signIn(page, person, "evaluator");
+    await nav(page, "/evaluations/inbox");
     await page.getByRole("button", { name: "تکمیل پرسشنامه" }).click();
     for (let i = 0; i < 5; i++)
       await page.locator(".question").nth(i).getByRole("radio").nth(3).check();
@@ -354,8 +377,7 @@ test("IDP supports competency-led additions, evidence and separate manager effec
   await expect(card).toContainText("بررسی اثربخشی هنوز انجام نشده");
 
   await role(page, "manager");
-  // A full page reload would reset the temporary client-side role to HR.
-  // Continue in the active Angular session.
+  // Manager is a different logged-in person, now scoped to the relevant unit.
   await expect(page).toHaveURL(/\/development\/idp\/[^/]+$/);
   await page.locator("mat-card.panel")
     .filter({ has: page.getByRole("heading", { name: "راهبری تیم کوچک و تفویض مسئولیت" }) })
@@ -566,8 +588,8 @@ test("HR edits peer questions; evaluator sees only its snapped questionnaire eve
   await page.getByRole("button", { name: "ذخیره تغییرات" }).click();
 
   await nav(page, "/evaluations/c1");
-  await page.getByRole("button", { name: "ورود به نقش ارزیاب و کارتابل" }).click();
-  await selectMaterial(page, "انتخاب ارزیاب", "نیما روشن");
+  await signIn(page, "p3", "evaluator");
+  await nav(page, "/evaluations/inbox");
   await page.getByRole("button", { name: "تکمیل پرسشنامه" }).click();
   await expect(page.locator(".question")).toHaveCount(6);
   await expect(page.locator("main")).toContainText("در تصمیم‌های گروهی به نظرات همکاران گوش می‌دهد؟");
@@ -640,4 +662,37 @@ test("HR template catalog dynamically feeds competency IDP and preserves action 
   await page.keyboard.press("Escape");
   await role(page, "manager");
   await expect(page.locator("mat-sidenav a.nav-item").filter({ hasText: "الگوهای اقدام توسعه" })).toHaveCount(0);
+});
+
+test("login binds identity, personal visibility, role grants and assigned IDP work", async ({page}) => {
+  await page.getByRole("button", {name:"خروج"}).click();
+  await page.goto("/people/p2");
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByRole("textbox", {name:"شناسه کاربری"}).fill("p3");
+  await page.getByRole("textbox", {name:"رمز عبور"}).fill("wrong");
+  await page.getByRole("button", {name:"ورود به رویش"}).click();
+  await expect(page.getByRole("alert")).toContainText("صحیح نیست");
+  await page.getByRole("textbox", {name:"رمز عبور"}).fill("Royesh1405!");
+  await page.getByRole("button", {name:"ورود به رویش"}).click();
+  await expect(page).toHaveURL(/\/people\/p3$/);
+  await expect(page.getByRole("combobox", {name:"نقش فعال"})).toContainText("کارمند");
+  await page.getByRole("combobox", {name:"نقش فعال"}).click();
+  await expect(page.getByRole("option", {name:"کارشناس منابع انسانی"})).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.goto("/hiring");
+  await expect(page).toHaveURL(/\/people\/p3$/);
+  await page.goto("/people/p2");
+  await expect(page.locator("main")).not.toContainText("سارا مهر");
+  await nav(page,"/development/tasks");
+  await expect(page.getByRole("heading",{name:"اقدام‌های من"})).toBeVisible();
+  await page.getByRole("button",{name:"ثبت پیشرفت و شواهد"}).first().click();
+  await selectMaterial(page,"وضعیت اقدام","انجام‌شده");
+  await page.getByRole("textbox",{name:"شواهد انجام اقدام"}).fill("آزمایش اجرای اقدام شخصی با حساب p3");
+  await page.getByRole("button",{name:"ذخیره پیشرفت"}).click();
+  const state=await page.evaluate(()=>JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  const assigned=state.plans.find((p:any)=>p.id==="d2").actions.find((a:any)=>a.assigneeId==="p3");
+  expect(assigned.status).toBe("completed");
+  expect(assigned.evidence).toContain("حساب p3");
+  await page.reload();
+  await expect(page.locator("main")).toContainText("حساب p3");
 });
