@@ -688,7 +688,7 @@ export class Store {
   }
   createPlan(personId: string, jobId: string, cycleId?: string) {
     if (!this.editable()) return "";
-    if (!this.person(personId) || !this.job(jobId) || !this.allowedPerson(personId))
+    if (!this.person(personId) || !this.publishedJobs().some((j) => j.id === jobId) || !this.allowedPerson(personId))
       return (this.fail("فرد یا شغل معتبر نیست یا دسترسی کافی ندارید."), "");
 
     // A published cycle is a unique source. The manual plan has a separate key.
