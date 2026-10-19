@@ -15,10 +15,13 @@ import {
   Knowledge,
   Nomination,
   Plan,
+  PerformanceKpiInput,
+  PerformanceReview,
   Role,
   competencies,
 } from "./models";
 import { seed } from "./seed";
+import { performanceBand, performanceScore } from "./performance";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, rolesForPerson } from "./auth";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
 import { DevelopmentTemplate, defaultDevelopmentTemplates, templatesForCompetency } from "./development-templates";
@@ -140,6 +143,7 @@ export class Store {
           d.plans.every((p: any) => Array.isArray(p.actions))
         )
           return { ...d,
+            performanceReviews: Array.isArray(d.performanceReviews) ? d.performanceReviews : [],
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
             questions: Array.isArray(d.questions) ? d.questions : defaultEvaluationQuestions(),
             developmentTemplates: Array.isArray(d.developmentTemplates)
@@ -248,6 +252,102 @@ export class Store {
     return this.state().people.filter(
       (p) => this.allowedPerson(p.id) && (feeders.has(p.jobId) || nominees.has(p.id)),
     );
+  }
+
+  /** A draft is visible to HR or a manager of the same unit; others see approvals only. */
+  performanceReviewsFor(personId: string): PerformanceReview[] {
+    if (!this.allowedPerson(personId)) return [];
+    const canSeeDraft = this.canEditPerformance(personId);
+    return this.state().performanceReviews
+      .filter((r) => r.personId === personId &&
+        (r.status === "approved" || canSeeDraft))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  latestApprovedPerformance(personId: string): PerformanceReview | undefined {
+    if (!this.allowedPerson(personId)) return undefined;
+    return this.state().performanceReviews
+      .filter((r) => r.personId === personId && r.status === "approved")
+      .sort((a, b) => (b.approvedAt ?? "").localeCompare(a.approvedAt ?? ""))[0];
+  }
+  canEditPerformance(personId: string) {
+    return this.editable() && this.allowedPerson(personId);
+  }
+  /**
+   * Drafts snapshot the published job's KPI definitions. A reviewer supplies
+   * attainment and a concrete source/evidence for each KPI; no guessed defaults.
+   * Multiple periods remain immutable once approved.
+   */
+  savePerformanceDraft(
+    personId: string, period: string, inputs: PerformanceKpiInput[],
+    notes: string, reviewId?: string,
+  ): string {
+    const person = this.state().people.find((p) => p.id === personId);
+    if (!person || !this.canEditPerformance(personId))
+      return (this.fail("ثبت عملکرد فقط برای منابع انسانی یا مدیر واحد مجاز است."), "");
+    const job = this.publishedJobs().find((j) => j.id === person.jobId);
+    if (!job || !job.kpis.length)
+      return (this.fail("شغل فعلی باید شناسنامه منتشرشده و شاخص عملکرد داشته باشد."), "");
+    const normalizedPeriod = period.trim();
+    if (normalizedPeriod.length < 3 || normalizedPeriod.length > 60 || !notes.trim())
+      return (this.fail("دوره معتبر و جمع‌بندی مستند ارزیابی الزامی است."), "");
+    if (!Array.isArray(inputs) || inputs.length !== job.kpis.length ||
+        inputs.some((k, i) =>
+          k.title !== job.kpis[i].title || !Number.isFinite(k.achievement) ||
+          k.achievement < 0 || k.achievement > 100 || !k.evidence?.trim()))
+      return (this.fail("برای تمام KPIها درصد تحقق ۰ تا ۱۰۰ و شواهد معتبر وارد کنید."), "");
+    const existing = reviewId
+      ? this.state().performanceReviews.find((r) => r.id === reviewId)
+      : undefined;
+    if (reviewId && (!existing || existing.personId !== personId ||
+        existing.status !== "draft" || existing.jobId !== job.id ||
+        existing.jobVersion !== job.version))
+      return (this.fail("پیش‌نویس وجود ندارد، تأیید شده یا نسخه شغل تغییر کرده است."), "");
+    if (this.state().performanceReviews.some((r) =>
+      r.personId === personId && r.period === normalizedPeriod && r.id !== reviewId))
+      return (this.fail("برای این فرد و دوره قبلاً ارزیابی ثبت شده است."), "");
+    const score = performanceScore(inputs.map((k) => k.achievement));
+    const id = existing?.id ?? crypto.randomUUID();
+    const now = new Date().toISOString();
+    const record: PerformanceReview = {
+      id, personId, jobId: job.id, jobVersion: job.version,
+      period: normalizedPeriod,
+      kpis: inputs.map((input, i) => ({
+        title: job.kpis[i].title,
+        definition: job.kpis[i].definition,
+        unit: job.kpis[i].unit,
+        source: job.kpis[i].source,
+        achievement: input.achievement,
+        evidence: input.evidence.trim(),
+      })),
+      score, band: performanceBand(score), status: "draft",
+      notes: notes.trim(),
+      createdAt: existing?.createdAt ?? now,
+      createdBy: existing?.createdBy ?? this.actor(),
+      updatedAt: now,
+    };
+    this.commit(existing ? "پیش‌نویس عملکرد ویرایش شد" : "پیش‌نویس عملکرد ثبت شد",
+      personId, (state) => {
+        const index = state.performanceReviews.findIndex((r) => r.id === id);
+        if (index >= 0) state.performanceReviews[index] = record;
+        else state.performanceReviews.push(record);
+      });
+    return id;
+  }
+  approvePerformanceReview(reviewId: string): boolean {
+    const review = this.state().performanceReviews.find((r) => r.id === reviewId);
+    if (this.role() !== "hr" || !this.activeRoleAllowed() ||
+        !review || review.status !== "draft" || !this.allowedPerson(review.personId))
+      return this.fail("تأیید عملکرد فقط برای منابع انسانی و پیش‌نویس معتبر مجاز است.");
+    this.commit("ارزیابی عملکرد دوره‌ای تأیید شد", review.personId, (state) => {
+      const target = state.performanceReviews.find((r) => r.id === reviewId)!;
+      target.status = "approved";
+      target.approvedAt = new Date().toISOString();
+      target.approvedBy = this.actor();
+      // Projection for existing profile, dashboard and 9-box consumers.
+      state.people.find((p) => p.id === target.personId)!.performance = target.band;
+      // Potential, 360/540 assessments and succession readiness stay untouched.
+    });
+    return true;
   }
 
   candidate(id: string): Candidate | undefined {
@@ -1030,6 +1130,14 @@ export class Store {
     if (this.role() !== "hr") return;
     this.commit("اطلاعات منابع انسانی به‌روزرسانی شد", "local-hr", (s) => {
       const p = s.people.find((p) => p.id === "p3")!;
+      // Do not allow the legacy demo sync to overwrite a reviewed performance.
+      if (s.performanceReviews.some((r) => r.personId === p.id && r.status === "approved")) {
+        s.syncs.unshift({
+          at: new Date().toISOString(), rows: 0,
+          summary: "عملکرد تأییدشده موجود است؛ همگام‌سازی نمایشی آن را تغییر نداد.",
+        });
+        return;
+      }
       p.performance = p.performance === "high" ? "medium" : "high";
       p.evidence =
         "به‌روزرسانی محلی سوابق عملکرد؛ " + new Date().toISOString();
