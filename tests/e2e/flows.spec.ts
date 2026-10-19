@@ -115,6 +115,7 @@ test("Material sidenav collapses cleanly and opens mobile navigation", async ({ 
   await expect(page.locator("mat-sidenav")).not.toHaveClass(/mat-drawer-opened/);
   await page.getByRole("button", { name: "نمایش منو" }).click();
   await expect(page.locator("mat-sidenav")).toHaveClass(/mat-drawer-opened/);
+  await page.getByRole("button", { name: "مشاغل و مسیر رشد" }).click();
   await page.locator("mat-sidenav a.nav-item").filter({ hasText: "شناسنامه‌های شغلی" }).click();
   await expect(page).toHaveURL(/\/jobs$/);
   await expect(page.locator("mat-sidenav")).not.toHaveClass(/mat-drawer-opened/);
@@ -524,6 +525,7 @@ test("general then specialist committees lead to documented hiring and unknown p
   await page.getByRole("button", { name: "ارجاع به کمیته عمومی" }).click();
   await expect(page.locator("main")).toContainText("در انتظار پاسخ");
   await signIn(page, "p3", "evaluator");
+  await page.getByRole("button", { name: "جذب و استخدام" }).click();
   await expect(page.locator("mat-sidenav")).toContainText("ارزیابی عمومی");
   await expect(page.locator("mat-sidenav")).toContainText("ارزیابی تخصصی");
   await nav(page, "/hiring/committee/general");
