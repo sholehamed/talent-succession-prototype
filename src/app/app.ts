@@ -1,4 +1,6 @@
 import { Component, HostListener, computed, effect, inject, signal } from "@angular/core";
+import { MatIconRegistry } from "@angular/material/icon";
+import { DomSanitizer } from "@angular/platform-browser";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from "@angular/router";
 import { filter, map, startWith } from "rxjs";
@@ -8,6 +10,7 @@ import {
   activeNavigationPath, navigationGroupForUrl, visibleNavigationGroups,
 } from "./navigation.config";
 import { UI } from "./shared/ui";
+import { registerNavigationIcons } from "./navigation-icons";
 
 @Component({
   selector: "app-root",
@@ -20,7 +23,7 @@ import { UI } from "./shared/ui";
         ><span>تلنت<small>سرمایه انسانی، آینده سازمان</small></span></a
       >
       <div class="workspace">
-        <span class="workspace-symbol">◈</span>
+        <mat-icon class="workspace-symbol" svgIcon="nav-account_circle" aria-hidden="true"/>
         <span>{{ s.currentPerson()?.name }}<small>{{ s.currentPerson()?.id }} · {{ s.currentPerson()?.unit }}</small></span>
       </div>
       <div class="nav-label">فضای مدیریت</div>
@@ -35,9 +38,9 @@ import { UI } from "./shared/ui";
               [attr.aria-expanded]="expandedGroup() === group.id && (!collapsed() || handset())"
               [attr.aria-controls]="'sidebar-group-' + group.id"
               (click)="toggleGroup(group.id)">
-              <span class="nav-icon nav-group-icon" aria-hidden="true">{{ group.icon }}</span>
+              <mat-icon class="nav-icon nav-group-icon" [svgIcon]="'nav-' + group.icon" aria-hidden="true"/>
               <span class="nav-group-title">{{ group.title }}</span>
-              <span class="nav-group-chevron" aria-hidden="true">⌄</span>
+              <mat-icon class="nav-group-chevron" svgIcon="nav-expand_more" aria-hidden="true"/>
             </button>
             @if (expandedGroup() === group.id && (!collapsed() || handset())) {
               <div class="nav-children" role="group" [id]="'sidebar-group-' + group.id" [attr.aria-label]="group.title">
@@ -47,9 +50,9 @@ import { UI } from "./shared/ui";
                     [class.active]="activeLink(group.id) === child.path"
                     [attr.aria-current]="activeLink(group.id) === child.path ? 'page' : null"
                     (click)="mobile.set(false)">
-                    <span class="nav-child-bullet" aria-hidden="true">•</span>
+                    <mat-icon class="nav-child-icon" [svgIcon]="'nav-' + child.icon" aria-hidden="true"/>
                     <span class="nav-item-title">{{ child.title }}</span>
-                    <span class="nav-arrow" aria-hidden="true">‹</span>
+                    <mat-icon class="nav-arrow" svgIcon="nav-chevron_left" aria-hidden="true"/>
                   </a>
                 }
               </div>
@@ -63,7 +66,7 @@ import { UI } from "./shared/ui";
             [class.active]="currentPath() === '/settings'"
             [attr.aria-current]="currentPath() === '/settings' ? 'page' : null"
             title="تنظیمات سامانه" (click)="mobile.set(false)">
-            <span class="nav-icon" aria-hidden="true">⚙</span>
+            <mat-icon class="nav-icon" svgIcon="nav-settings" aria-hidden="true"/>
             <span class="nav-settings-title">تنظیمات سامانه</span>
           </a>
         </div>
@@ -75,7 +78,7 @@ import { UI } from "./shared/ui";
     </mat-sidenav>
     <mat-sidenav-content class="main-shell">
       <mat-toolbar class="topbar">
-        <button mat-button class="menu-toggle" aria-label="نمایش منو" (click)="toggleMenu()">☰</button>
+        <button mat-button class="menu-toggle" aria-label="نمایش منو" (click)="toggleMenu()"><mat-icon svgIcon="nav-menu" aria-hidden="true"/></button>
         <div class="breadcrumb">سرمایه انسانی <span>/</span> فضای مدیریت استعداد</div>
         <div class="role-picker">
           <mat-form-field appearance="outline">
@@ -117,6 +120,8 @@ import { UI } from "./shared/ui";
   }`,
 })
 export class App {
+  private readonly iconRegistry = inject(MatIconRegistry);
+  private readonly sanitizer = inject(DomSanitizer);
   readonly s = inject(Store);
   readonly router = inject(Router);
   readonly collapsed = signal(false);
@@ -142,6 +147,7 @@ export class App {
   readonly roleEntries = () => this.s.permittedRoles().map((role) => [role, roles[role]] as const);
 
   constructor() {
+    registerNavigationIcons(this.iconRegistry, this.sanitizer);
     // Every completed navigation (including deep links) opens its parent. Manual
     // closing stays possible until the next navigation or role change.
     effect(() => {
