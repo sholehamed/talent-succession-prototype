@@ -128,7 +128,7 @@ describe("sequential general/specialist hiring committees",()=>{
     s.actor.set("p5");s.role.set("evaluator");
     expect(s.submitEntryReview(id,"specialist",answers(s.candidate(id)!.entryWorkflow!.specialist!.questions,3),"بررسی فنی")).toBe(true);
     s.actor.set("p1");s.role.set("hr");
-    expect(s.decideCandidate(id,"hired","هنوز تأیید نشده",{code:"EMP-9908",managerId:"p11",hiredAt:"2026-10-19"})).toBe(false);
+    expect(s.decideCandidate(id,"hired","هنوز تأیید نشده",{code:"EMP-9908",positionId:"vac-j1",hiredAt:"2026-10-19"})).toBe(false);
     expect(s.finalizeEntryReview(id,"medium","آمادگی یادگیری مستند","تجمیع دو نتیجه")).toBe(true);
     const personId=s.decideCandidate(id,"hired","تأیید انسانی",{code:"EMP-9908",managerId:"p11",hiredAt:"2026-10-19"});
     expect(personId).toBeTruthy();
