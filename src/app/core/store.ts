@@ -165,6 +165,10 @@ export class Store {
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
             questions: Array.isArray(d.questions) ? d.questions : defaultEvaluationQuestions(),
             entryQuestions: Array.isArray(d.entryQuestions) ? d.entryQuestions : defaultEntryQuestions(d.jobs),
+            entryCommitteeMembers: Array.isArray(d.entryCommitteeMembers) ? d.entryCommitteeMembers : [
+              { stage: "general", personId: "p3" }, { stage: "general", personId: "p4" },
+              { stage: "specialist", personId: "p5" }, { stage: "specialist", personId: "p6" },
+            ],
             developmentTemplates: Array.isArray(d.developmentTemplates)
               ? d.developmentTemplates.map((t: DevelopmentTemplate) => ({ ...t, isActive: t.isActive !== false }))
               : defaultDevelopmentTemplates(),
