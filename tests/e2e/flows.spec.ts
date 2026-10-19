@@ -5,9 +5,7 @@ const roleLabels: Record<string, string> = {
 };
 const selectMaterial = async (p: Page, label: string, option: string) => {
   await p.getByRole("combobox", { name: label }).click();
-  // Material overlay options can be transiently re-rendered during dashboard filter updates.
-  // Force avoids waiting for an animation-stable node that may detach mid-transition.
-  await p.getByRole("option", { name: option, exact: true }).click({ force: true });
+  await p.getByRole("option", { name: option, exact: true }).click();
 };
 const signIn = async (p: Page, id = "p1", activeRole?: string) => {
   if (await p.getByRole("button", { name: "خروج", exact: true }).count())
@@ -280,7 +278,10 @@ test("development dashboard shows distinct KPIs with correct empty states and fi
   await selectMaterial(page, "دوره ارزیابی و توسعه", "تابستان ۱۴۰۵");
   await expect(page.locator(".stat").nth(0)).toContainText("—");
   await expect(page.locator("main")).toContainText("دو دوره ارزیابی منتشرشده");
-  await selectMaterial(page, "دوره ارزیابی و توسعه", "پاییز ۱۴۰۵");
+  // Dashboard filters can redraw the Material option during selection.
+  // Use a scoped forced option click only here, not for navigation/other selectors.
+  await page.getByRole("combobox", { name: "دوره ارزیابی و توسعه" }).click();
+  await page.getByRole("option", { name: "پاییز ۱۴۰۵", exact: true }).click({ force: true });
   await selectMaterial(page, "واحد سازمانی", "عملیات");
   await page.getByRole("link", { name: "مشاهده برنامه‌ها" }).click();
   await expect(page).toHaveURL(/\/development\?unit=/);
