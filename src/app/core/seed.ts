@@ -281,6 +281,7 @@ export function seed(): DemoState {
       },
     ],
     cycles,
+    campaigns: [],
     plans,
     knowledge,
     positions: Array.from({ length: 15 }, (_, i) => ({
