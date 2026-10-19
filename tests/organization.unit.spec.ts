@@ -160,4 +160,33 @@ describe("organizational structure and effective-dated appointments", () => {
     expect(s.cycle(cycleId)!.assignments).toHaveLength(assignments.length);
   });
 
+  it("does not invent or duplicate positions after a staffing contract ends and the browser reloads", () => {
+    const s = new Store();
+    const originalCount = s.state().positions.length;
+    const historicId = s.currentPosition("p1")!.id;
+    expect(s.endPositionAppointment("initial-appointment-p1", "2026-10-18")).toBe(true);
+    expect(s.currentPosition("p1", "2026-10-19")).toBeUndefined();
+    const restored = new Store();
+    expect(restored.currentPosition("p1", "2026-10-19")).toBeUndefined();
+    expect(restored.state().positions).toHaveLength(originalCount);
+    expect(restored.state().positions.filter((p) => p.id === historicId)).toHaveLength(1);
+    expect(restored.state().appointments).toHaveLength(s.state().appointments.length);
+    // Rehydrating already-migrated data is idempotent.
+    expect(hydrateOrganization(restored.state()).positions).toHaveLength(originalCount);
+  });
+
+  it("propagates a unit rename to staffed posts, people and the legacy unit filter", () => {
+    const s = new Store();
+    const unit = s.currentUnit("p1")!;
+    const renamed = "واحد تشکیلاتی آزمایشی";
+    const cycles = structuredClone(s.state().cycles);
+    expect(s.saveOrganizationUnit({ ...unit, name: renamed })).toBe(true);
+    expect(s.currentUnit("p1")?.name).toBe(renamed);
+    expect(s.currentPosition("p1")?.unit).toBe(renamed);
+    expect(s.person("p1").unit).toBe(renamed);
+    expect(s.units()).toContain(renamed);
+    expect(s.state().cycles).toEqual(cycles);
+    expect(new Store().person("p1").unit).toBe(renamed);
+  });
+
 });
