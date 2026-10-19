@@ -309,15 +309,15 @@ export default class Dashboard {
   unit = signal(
     this.s.role() === "manager" ||
       this.route.snapshot.paramMap.get("view") === "unit"
-      ? "دفتر پروژه‌ها"
+      ? this.s.currentPerson()?.unit ?? ""
       : "",
   );
   competencies = competencies;
   people = computed(() =>
-    this.s.state().people.filter((p) => !this.unit() || p.unit === this.unit()),
+    this.s.state().people.filter((p) => this.s.allowedPerson(p.id) && (!this.unit() || p.unit === this.unit())),
   );
   jobs = computed(() =>
-    this.s.state().jobs.filter((j) => !this.unit() || j.unit === this.unit()),
+    this.s.state().jobs.filter((j) => (this.s.role() !== "manager" || j.unit === this.s.currentPerson()?.unit) && (!this.unit() || j.unit === this.unit())),
   );
   cycles = computed(() =>
     this.s
