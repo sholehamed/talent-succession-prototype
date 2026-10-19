@@ -49,6 +49,39 @@ export interface Person {
   observed: number[];
   evidence: string;
 }
+/** A period's documented results are separate from 360/540 competency assessments. */
+export interface PerformanceKpiResult {
+  title: string;
+  definition: string;
+  unit: string;
+  source: string;
+  /** Reviewed percentage of target achievement for this KPI (0-100). */
+  achievement: number;
+  evidence: string;
+}
+export interface PerformanceReview {
+  id: string;
+  personId: string;
+  jobId: string;
+  jobVersion: number;
+  period: string;
+  kpis: PerformanceKpiResult[];
+  /** Equal-weight mean of documented KPI attainment, rounded to an integer. */
+  score: number;
+  band: Band;
+  status: "draft" | "approved";
+  notes: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+}
+export interface PerformanceKpiInput {
+  title: string;
+  achievement: number;
+  evidence: string;
+}
 export type HiringOutcome = "hired" | "declined";
 export interface EntryAssessment {
   id: string;
@@ -211,6 +244,8 @@ export interface DemoState {
   schema: 1;
   jobs: Job[];
   people: Person[];
+  /** Optional in older browser snapshots; normalized to [] when restored. */
+  performanceReviews: PerformanceReview[];
   /** Restored from an empty array for browser snapshots predating hiring. */
   candidates: Candidate[];
   positions: Position[];

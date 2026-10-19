@@ -102,6 +102,11 @@ import { UI } from "../shared/ui";
         <a mat-stroked-button routerLink="/development" [queryParams]="{ job: j.id }">
           برنامه‌های توسعه این شغل
         </a>
+        @if (s.role() !== "owner") {
+          <a mat-stroked-button routerLink="/performance">
+            ارزیابی عملکرد بر اساس KPIهای این شغل
+          </a>
+        }
       </div>
       } @else {
         <div class="warning">این شناسنامه هنوز منتشر نشده است؛ تا تأیید مالک، در چرخه‌های عملیاتی استفاده نمی‌شود.</div>

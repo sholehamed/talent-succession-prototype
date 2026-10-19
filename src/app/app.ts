@@ -116,6 +116,7 @@ export class App {
     { path: "/career-paths", title: "مسیرهای رشد", icon: "↗" },
     { path: "/hiring", title: "ارزیابی بدو استخدام", icon: "⊕" },
     { path: "/people", title: "افراد و استعدادها", icon: "♧" },
+    { path: "/performance", title: "ارزیابی عملکرد دوره‌ای", icon: "◫" },
     { path: "/evaluations/cycles", title: "ارزیابی چندمنبعی", icon: "◎" },
     { path: "/evaluations/questions", title: "مدیریت سؤالات ارزیابی", icon: "☷" },
     { path: "/evaluations/inbox", title: "کارتابل ارزیابی", icon: "☑" },
