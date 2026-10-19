@@ -4,7 +4,7 @@ import {
 import { appointmentOn, positionHolder, positionOf, validDay } from "./organization";
 import { orderedQuestions } from "./evaluation-questions";
 
-/** A read-only publish preview. No one is assigned until HR publishes. */
+/** Read-only selection preview; creating the period enrolls eligible people in preparing. */
 export interface CampaignPreviewRow {
   personId: string;
   positionId?: string;
@@ -112,7 +112,7 @@ export function campaignPreview(
   });
 }
 
-/** A campaign is materialized atomically: only eligible people get cycles. */
+/** Create a prepared individual cycle; do not expose work to evaluator inbox yet. */
 export function campaignCycle(
   campaign: EvaluationCampaign, row: CampaignPreviewRow,
   state: DemoState,
@@ -122,7 +122,7 @@ export function campaignCycle(
   return {
     id: crypto.randomUUID(), campaignId: campaign.id,
     title: campaign.title, period: campaign.period, subjectId: row.personId,
-    jobId: row.jobId, mode: campaign.mode, status: "collecting",
+    jobId: row.jobId, mode: campaign.mode, status: "preparing",
     assignments: row.assignments.map((a) => ({ ...a, id: crypto.randomUUID() })),
     requiredGroups: { ...row.requiredGroups },
     organizationSnapshot: {
