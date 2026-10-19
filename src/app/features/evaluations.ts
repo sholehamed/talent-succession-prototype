@@ -219,14 +219,14 @@ import { Chart } from "../shared/chart";
  <ng-container matColumnDef="group"><th mat-header-cell *matHeaderCellDef>گروه</th><td mat-cell *matCellDef="let a">{{ groupLabel(a.group) }}</td></ng-container>
  <ng-container matColumnDef="state"><th mat-header-cell *matHeaderCellDef>وضعیت</th><td mat-cell *matCellDef="let a">{{ s.hasAnswered(c, a) ? "ثبت‌شده" : "در انتظار پاسخ" }}</td></ng-container>
  <ng-container matColumnDef="action"><th mat-header-cell *matHeaderCellDef>عملیات</th><td mat-cell *matCellDef="let a">
-   @if (c.status === "preparing" && s.role() === "hr") {
+   @if (c.status === "preparing" && s.role() === "hr" && !c.campaignId) {
      <button mat-button (click)="s.removeEvaluator(c.id, a.id)">حذف</button>
    }
  </td></ng-container>
  <tr mat-header-row *matHeaderRowDef="evaluatorColumns"></tr><tr mat-row *matRowDef="let row; columns: evaluatorColumns"></tr>
  </table>
           </div>
-          @if (c.status === "preparing" && s.role() === "hr") {
+          @if (c.status === "preparing" && s.role() === "hr" && !c.campaignId) {
             <div class="info">
               ارزیابان از متصدی پست بالاسری، هم‌سطح‌های همان بالاسری و پست‌های زیرمجموعه مستقیم پیشنهاد می‌شوند.
               این پیشنهاد فقط با تأیید منابع انسانی ثبت می‌شود؛ ذی‌نفع بیرونی ۵۴۰ درجه نیازمند انتخاب دستی است.
@@ -267,21 +267,21 @@ import { Chart } from "../shared/chart";
                 افزودن ارزیاب
               </button>
             </div>
-            @if (c.campaignId) {
-              <div class="info">
-                این پرونده عضو یک دوره گروهی است. شروع پاسخ‌گیری فقط از مرکز کمپین و با تأیید منابع انسانی انجام می‌شود.
-                <a [routerLink]="['/evaluations/campaigns', c.campaignId]">مدیریت دوره گروهی ←</a>
+            @if (!s.canStart(c)) {
+              <div class="warning">
+                شروع دوره نیازمند حداقل ۱ سرپرست، ۲ هم‌سطح، ۲ زیردست و برای ۵۴۰
+                یک ذی‌نفع بیرونی است.
               </div>
-            } @else {
-              @if (!s.canStart(c)) {
-                <div class="warning">
-                  شروع دوره نیازمند حداقل ۱ سرپرست، ۲ هم‌سطح، ۲ زیردست و برای ۵۴۰
-                  یک ذی‌نفع بیرونی است.
-                </div>
-              }
-              <button mat-button class="primary" [disabled]="!s.canStart(c)"
-                (click)="s.advance(c.id)">شروع دریافت پاسخ‌ها</button>
             }
+            <button mat-button class="primary" [disabled]="!s.canStart(c)"
+              (click)="s.advance(c.id)">شروع دریافت پاسخ‌ها</button>
+          }
+          @if (c.status === "preparing" && c.campaignId) {
+            <div class="info">
+              افراد و ارزیاب‌های این پرونده هنگام ایجاد دوره از چارت ثبت شده‌اند.
+              برای شروع دریافت پاسخ به مرکز دوره گروهی مراجعه کنید؛ انتخاب دستی ارزیاب در این پرونده انجام نمی‌شود.
+              <a [routerLink]="['/evaluations/campaigns', c.campaignId]">مدیریت دوره گروهی ←</a>
+            </div>
           }
           @if (c.status === "collecting") {
             <div class="actions">
