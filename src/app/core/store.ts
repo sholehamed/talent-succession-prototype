@@ -993,8 +993,8 @@ export class Store {
   }
   addOrganizationalEvaluators(cycleId: string) {
     const cycle = this.cycle(cycleId);
-    if (!this.canAccess(["hr"]) || !cycle || cycle.status !== "preparing")
-      return this.fail("افزودن ارزیاب خودکار فقط در آماده‌سازی دوره مجاز است.");
+    if (!this.canAccess(["hr"]) || !cycle || cycle.status !== "preparing" || cycle.campaignId)
+      return this.fail("ارزیابان کمپین هنگام ایجاد دوره تثبیت می‌شوند؛ افزودن فقط برای پرونده‌های فردی مجاز است.");
     const assigned = new Set([cycle.subjectId, ...cycle.assignments.map((a) => a.personId)]);
     const suggestions = this.organizationalEvaluatorSuggestions(cycle.subjectId, cycle.mode)
       .filter((x) => !assigned.has(x.personId));
@@ -1011,7 +1011,7 @@ export class Store {
   }
   addEvaluator(id: string, personId: string, group: Group) {
     const c = this.cycle(id);
-    if (this.role() !== "hr" || c?.status !== "preparing") return false;
+    if (this.role() !== "hr" || c?.status !== "preparing" || c.campaignId) return false;
     if (
       personId === c.subjectId ||
       c.assignments.some((a) => a.personId === personId)
@@ -1027,7 +1027,7 @@ export class Store {
     return true;
   }
   removeEvaluator(id: string, aid: string) {
-    if (this.role() !== "hr" || this.cycle(id)?.status !== "preparing") return;
+    if (this.role() !== "hr" || this.cycle(id)?.status !== "preparing" || this.cycle(id)?.campaignId) return;
     this.commit("ارزیاب حذف شد", id, (s) => {
       const c = s.cycles.find((c) => c.id === id)!;
       c.assignments = c.assignments.filter((a) => a.id !== aid);
