@@ -32,7 +32,7 @@ export const routes: Routes = [
   { path: "career-paths", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/career") },
   ...(["chart", "units", "locations", "positions", "appointments"] as const).map((view) => ({
     path: "organization/" + view,
-    canActivate: [permit(["hr", "manager", "executive", "owner"])],
+    canActivate: [permit(view === "appointments" ? ["hr"] : ["hr", "manager", "executive", "owner"])],
     data: { view },
     loadComponent: () => import("./features/organization"),
   })),
