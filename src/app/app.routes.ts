@@ -83,6 +83,16 @@ export const routes: Routes = [
     loadComponent: () => import("./features/performance"),
   },
   {
+    path: "evaluations/campaigns/:id",
+    canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/evaluation-campaigns"),
+  },
+  {
+    path: "evaluations/campaigns",
+    canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/evaluation-campaigns"),
+  },
+  {
     path: "evaluations/questions",
     canActivate: [permit(["hr"])],
     loadComponent: () => import("./features/evaluation-questions"),
