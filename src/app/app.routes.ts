@@ -3,16 +3,19 @@ import { CanActivateFn, Router, Routes } from "@angular/router";
 import { Store } from "./core/store";
 import { Role } from "./core/models";
 const permit =
-  (roles: Role[]): CanActivateFn =>
+  (roles?: Role[]): CanActivateFn =>
   () => {
     const s = inject(Store);
-    if (roles.includes(s.role())) return true;
-    s.notice.set("این بخش برای نقش فعلی در دسترس نیست.");
-    return inject(Router).parseUrl("/settings");
+    const router = inject(Router);
+    if (!s.authenticated()) return router.parseUrl("/login");
+    if (s.canAccess(roles)) return true;
+    s.notice.set("این صفحه یا نقش برای حساب فعلی شما در دسترس نیست.");
+    return router.parseUrl(s.home());
   };
 const management: Role[] = ["hr", "manager", "executive"];
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "dashboard/hr" },
+  { path: "login", loadComponent: () => import("./features/login") },
   {
     path: "dashboard/development",
     canActivate: [permit(management)],
@@ -23,9 +26,9 @@ export const routes: Routes = [
     canActivate: [permit(management)],
     loadComponent: () => import("./features/dashboard"),
   },
-  { path: "jobs", loadComponent: () => import("./features/jobs") },
-  { path: "jobs/:id", loadComponent: () => import("./features/jobs") },
-  { path: "career-paths", loadComponent: () => import("./features/career") },
+  { path: "jobs", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/jobs") },
+  { path: "jobs/:id", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/jobs") },
+  { path: "career-paths", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/career") },
   {
     path: "hiring",
     canActivate: [permit(["hr"])],
@@ -86,6 +89,11 @@ export const routes: Routes = [
     loadComponent: () => import("./features/development-templates"),
   },
   {
+    path: "development/tasks",
+    canActivate: [permit(["employee"])],
+    loadComponent: () => import("./features/employee-tasks"),
+  },
+  {
     path: "development",
     canActivate: [permit([...management, "employee"])],
     loadComponent: () => import("./features/development"),
@@ -107,7 +115,7 @@ export const routes: Routes = [
     loadComponent: () => import("./features/talent"),
   },
   { path: "positions/critical", redirectTo: "talent/succession" },
-  { path: "knowledge", loadComponent: () => import("./features/knowledge") },
+  { path: "knowledge", canActivate: [permit(["hr","manager","executive","owner","employee"])], loadComponent: () => import("./features/knowledge") },
   {
     path: "knowledge/editor",
     canActivate: [permit(["hr", "manager", "employee"])],
@@ -122,6 +130,7 @@ export const routes: Routes = [
   },
   {
     path: "knowledge/:id",
+    canActivate: [permit(["hr","manager","executive","owner","employee"])],
     loadComponent: () => import("./features/knowledge"),
   },
   {
@@ -130,7 +139,7 @@ export const routes: Routes = [
     data: { reports: true },
     loadComponent: () => import("./features/dashboard"),
   },
-  { path: "settings", loadComponent: () => import("./features/settings") },
+  { path: "settings", canActivate: [permit()], loadComponent: () => import("./features/settings") },
   { path: "demo/settings", redirectTo: "settings" },
-  { path: "**", loadComponent: () => import("./features/not-found") },
+  { path: "**", canActivate: [permit()], loadComponent: () => import("./features/not-found") },
 ];
