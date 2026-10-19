@@ -743,6 +743,52 @@ export class Store {
     );
     return id;
   }
+  /** Suggestions based on position hierarchy; HR must explicitly accept. */
+  organizationalEvaluatorSuggestions(personId: string, mode: 360 | 540) {
+    const position = this.currentPosition(personId);
+    if (!position) return [] as { personId: string; group: Group; reason: string }[];
+    const manager = this.currentManager(personId);
+    const peers = this.state().positions
+      .filter((p) => p.id !== position.id &&
+        p.parentPositionId === position.parentPositionId &&
+        !!position.parentPositionId)
+      .flatMap((p) => {
+        const person = this.currentPositionHolder(p.id);
+        return person ? [person] : [];
+      });
+    const juniors = this.directReports(personId);
+    const raw: { personId: string; group: Group; reason: string }[] = [
+      ...(manager ? [{ personId: manager.id, group: "supervisor" as const, reason: "متصدی پست بالاسری" }] : []),
+      ...peers.map((p) => ({ personId: p.id, group: "peer" as const, reason: "هم‌سطح در چارت پست‌ها" })),
+      ...juniors.map((p) => ({ personId: p.id, group: "subordinate" as const, reason: "متصدی پست زیرمجموعه مستقیم" })),
+    ];
+    const seen = new Set([personId]);
+    // Only create proposal records from occupied posts, never fake evaluators
+    // to satisfy group minima; 540 external relations remain manually selected.
+    return raw.filter((r) => {
+      if (seen.has(r.personId)) return false;
+      seen.add(r.personId);
+      return mode === 540 || r.group !== "external";
+    });
+  }
+  addOrganizationalEvaluators(cycleId: string) {
+    const cycle = this.cycle(cycleId);
+    if (!this.canAccess(["hr"]) || !cycle || cycle.status !== "preparing")
+      return this.fail("افزودن ارزیاب خودکار فقط در آماده‌سازی دوره مجاز است.");
+    const assigned = new Set([cycle.subjectId, ...cycle.assignments.map((a) => a.personId)]);
+    const suggestions = this.organizationalEvaluatorSuggestions(cycle.subjectId, cycle.mode)
+      .filter((x) => !assigned.has(x.personId));
+    if (!suggestions.length)
+      return this.fail("ارزیاب سازمانی جدیدی برای پیشنهاد وجود ندارد.");
+    this.commit("ارزیابان پیشنهادی از چارت سازمانی افزوده شدند", cycleId, (state) => {
+      const target = state.cycles.find((c) => c.id === cycleId)!;
+      for (const item of suggestions) {
+        if (target.assignments.some((a) => a.personId === item.personId)) continue;
+        target.assignments.push({ id: crypto.randomUUID(), personId: item.personId, group: item.group });
+      }
+    });
+    return true;
+  }
   addEvaluator(id: string, personId: string, group: Group) {
     const c = this.cycle(id);
     if (this.role() !== "hr" || c?.status !== "preparing") return false;
