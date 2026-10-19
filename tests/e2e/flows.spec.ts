@@ -51,6 +51,7 @@ test("all main routes render, RTL, lazy charts and responsive layout", async ({
     "/dashboard/executive",
     "/dashboard/unit",
     "/jobs",
+    "/jobs/new",
     "/jobs/j1",
     "/career-paths",
     "/hiring",
@@ -695,4 +696,76 @@ test("login binds identity, personal visibility, role grants and assigned IDP wo
   expect(assigned.evidence).toContain("حساب p3");
   await page.reload();
   await expect(page.locator("main")).toContainText("حساب p3");
+});
+
+test("new job profile remains draft until owner publication and then appears in linked selectors", async ({ page }) => {
+  const title = "تحلیلگر فرایندهای سازمانی";
+  const code = "JOB-207";
+  await nav(page, "/jobs");
+  await page.getByRole("link", { name: /شناسنامه شغلی جدید/ }).click();
+  await expect(page).toHaveURL(/\/jobs\/new$/);
+  await page.getByRole("textbox", { name: "کد یکتای شغل" }).fill(code);
+  await page.getByRole("textbox", { name: "عنوان", exact: true }).fill(title);
+  await page.getByRole("textbox", { name: "واحد سازمانی" }).fill("دفتر پروژه‌ها");
+  await page.getByRole("textbox", { name: "خانواده" }).fill("مدیریت پروژه");
+  await page.getByRole("textbox", { name: "سطح" }).fill("کارشناسی ارشد");
+  await page.getByRole("textbox", { name: "مالک محتوا" }).fill("دفتر مدیریت");
+  await page.getByRole("textbox", { name: "مأموریت" }).fill("مدلسازی و بهبود فرایندهای کاری و هماهنگی ذی‌نفعان");
+  await page.getByRole("button", { name: "+ وظیفه" }).click();
+  await page.getByRole("textbox", { name: "وظیفه" }).fill("استخراج فرایندها");
+  await page.getByRole("textbox", { name: "خروجی / شاخص نتیجه" }).fill("نقشه فرایند تصویب‌شده");
+  await page.getByRole("button", { name: "+ شاخص" }).click();
+  const kpi = page.locator(".form-section .panel.form-grid").last();
+  await kpi.getByRole("textbox", { name: "عنوان", exact: true }).fill("میزان پوشش فرایندها");
+  await kpi.getByRole("textbox", { name: "تعریف عملیاتی" }).fill("فرایندهای مدل‌سازی‌شده");
+  await kpi.getByRole("textbox", { name: "فرمول" }).fill("تعداد تصویب‌شده تقسیم بر کل");
+  await kpi.getByRole("textbox", { name: "واحد سنجش" }).fill("درصد");
+  await kpi.getByRole("textbox", { name: "تناوب" }).fill("ماهانه");
+  await kpi.getByRole("textbox", { name: "منبع داده مرجع" }).fill("صورتجلسه");
+  await kpi.getByRole("textbox", { name: "مالک شاخص" }).fill("مدیر دفتر");
+  await page.getByRole("button", { name: "ثبت شناسنامه و ایجاد پیش‌نویس" }).click();
+  await expect(page).toHaveURL(/\/jobs\/(?!new)[\w-]+$/);
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.locator("main")).toContainText("هنوز منتشر نشده");
+  const jobId = new URL(page.url()).pathname.split("/").at(-1);
+  let state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  expect(state.jobs.find((j: any) => j.id === jobId)).toMatchObject({
+    code, title, version: 0, review: "draft", draft: { title },
+  });
+  await nav(page, "/hiring");
+  await page.getByRole("combobox", { name: "شغل هدف استخدام" }).click();
+  await expect(page.getByRole("option", { name: title + " · دفتر پروژه‌ها" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await nav(page, "/jobs/" + jobId);
+  await page.getByRole("button", { name: "ارسال برای تأیید" }).click();
+  await role(page, "owner");
+  await page.getByRole("button", { name: "تأیید و انتشار نسخه" }).click();
+  await expect(page.locator("main")).toContainText("نسخه ۱");
+  await signIn(page, "p1", "hr");
+  await nav(page, "/hiring");
+  await page.getByRole("combobox", { name: "شغل هدف استخدام" }).click();
+  await expect(page.getByRole("option", { name: title + " · دفتر پروژه‌ها" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await nav(page, "/evaluations/cycles");
+  await page.getByRole("combobox", { name: "شغل هدف" }).click();
+  await expect(page.getByRole("option", { name: title, exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await nav(page, "/career-paths");
+  await page.getByRole("combobox", { name: "مبدأ" }).click();
+  await expect(page.getByRole("option", { name: title, exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.reload();
+  state = await page.evaluate(() => JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  expect(state.jobs.find((j: any) => j.id === jobId).version).toBe(1);
+  expect(state.jobs.find((j: any) => j.id === jobId).kpis[0].title).toBe("میزان پوشش فرایندها");
+});
+
+test("employee and owner cannot create new jobs via URL", async ({ page }) => {
+  await signIn(page, "p3", "employee");
+  await page.goto("/jobs/new");
+  await expect(page).toHaveURL(/\/people\/p3$/);
+  await signIn(page, "p12", "owner");
+  await page.goto("/jobs/new");
+  await expect(page).toHaveURL(/\/jobs$/);
+  await expect(page.getByRole("link", { name: /شناسنامه شغلی جدید/ })).toHaveCount(0);
 });

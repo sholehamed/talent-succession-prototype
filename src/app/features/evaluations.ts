@@ -81,7 +81,7 @@ import { Chart } from "../shared/chart";
                   }
                 </mat-select></mat-form-field><mat-form-field appearance="outline"
                 ><mat-label>شغل هدف</mat-label><mat-select [(ngModel)]="target">
-                  @for (j of s.state().jobs; track j.id) {
+                  @for (j of s.publishedJobs(); track j.id) {
                     <mat-option [value]="j.id">{{ j.title }}</mat-option>
                   }
                 </mat-select></mat-form-field><mat-form-field appearance="outline"
@@ -417,7 +417,7 @@ export default class Evaluations {
   });
   readonly jobFilter = computed(() => {
     const jobId = this.queryParams().get("job");
-    return jobId && this.s.state().jobs.some((j) => j.id === jobId) ? jobId : "";
+    return jobId && this.s.publishedJobs().some((j) => j.id === jobId) ? jobId : "";
   });
   readonly personFilter = computed(() => {
     const personId = this.queryParams().get("person");
@@ -459,7 +459,7 @@ export default class Evaluations {
   }
   initialJob() {
     const requested = this.route.snapshot.queryParamMap.get("job");
-    if (requested && this.s.state().jobs.some((j) => j.id === requested)) return requested;
+    if (requested && this.s.publishedJobs().some((j) => j.id === requested)) return requested;
     const person = this.route.snapshot.queryParamMap.get("person");
     return this.s.state().people.find((p) => p.id === person)?.jobId
       ?? this.s.state().jobs[0]?.id ?? "";
@@ -468,7 +468,7 @@ export default class Evaluations {
     const requested = this.route.snapshot.queryParamMap.get("person");
     if (requested && this.s.state().people.some((p) => p.id === requested)) return requested;
     const job = this.route.snapshot.queryParamMap.get("job");
-    if (job && this.s.state().jobs.some((j) => j.id === job))
+    if (job && this.s.publishedJobs().some((j) => j.id === job))
       return this.s.relatedPeople(job)[0]?.id ?? this.s.state().people[0]?.id ?? "";
     return this.s.state().people[0]?.id ?? "";
   }
