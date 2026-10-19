@@ -255,6 +255,7 @@ export function seed(): DemoState {
     schema: 1,
     jobs,
     people,
+    performanceReviews: [],
     questions: defaultEvaluationQuestions(),
     developmentTemplates: defaultDevelopmentTemplates(),
     candidates: [
