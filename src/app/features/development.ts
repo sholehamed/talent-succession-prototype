@@ -3,7 +3,6 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute } from "@angular/router";
 import { Store } from "../core/store";
 import { Action, EffectivenessOutcome, competencies } from "../core/models";
-import { developmentTemplates, templatesForCompetency } from "../core/development-templates";
 import { GrowthComparison } from "../shared/growth-comparison";
 import { UI } from "../shared/ui";
 @Component({
@@ -297,9 +296,13 @@ export default class Development {
   draft?: Action;
   reviewDraft?: { actionId: string; outcome: EffectivenessOutcome; note: string };
   newCompetency = 4;
-  newTemplateId = "leadership-delegate";
-  readonly templates = () => templatesForCompetency(this.newCompetency);
-  readonly templateCatalog = developmentTemplates;
+  newTemplateId = "";
+  readonly templates = () => this.s.templatesForCompetency(this.newCompetency)
+    .filter((t) => !this.plan()?.actions.some((a) => a.templateId === t.id));
+  selectedTemplateId() {
+    return this.templates().some((t) => t.id === this.newTemplateId)
+      ? this.newTemplateId : (this.templates()[0]?.id ?? "");
+  }
   competencies = competencies;
   statuses = ["planned", "progress", "completed", "blocked", "cancelled"];
   plan = computed(() => this.s.state().plans.find((p) => p.id === this.id()));
@@ -318,13 +321,11 @@ export default class Development {
   );
   chooseCompetency(value: number) {
     this.newCompetency = value;
-    this.newTemplateId = templatesForCompetency(value)[0]?.id ?? "";
+    this.newTemplateId = this.templates()[0]?.id ?? "";
   }
   addAction() {
-    if (this.s.addDevelopmentAction(this.id()!, this.newCompetency, this.newTemplateId)) {
-      this.newTemplateId = templatesForCompetency(this.newCompetency)
-        .find((t) => !this.plan()?.actions.some((a) => a.templateId === t.id))?.id
-        ?? this.newTemplateId;
+    if (this.s.addDevelopmentAction(this.id()!, this.newCompetency, this.selectedTemplateId())) {
+      this.newTemplateId = this.templates()[0]?.id ?? "";
     }
   }
   outcomeLabel(outcome: EffectivenessOutcome) {
