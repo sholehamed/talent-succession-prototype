@@ -124,6 +124,7 @@ export interface Cycle {
   notes: string;
   created: string;
 }
+import type { DevelopmentTemplate } from "./development-templates";
 export type EffectivenessOutcome = "effective" | "partial" | "ineffective";
 export interface EffectivenessReview {
   outcome: EffectivenessOutcome;
@@ -213,6 +214,8 @@ export interface DemoState {
   positions: Position[];
   cycles: Cycle[];
   questions: EvaluationQuestion[];
+  /** Editable action templates, keyed by competency index. */
+  developmentTemplates: DevelopmentTemplate[];
   plans: Plan[];
   knowledge: Knowledge[];
   nominations: Nomination[];
