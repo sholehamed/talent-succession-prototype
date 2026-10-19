@@ -14,9 +14,12 @@ import { UI } from "../shared/ui";
         <h1>برنامه توسعه فردی</h1>
         <p>اقدام مشخص، مسئول روشن و پیگیری قابل مشاهده</p>
       </div>
-      <a mat-button class="secondary" routerLink="/development"
-        >همه برنامه‌ها</a
-      >
+      <div class="actions">
+        @if (s.role() === "hr") {
+          <a mat-button class="secondary" routerLink="/development/templates">مدیریت الگوهای توسعه</a>
+        }
+        <a mat-button class="secondary" routerLink="/development">همه برنامه‌ها</a>
+      </div>
     </div>
     @if (!id()) {
       @if (jobFilter() || personFilter() || periodFilter() || unitFilter()) {
@@ -141,15 +144,22 @@ import { UI } from "../shared/ui";
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>الگوی اقدام توسعه</mat-label>
-                <mat-select [(ngModel)]="newTemplateId">
+                <mat-select [ngModel]="selectedTemplateId()" (ngModelChange)="newTemplateId = $event">
                   @for (t of templates(); track t.id) {
-                    <mat-option [value]="t.id">{{ t.title }}</mat-option>
+                    <mat-option [value]="t.id">{{ t.title }} · {{ t.kind }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
             </div>
+            @if (!templates().length) {
+              <div class="info">برای این شایستگی الگوی فعال و استفاده‌نشده‌ای وجود ندارد.
+                @if (s.role() === "hr") {
+                  <a routerLink="/development/templates">مدیریت الگوها ←</a>
+                }
+              </div>
+            }
             <div class="actions">
-              <button mat-button class="primary" (click)="addAction()">افزودن اقدام توسعه</button>
+              <button mat-button class="primary" [disabled]="!selectedTemplateId()" (click)="addAction()">افزودن اقدام توسعه</button>
             </div>
           </mat-card>
         }
