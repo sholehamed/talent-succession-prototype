@@ -454,6 +454,134 @@ export class Store {
   latestEntryAssessment(id: string) {
     return this.candidate(id)?.assessments.at(-1);
   }
+  /** Candidate referral is sequential: HR -> general -> specialist -> HR decision. */
+  entryMembers(stage: EntryCommitteeStage) {
+    return this.state().entryCommitteeMembers
+      .filter((m) => m.stage === stage)
+      .flatMap((m) => {
+        const person = this.state().people.find((p) => p.id === m.personId);
+        return person ? [person] : [];
+      });
+  }
+  setEntryCommitteeMember(stage: EntryCommitteeStage, personId: string, enabled: boolean) {
+    if (!this.canAccess(["hr"])) return this.fail("تنظیم ترکیب کمیته فقط برای منابع انسانی مجاز است.");
+    if (!["general","specialist"].includes(stage) ||
+      !this.state().people.some((p) => p.id === personId && rolesForPerson(p.id).includes("evaluator")))
+      return this.fail("عضو کمیته باید شخص دارای نقش ارزیاب باشد.");
+    this.commit("عضویت کمیته بدو استخدام تنظیم شد", personId, (state) => {
+      state.entryCommitteeMembers = state.entryCommitteeMembers.filter((m) =>
+        !(m.stage === stage && m.personId === personId));
+      if (enabled) state.entryCommitteeMembers.push({ stage, personId });
+    });
+    return true;
+  }
+  saveEntryQuestion(draft: EntryQuestion) {
+    if (!this.canAccess(["hr"])) return this.fail("بانک سؤالات بدو استخدام فقط برای منابع انسانی قابل تغییر است.");
+    if (!["general","specialist"].includes(draft.stage) ||
+      (draft.stage === "general" && draft.jobId !== null) ||
+      (draft.stage === "specialist" && !this.publishedJobs().some((j) => j.id === draft.jobId)) ||
+      !draft.text.trim() || !Number.isInteger(draft.competencyIndex) ||
+      draft.competencyIndex < 0 || draft.competencyIndex >= competencies.length)
+      return this.fail("نوع ارزیابی، شغل هدف، شایستگی و متن سؤال باید معتبر باشند.");
+    if (this.state().entryQuestions.some((q) => q.id !== draft.id &&
+      q.stage === draft.stage && q.jobId === draft.jobId &&
+      q.text.trim() === draft.text.trim()))
+      return this.fail("در این بانک سؤال تکراری وجود دارد.");
+    const existing = this.state().entryQuestions.find((q) => q.id === draft.id);
+    if (existing && (existing.stage !== draft.stage || existing.jobId !== draft.jobId))
+      return this.fail("برای انتقال سؤال به گروه یا شغل دیگر، یک سؤال جدید ایجاد کنید.");
+    const id = existing?.id ?? crypto.randomUUID();
+    this.commit("بانک سؤالات بدو استخدام تغییر کرد", id, (state) => {
+      const row: EntryQuestion = {
+        id, stage: draft.stage, jobId: draft.jobId, competencyIndex: draft.competencyIndex,
+        text: draft.text.trim(), isActive: draft.isActive !== false,
+        order: existing?.order ?? Math.max(-1, ...state.entryQuestions.filter((q) =>
+          q.stage === draft.stage && q.jobId === draft.jobId).map((q) => q.order)) + 1,
+      };
+      const i = state.entryQuestions.findIndex((q) => q.id === id);
+      if (i >= 0) state.entryQuestions[i] = row;
+      else state.entryQuestions.push(row);
+    });
+    return true;
+  }
+  entryQueue(stage: EntryCommitteeStage) {
+    if (!this.canAccess(["evaluator"])) return [];
+    return this.state().candidates.filter((c) =>
+      !c.decision && !!c.entryWorkflow &&
+      (stage === "general" ? c.entryWorkflow.general : c.entryWorkflow.specialist)?.assignedTo === this.actor());
+  }
+  referEntry(candidateId: string, stage: EntryCommitteeStage, assignee: string) {
+    const candidate = this.candidate(candidateId);
+    if (!this.canAccess(["hr"]) || !candidate || candidate.decision)
+      return this.fail("ارجاع ارزیابی فقط برای منابع انسانی و پرونده باز مجاز است.");
+    if (!this.state().entryCommitteeMembers.some((m) => m.stage === stage && m.personId === assignee))
+      return this.fail("ارزیاب انتخاب‌شده عضو این کمیته نیست.");
+    if (stage === "general" && (candidate.entryWorkflow || candidate.assessments.length))
+      return this.fail("ارجاع اولیه فقط برای داوطلب فاقد ارزیابی و ارجاع قبلی مجاز است.");
+    if (stage === "specialist" &&
+      (!candidate.entryWorkflow?.general.completedAt || candidate.entryWorkflow.specialist))
+      return this.fail("ابتدا نتیجه عمومی باید ثبت شده و مرحله تخصصی بدون ارجاع قبلی باشد.");
+    const questions = activeEntryQuestions(this.state().entryQuestions, stage, candidate.jobId);
+    const error = entryBankError(questions);
+    if (error) return this.fail(error);
+    const referral = {
+      stage, assignedTo: assignee, assignedAt: new Date().toISOString(),
+      questions: structuredClone(questions),
+    };
+    this.commit(stage === "general" ? "ارجاع به کمیته عمومی ثبت شد" : "ارجاع به کمیته تخصصی ثبت شد",
+      candidateId, (state) => {
+        const c = state.candidates.find((x) => x.id === candidateId)!;
+        if (stage === "general") c.entryWorkflow = { general: referral };
+        else c.entryWorkflow!.specialist = referral;
+      });
+    return true;
+  }
+  submitEntryReview(candidateId: string, stage: EntryCommitteeStage,
+    answers: QuestionAnswer[], evidence: string) {
+    const candidate = this.candidate(candidateId);
+    const review = stage === "general"
+      ? candidate?.entryWorkflow?.general : candidate?.entryWorkflow?.specialist;
+    if (!this.canAccess(["evaluator"]) || !candidate || candidate.decision ||
+      !review || review.assignedTo !== this.actor() || review.completedAt)
+      return this.fail("این پرسشنامه به حساب و مرحله فعلی شما تخصیص نیافته است.");
+    const scores = entryScores(review.questions, answers);
+    if (!scores || !evidence.trim())
+      return this.fail("پاسخ معتبر به همه سؤال‌ها و شواهد مستند این مرحله الزامی است.");
+    this.commit("نتیجه کمیته ارزیابی بدو استخدام ثبت شد", candidateId, (state) => {
+      const c = state.candidates.find((x) => x.id === candidateId)!;
+      const target = stage === "general" ? c.entryWorkflow!.general : c.entryWorkflow!.specialist!;
+      target.answers = answers.map((a) => ({ ...a }));
+      target.scores = scores;
+      target.evidence = evidence.trim();
+      target.completedAt = new Date().toISOString();
+    });
+    return true;
+  }
+  finalizeEntryReview(candidateId: string, potential: Band,
+    potentialReason: string, evidence: string) {
+    const candidate = this.candidate(candidateId);
+    const workflow = candidate?.entryWorkflow;
+    if (!this.canAccess(["hr"]) || !candidate || candidate.decision ||
+      !workflow?.general.completedAt || !workflow.specialist?.completedAt ||
+      candidate.assessments.length)
+      return this.fail("جمع‌بندی تنها پس از تکمیل هر دو کمیته و برای پرونده باز مجاز است.");
+    const scores = combinedEntryScores(workflow.general, workflow.specialist);
+    if (!scores || !["low","medium","high"].includes(potential) ||
+      !potentialReason.trim() || !evidence.trim())
+      return this.fail("امتیازهای هر دو کمیته و نظر مستند درباره پتانسیل الزامی است.");
+    this.commit("جمع‌بندی ارزیابی عمومی و تخصصی تأیید شد", candidateId, (state) => {
+      state.candidates.find((c) => c.id === candidateId)!.assessments.push({
+        id: crypto.randomUUID(), scores, potential,
+        evidence: evidence.trim(), potentialReason: potentialReason.trim(),
+        assessor: "منابع انسانی (تأیید جمع‌بندی دو کمیته)",
+        source: "committees",
+        generalReviewAt: workflow.general.completedAt,
+        specialistReviewAt: workflow.specialist!.completedAt,
+        evaluatedAt: new Date().toISOString(),
+      });
+    });
+    return true;
+  }
   registerCandidate(name: string, jobId: string) {
     if (this.role() !== "hr") return (this.fail("ثبت داوطلب تنها برای منابع انسانی مجاز است."), "");
     if (!name.trim() || !this.publishedJobs().some((j) => j.id === jobId))
@@ -472,8 +600,8 @@ export class Store {
     evidence: string, potentialReason: string,
   ) {
     const candidate = this.candidate(candidateId);
-    if (this.role() !== "hr" || !candidate || candidate.decision)
-      return this.fail("ارزیابی این داوطلب در نقش فعلی یا پس از تصمیم نهایی قابل ثبت نیست.");
+    if (this.role() !== "hr" || !candidate || candidate.decision || candidate.entryWorkflow)
+      return this.fail("با شروع ارجاع کمیته، ثبت دستی امتیاز شایستگی مجاز نیست.");
     if (!validScores(scores) || !["low", "medium", "high"].includes(potential) ||
         !evidence.trim() || !potentialReason.trim())
       return this.fail("پنج امتیاز معتبر ۱ تا ۵، سطح پتانسیل و شواهد و استدلال آن الزامی است.");
