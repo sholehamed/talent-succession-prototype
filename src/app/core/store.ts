@@ -11,6 +11,7 @@ import {
   Assignment,
   Group,
   JobContent,
+  Job,
   Knowledge,
   Nomination,
   Plan,
@@ -100,6 +101,8 @@ export class Store {
   readonly notice = signal("");
   readonly storageWarning = signal("");
   readonly state = signal<DemoState>(this.restore());
+  /** Only a published version can be used for hiring, evaluation, career paths or staffing. */
+  readonly publishedJobs = computed(() => this.state().jobs.filter((j) => j.version > 0));
   readonly units = computed(() => [
     ...new Set(this.state().jobs.map((j) => j.unit)),
   ]);
@@ -255,7 +258,7 @@ export class Store {
   }
   registerCandidate(name: string, jobId: string) {
     if (this.role() !== "hr") return (this.fail("ثبت داوطلب تنها برای منابع انسانی مجاز است."), "");
-    if (!name.trim() || !this.state().jobs.some((j) => j.id === jobId))
+    if (!name.trim() || !this.publishedJobs().some((j) => j.id === jobId))
       return (this.fail("نام داوطلب و شغل هدف معتبر الزامی است."), "");
     const id = crypto.randomUUID();
     this.commit("داوطلب برای ارزیابی اولیه ثبت شد", id, (state) => {
@@ -350,8 +353,43 @@ export class Store {
   progress = progress;
   aggregate = aggregate;
   canStart = canStart;
-  saveJob(id: string, draft: JobContent) {
+  createJob(code: string, content: JobContent): string {
+    if (!this.editable())
+      return (this.fail("تنها منابع انسانی یا مدیر مجاز می‌تواند شناسنامه جدید ثبت کند."), "");
+    if (this.role() === "manager" && content.unit.trim() !== this.currentPerson()?.unit)
+      return (this.fail("مدیر فقط برای واحد سازمانی خودش شناسنامه تعریف می‌کند."), "");
+    const normalizedCode = code.trim().toUpperCase();
+    if (!/^[A-Z0-9][A-Z0-9_-]{1,31}$/.test(normalizedCode))
+      return (this.fail("کد شغل باید ۲ تا ۳۲ نویسه انگلیسی شامل حروف، عدد، خط تیره یا زیرخط باشد."), "");
+    if (this.state().jobs.some((j) => j.code.trim().toUpperCase() === normalizedCode))
+      return (this.fail("کد شغل تکراری است؛ کد یکتا وارد کنید."), "");
+    if (!content.family.trim() || !content.unit.trim() || !content.level.trim())
+      return (this.fail("خانواده، واحد سازمانی و سطح شغلی الزامی‌اند."), "");
+    const error = validateJob(content);
+    if (error) return (this.fail(error), "");
+    if (!content.tasks.length)
+      return (this.fail("برای شناسنامه جدید حداقل یک وظیفه خروجی‌محور تعریف کنید."), "");
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const draft = structuredClone(content);
+    // A new record is not published merely because it appears in the job list.
+    // Version zero is an initial draft; the owner's approval publishes version one.
+    const job: Job = {
+      ...structuredClone(content),
+      id, code: normalizedCode, version: 0, revised: now,
+      review: "draft", draft, history: [],
+    };
+    this.commit("پیش‌نویس شناسنامه شغلی جدید ایجاد شد", id, (state) => {
+      state.jobs.unshift(job);
+    });
+    return id;
+  }
+    saveJob(id: string, draft: JobContent) {
     if (!this.editable()) return this.fail("نقش فعلی اجازه ویرایش ندارد.");
+    const job = this.state().jobs.find((j) => j.id === id);
+    if (!job) return this.fail("شناسنامه شغلی یافت نشد.");
+    if (this.role() === "manager" && draft.unit !== this.currentPerson()?.unit)
+      return this.fail("مدیر نمی‌تواند شناسنامه‌ای خارج از واحد خودش تعریف یا ویرایش کند.");
     const error = validateJob(draft);
     if (error) return this.fail(error);
     this.commit("پیش‌نویس شناسنامه ذخیره شد", id, (s) => {
@@ -389,7 +427,7 @@ export class Store {
           x.history.unshift({
             version: x.version,
             at: x.revised,
-            summary: "بازنگری و تأیید مالک خانواده",
+            summary: x.version === 1 ? "تصویب نسخه اولیه شناسنامه" : "بازنگری و تأیید مالک خانواده",
           });
         } else x.review = decision === "submit" ? "review" : "rejected";
       },
@@ -471,7 +509,7 @@ export class Store {
       this.role() !== "hr" ||
       !title.trim() ||
       !this.person(subjectId) ||
-      !this.job(jobId)
+      !this.publishedJobs().some((j) => j.id === jobId)
     )
       return "";
     const id = crypto.randomUUID();
