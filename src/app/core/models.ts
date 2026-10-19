@@ -330,8 +330,8 @@ export interface EvaluationCampaign {
   status: "draft" | "active" | "closed";
   createdAt: string;
   createdBy: string;
-  publishedAt?: string;
-  /** Publish-time exceptions remain visible for audit and follow-up. */
+  startedAt?: string;
+  /** Creation-time exceptions remain visible for audit and follow-up. */
   exclusions: { personId: string; reason: string }[];
 }
 export interface DemoState {
