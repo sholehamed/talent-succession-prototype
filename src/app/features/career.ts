@@ -35,12 +35,12 @@ import { UI } from "../shared/ui";
         <div class="form-grid">
           <mat-form-field appearance="outline"
             ><mat-label>مبدأ</mat-label><mat-select [(ngModel)]="from">
-              @for (j of s.state().jobs; track j.id) {
+              @for (j of s.publishedJobs(); track j.id) {
                 <mat-option [value]="j.id">{{ j.title }}</mat-option>
               }
             </mat-select></mat-form-field><mat-form-field appearance="outline"
             ><mat-label>مقصد</mat-label><mat-select [(ngModel)]="to">
-              @for (j of s.state().jobs; track j.id) {
+              @for (j of s.publishedJobs(); track j.id) {
                 <mat-option [value]="j.id">{{ j.title }}</mat-option>
               }
             </mat-select></mat-form-field><mat-form-field appearance="outline" class="full"
