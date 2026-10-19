@@ -27,8 +27,9 @@ function newEmployee(s: Store): string {
   expect(s.recordEntryAssessment(candidateId, [4, 4, 4, 4, 4], "high",
     "شواهد مصاحبه اولیه", "پتانسیل رشد بالا")).toBe(true);
   const id = s.decideCandidate(candidateId, "hired", "تأیید ثبت استخدام",
-    { code: "EMP-8000", managerId: "p11", hiredAt: "2026-10-18" });
+    { code: "EMP-8000", positionId: "vac-j1", hiredAt: "2026-10-18" });
   expect(id).not.toBe(false);
+  expect(s.currentPosition(id as string)?.id).toBe("vac-j1");
   return id as string;
 }
 
