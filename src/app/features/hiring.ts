@@ -361,8 +361,6 @@ import { UI } from "../shared/ui";
           } @else {
             <div class="info">پست سازمانی را انتخاب کنید؛ بالاسری و مدیر از چارت به‌صورت خودکار نمایش داده می‌شوند.</div>
           }
-          <div class="form-grid">
-          </div>
           <div class="actions">
             <button mat-button class="primary" (click)="decide('hired')">تأیید استخدام و تشکیل پرونده</button>
             <button mat-button class="secondary" (click)="decide('declined')">ثبت عدم استخدام</button>
