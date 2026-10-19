@@ -12,7 +12,7 @@ const signIn = async (p: Page, id = "p1", activeRole?: string) => {
     await p.getByRole("button", { name: "خروج", exact: true }).click();
   await p.goto("/login");
   await p.getByRole("textbox", { name: "شناسه کاربری" }).fill(id);
-  await p.getByRole("textbox", { name: "رمز عبور" }).fill("Royesh1405!");
+  await p.getByLabel("رمز عبور").fill("Royesh1405!");
   await p.getByRole("button", { name: "ورود به رویش" }).click();
   await expect(p.getByRole("combobox", { name: "نقش فعال" })).toBeVisible();
   if (activeRole && await p.getByRole("combobox", {name:"نقش فعال"}).inputValue().catch(() => "") !== roleLabels[activeRole]) {
@@ -669,7 +669,7 @@ test("login binds identity, personal visibility, role grants and assigned IDP wo
   await page.goto("/people/p2");
   await expect(page).toHaveURL(/\/login$/);
   await page.getByRole("textbox", {name:"شناسه کاربری"}).fill("p3");
-  await page.getByRole("textbox", {name:"رمز عبور"}).fill("wrong");
+  await page.getByLabel("رمز عبور").fill("wrong");
   await page.getByRole("button", {name:"ورود به رویش"}).click();
   await expect(page.getByRole("alert")).toContainText("صحیح نیست");
   await page.getByRole("textbox", {name:"رمز عبور"}).fill("Royesh1405!");
