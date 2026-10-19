@@ -1050,14 +1050,45 @@ mat-nav-list.nav-accordion a.nav-child-item {
   font-size: 11px;
   white-space: nowrap;
 }
-.nav-child-bullet {
-  color: #a5bbb8;
-  flex: 0 0 9px;
-  font-size: 15px;
-  text-align: center;
+/* Local SVG Material icons inherit text color, including active/hover state. */
+mat-sidenav.sidebar mat-icon.nav-group-icon {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
 }
-.nav-child-item.active .nav-child-bullet {
+mat-sidenav.sidebar mat-icon.nav-child-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: #91a5a2;
+}
+mat-sidenav.sidebar .nav-child-item.active mat-icon.nav-child-icon {
   color: #087864;
+}
+mat-sidenav.sidebar mat-icon.nav-group-chevron {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+mat-sidenav.sidebar mat-icon.nav-arrow {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+mat-sidenav.sidebar .nav-settings-item mat-icon {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+}
+mat-sidenav.sidebar mat-icon.workspace-symbol {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+}
+.menu-toggle mat-icon {
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
 }
 .nav-item-title {
   flex: 1;
