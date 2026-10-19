@@ -45,6 +45,12 @@ export function saveUnit(state: DemoState, draft: OrganizationUnit): string {
   const i = state.organizationUnits.findIndex((x) => x.id === row.id);
   if (i >= 0) state.organizationUnits[i] = row;
   else state.organizationUnits.push(row);
+  // The organization unit is the source of truth for position placement.
+  // Sync legacy labels as well so existing People/IDP/dashboard views remain coherent.
+  for (const position of state.positions) {
+    if (position.unitId === row.id) position.unit = row.name;
+  }
+  projectStaffing(state);
   return "";
 }
 export function savePosition(state: DemoState, draft: Position): string {
