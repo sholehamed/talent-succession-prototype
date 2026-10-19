@@ -113,13 +113,45 @@ export interface Position {
   id: string;
   title: string;
   jobId: string;
+  /** Compatibility snapshot for saved demos; staffing comes from appointments. */
   holderId: string;
+  /** Compatibility label, organizational placement is unitId. */
   unit: string;
+  code?: string;
+  unitId?: string;
+  locationId?: string;
+  parentPositionId?: string | null;
+  isActive?: boolean;
   critical: boolean;
   reason: string;
   probability: number;
   impact: number;
   months: number;
+}
+/** Organization structure is independent of job descriptions. */
+export interface OrganizationUnit {
+  id: string;
+  code: string;
+  name: string;
+  parentUnitId: string | null;
+  isActive: boolean;
+}
+export interface WorkLocation {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
+}
+/** Effective-dated staffing record. Historical plans and assessments keep job snapshots. */
+export interface PositionAppointment {
+  id: string;
+  personId: string;
+  positionId: string;
+  type: "primary" | "acting";
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  referenceNo: string;
+  note: string;
 }
 export interface EvaluationQuestion {
   id: string;
@@ -249,6 +281,9 @@ export interface DemoState {
   /** Restored from an empty array for browser snapshots predating hiring. */
   candidates: Candidate[];
   positions: Position[];
+  organizationUnits: OrganizationUnit[];
+  workLocations: WorkLocation[];
+  appointments: PositionAppointment[];
   cycles: Cycle[];
   questions: EvaluationQuestion[];
   /** Editable action templates, keyed by competency index. */
