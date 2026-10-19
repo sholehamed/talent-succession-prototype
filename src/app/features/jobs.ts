@@ -52,7 +52,7 @@ import { UI } from "../shared/ui";
           <table mat-table [dataSource]="filtered()" class="royesh-table">
  <ng-container matColumnDef="title"><th mat-header-cell *matHeaderCellDef>عنوان شغل</th><td mat-cell *matCellDef="let j"><strong>{{ j.title }}</strong><small style="display:block">{{ j.code }}</small></td></ng-container>
  <ng-container matColumnDef="family"><th mat-header-cell *matHeaderCellDef>خانواده / واحد</th><td mat-cell *matCellDef="let j">{{ j.family }}<small style="display:block">{{ j.unit }}</small></td></ng-container>
- <ng-container matColumnDef="version"><th mat-header-cell *matHeaderCellDef>نسخه</th><td mat-cell *matCellDef="let j">{{ j.version | fa }}</td></ng-container>
+ <ng-container matColumnDef="version"><th mat-header-cell *matHeaderCellDef>نسخه</th><td mat-cell *matCellDef="let j">{{ j.version ? (j.version | fa) : "پیش‌نویس اولیه" }}</td></ng-container>
  <ng-container matColumnDef="review"><th mat-header-cell *matHeaderCellDef>وضعیت بازنگری</th><td mat-cell *matCellDef="let j"><span class="badge" [class]="'badge ' + j.review">{{ j.review | status }}</span></td></ng-container>
  <ng-container matColumnDef="revised"><th mat-header-cell *matHeaderCellDef>آخرین بازنگری</th><td mat-cell *matCellDef="let j">{{ j.revised | faDate }}</td></ng-container>
  <ng-container matColumnDef="link"><th mat-header-cell *matHeaderCellDef>جزئیات</th><td mat-cell *matCellDef="let j"><a mat-button [routerLink]="['/jobs', j.id]">مشاهده شناسنامه ←</a></td></ng-container>
@@ -68,7 +68,11 @@ import { UI } from "../shared/ui";
             <a routerLink="/jobs">مشاغل</a> / {{ j.code }}
           </div>
           <h1>{{ j.title }}</h1>
-          <p>{{ j.family }} · {{ j.unit }} · {{ j.version ? "نسخه " + j.version : "پیش‌نویس اولیه" }}</p>
+          @if (j.version > 0) {
+            <p>{{ j.family }} · {{ j.unit }} · نسخه {{ j.version | fa }}</p>
+          } @else {
+            <p>{{ j.family }} · {{ j.unit }} · پیش‌نویس اولیه</p>
+          }
         </div>
         <div class="actions">
           @if (s.editable() && !editing()) {
