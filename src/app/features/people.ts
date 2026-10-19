@@ -92,7 +92,7 @@ import { GrowthComparison } from "../shared/growth-comparison";
           <div class="stat">
             <span class="label">عملکرد فعلی</span
             ><strong style="font-size:23px">{{ bandLabel(p.performance) }}</strong
-            ><small>{{ p.performance === null ? 'هنوز ارزیابی عملکرد پس از استخدام ثبت نشده' : 'منبع: سوابق عملکرد ثبت‌شده' }}</small>
+            ><small>{{ s.latestApprovedPerformance(p.id) ? 'منبع: آخرین ارزیابی عملکرد دوره‌ای تأییدشده' : (p.performance === null ? 'هنوز ارزیابی عملکرد پس از استخدام ثبت نشده' : 'مقدار نمایشی اولیه؛ فاقد سابقه تأییدشده') }}</small>
           </div>
           <div class="stat">
             <span class="label">پتانسیل رشد</span
@@ -110,6 +110,25 @@ import { GrowthComparison } from "../shared/growth-comparison";
             ><small>برنامه متصل به شغل هدف</small>
           </div>
         </div>
+        <mat-card class="panel" style="margin-bottom:22px">
+          <div class="panel-head">
+            <div>
+              <h2>ارزیابی عملکرد شغلی</h2>
+              <small>مستقل از ارزیابی ۳۶۰/۵۴۰، شایستگی و پتانسیل رشد</small>
+            </div>
+            <a mat-button [routerLink]="['/performance', p.id]">
+              {{ s.canEditPerformance(p.id) ? 'ثبت یا مشاهده عملکرد ←' : 'مشاهده سوابق عملکرد ←' }}
+            </a>
+          </div>
+          @for (review of s.performanceReviewsFor(p.id).slice(0, 3); track review.id) {
+            <div class="metric-line">
+              <span class="grow">{{ review.period }} · {{ review.status === 'approved' ? 'تأییدشده' : 'پیش‌نویس' }}</span>
+              <strong>{{ review.score | fa }} از ۱۰۰ · {{ bandLabel(review.band) }}</strong>
+            </div>
+          } @empty {
+            <div class="empty">هنوز نتیجه عملکرد دوره‌ای ثبت نشده است.</div>
+          }
+        </mat-card>
         <div class="info">
           {{ p.evidence }} · امتیازها ابزار کمکی‌اند و به معنای صلاحیت قطعی یا
           آمادگی انتصاب نیستند.
