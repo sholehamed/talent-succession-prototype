@@ -81,6 +81,11 @@ export const routes: Routes = [
     loadComponent: () => import("./features/evaluations"),
   },
   {
+    path: "development/templates",
+    canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/development-templates"),
+  },
+  {
     path: "development",
     canActivate: [permit([...management, "employee"])],
     loadComponent: () => import("./features/development"),

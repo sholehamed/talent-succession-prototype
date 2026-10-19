@@ -3,7 +3,6 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute } from "@angular/router";
 import { Store } from "../core/store";
 import { Action, EffectivenessOutcome, competencies } from "../core/models";
-import { developmentTemplates, templatesForCompetency } from "../core/development-templates";
 import { GrowthComparison } from "../shared/growth-comparison";
 import { UI } from "../shared/ui";
 @Component({
@@ -15,9 +14,12 @@ import { UI } from "../shared/ui";
         <h1>برنامه توسعه فردی</h1>
         <p>اقدام مشخص، مسئول روشن و پیگیری قابل مشاهده</p>
       </div>
-      <a mat-button class="secondary" routerLink="/development"
-        >همه برنامه‌ها</a
-      >
+      <div class="actions">
+        @if (s.role() === "hr") {
+          <a mat-button class="secondary" routerLink="/development/templates">مدیریت الگوهای توسعه</a>
+        }
+        <a mat-button class="secondary" routerLink="/development">همه برنامه‌ها</a>
+      </div>
     </div>
     @if (!id()) {
       @if (jobFilter() || personFilter() || periodFilter() || unitFilter()) {
@@ -142,15 +144,22 @@ import { UI } from "../shared/ui";
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>الگوی اقدام توسعه</mat-label>
-                <mat-select [(ngModel)]="newTemplateId">
+                <mat-select [ngModel]="selectedTemplateId()" (ngModelChange)="newTemplateId = $event">
                   @for (t of templates(); track t.id) {
-                    <mat-option [value]="t.id">{{ t.title }}</mat-option>
+                    <mat-option [value]="t.id">{{ t.title }} · {{ t.kind }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
             </div>
+            @if (!templates().length) {
+              <div class="info">برای این شایستگی الگوی فعال و استفاده‌نشده‌ای وجود ندارد.
+                @if (s.role() === "hr") {
+                  <a routerLink="/development/templates">مدیریت الگوها ←</a>
+                }
+              </div>
+            }
             <div class="actions">
-              <button mat-button class="primary" (click)="addAction()">افزودن اقدام توسعه</button>
+              <button mat-button class="primary" [disabled]="!selectedTemplateId()" (click)="addAction()">افزودن اقدام توسعه</button>
             </div>
           </mat-card>
         }
@@ -297,9 +306,13 @@ export default class Development {
   draft?: Action;
   reviewDraft?: { actionId: string; outcome: EffectivenessOutcome; note: string };
   newCompetency = 4;
-  newTemplateId = "leadership-delegate";
-  readonly templates = () => templatesForCompetency(this.newCompetency);
-  readonly templateCatalog = developmentTemplates;
+  newTemplateId = "";
+  readonly templates = () => this.s.templatesForCompetency(this.newCompetency)
+    .filter((t) => !this.plan()?.actions.some((a) => a.templateId === t.id));
+  selectedTemplateId() {
+    return this.templates().some((t) => t.id === this.newTemplateId)
+      ? this.newTemplateId : (this.templates()[0]?.id ?? "");
+  }
   competencies = competencies;
   statuses = ["planned", "progress", "completed", "blocked", "cancelled"];
   plan = computed(() => this.s.state().plans.find((p) => p.id === this.id()));
@@ -318,13 +331,11 @@ export default class Development {
   );
   chooseCompetency(value: number) {
     this.newCompetency = value;
-    this.newTemplateId = templatesForCompetency(value)[0]?.id ?? "";
+    this.newTemplateId = this.templates()[0]?.id ?? "";
   }
   addAction() {
-    if (this.s.addDevelopmentAction(this.id()!, this.newCompetency, this.newTemplateId)) {
-      this.newTemplateId = templatesForCompetency(this.newCompetency)
-        .find((t) => !this.plan()?.actions.some((a) => a.templateId === t.id))?.id
-        ?? this.newTemplateId;
+    if (this.s.addDevelopmentAction(this.id()!, this.newCompetency, this.selectedTemplateId())) {
+      this.newTemplateId = this.templates()[0]?.id ?? "";
     }
   }
   outcomeLabel(outcome: EffectivenessOutcome) {

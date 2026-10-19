@@ -1,7 +1,7 @@
 import "@angular/compiler";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Store } from "../src/app/core/store";
-import { developmentTemplates, templatesForCompetency } from "../src/app/core/development-templates";
+import { defaultDevelopmentTemplates } from "../src/app/core/development-templates";
 
 const browserStore = new Map<string, string>();
 Object.defineProperty(globalThis, "localStorage", {
@@ -17,12 +17,12 @@ beforeEach(() => browserStore.clear());
 describe("competency-led development and effectiveness", () => {
   it("provides two distinct relevant suggestions for every competency", () => {
     for (let i = 0; i < 5; i++) {
-      const choices = templatesForCompetency(i);
+      const choices = new Store().templatesForCompetency(i);
       expect(choices).toHaveLength(2);
       expect(new Set(choices.map((t) => t.id)).size).toBe(2);
       expect(choices.every((t) => t.competency === i && t.title && t.indicator)).toBe(true);
     }
-    expect(developmentTemplates).toHaveLength(10);
+    expect(defaultDevelopmentTemplates()).toHaveLength(10);
   });
 
   it("creates actions from the actual gap and supports additional validated templates", () => {
@@ -31,7 +31,7 @@ describe("competency-led development and effectiveness", () => {
     const plan = s.state().plans.find((p) => p.id === id)!;
     expect(plan.actions).toHaveLength(3);
     for (const action of plan.actions) {
-      const template = developmentTemplates.find((t) => t.id === action.templateId);
+      const template = s.state().developmentTemplates.find((t) => t.id === action.templateId);
       expect(template).toBeTruthy();
       expect(action.competency).toBe(template!.competency);
       expect(action.title).toBe(template!.title);
