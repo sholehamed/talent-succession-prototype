@@ -539,7 +539,7 @@ test("general then specialist committees lead to documented hiring and unknown p
   await signIn(page, "p1", "hr");
   await page.goto(detailUrl);
   await expect(page.locator("main")).toContainText("شواهد مصاحبه عمومی ثبت شد");
-  await selectMaterial(page,"ارزیاب کمیته تخصصی","کارمند شماره ۵ · EMP-1005");
+  await selectMaterial(page,"ارزیاب کمیته تخصصی","علی پارسا · EMP-1005");
   await page.getByRole("button",{name:"ارجاع به کمیته تخصصی"}).click();
 
   await signIn(page,"p5","evaluator");
