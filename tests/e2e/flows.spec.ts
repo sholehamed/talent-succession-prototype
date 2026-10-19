@@ -5,7 +5,9 @@ const roleLabels: Record<string, string> = {
 };
 const selectMaterial = async (p: Page, label: string, option: string) => {
   await p.getByRole("combobox", { name: label }).click();
-  await p.getByRole("option", { name: option, exact: true }).click();
+  // Material overlay options can be transiently re-rendered during dashboard filter updates.
+  // Force avoids waiting for an animation-stable node that may detach mid-transition.
+  await p.getByRole("option", { name: option, exact: true }).click({ force: true });
 };
 const signIn = async (p: Page, id = "p1", activeRole?: string) => {
   if (await p.getByRole("button", { name: "خروج", exact: true }).count())
