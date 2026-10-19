@@ -29,7 +29,7 @@ import {
 import { seed } from "./seed";
 import {
   hydrateOrganization, appointmentOn, positionOf, positionHolder, managerOf,
-  directReports, organizationTree,
+  directReports, organizationTree, validDay,
 } from "./organization";
 import {
   saveLocation, saveUnit, savePosition, assignPosition, finishAppointment, projectStaffing,
@@ -252,6 +252,19 @@ export class Store {
   vacantPositions(jobId?: string, date = new Date().toISOString().slice(0, 10)) {
     return this.state().positions.filter((p) =>
       p.isActive !== false && (!jobId || p.jobId === jobId) && !this.currentPositionHolder(p.id, date));
+  }
+  /**
+   * Hiring creates an open-ended primary appointment. Unlike vacancies on one
+   * particular day, a hireable post must remain unreserved from the start date
+   * onwards. Do not offer posts with a future booked appointment.
+   */
+  hireablePositions(jobId: string, effectiveFrom: string) {
+    if (!validDay(effectiveFrom)) return [];
+    return this.state().positions.filter((p) =>
+      p.isActive !== false && p.jobId === jobId &&
+      !this.state().appointments.some((a) =>
+        a.type === "primary" && a.positionId === p.id &&
+        (!a.effectiveTo || a.effectiveTo >= effectiveFrom)));
   }
   canManageOrganization() { return this.canAccess(["hr"]); }
   /** Apply a validated mutation inside the existing audit + LocalStorage commit flow. */
@@ -616,7 +629,7 @@ export class Store {
   }
   decideCandidate(
     candidateId: string, outcome: "hired" | "declined", reason: string,
-    employment?: { code: string; managerId?: string; positionId?: string; hiredAt: string },
+    employment?: { code: string; positionId: string; hiredAt: string; referenceNo?: string },
   ) {
     const candidate = this.candidate(candidateId);
     const assessment = candidate?.assessments.at(-1);
@@ -625,19 +638,13 @@ export class Store {
     if (!assessment || !reason.trim() || !["hired", "declined"].includes(outcome))
       return this.fail("ارزیابی اولیه و دلیل تصمیم انسانی الزامی است.");
     if (outcome === "hired") {
-      const vacant = employment?.positionId
-        ? this.vacantPositions(candidate.jobId, employment.hiredAt).find((p) => p.id === employment.positionId)
-        : undefined;
-      if (!employment?.code.trim() || (!vacant && (!employment.managerId ||
-          !this.state().people.some((p) => p.id === employment.managerId))) ||
-          (employment.positionId && !vacant) ||
-          !/^\d{4}-\d{2}-\d{2}$/.test(employment.hiredAt) ||
-          !Number.isFinite(Date.parse(employment.hiredAt + "T00:00:00Z")) ||
+      if (!employment?.code?.trim() || !employment.positionId ||
+          !validDay(employment.hiredAt) ||
           this.state().people.some((p) => p.code === employment.code.trim()))
-        return this.fail("کد پرسنلی یکتا، مدیر مستقیم و تاریخ استخدام معتبر الزامی است.");
-      const d = new Date(employment.hiredAt + "T00:00:00Z");
-      if (d.toISOString().slice(0, 10) !== employment.hiredAt)
-        return this.fail("تاریخ استخدام نامعتبر است.");
+        return this.fail("کد پرسنلی یکتا، تاریخ معتبر و پست سازمانی مقصد الزامی هستند.");
+      if (!this.hireablePositions(candidate.jobId, employment.hiredAt)
+        .some((p) => p.id === employment.positionId))
+        return this.fail("پست انتخاب‌شده باید فعال، مربوط به شغل داوطلب و از تاریخ انتصاب به بعد بلاتصدی باشد.");
     }
     const personId = outcome === "hired" ? crypto.randomUUID() : undefined;
     this.commit(outcome === "hired"
@@ -650,10 +657,17 @@ export class Store {
         ...(personId ? { personId } : {}),
       };
       if (personId && employment) {
-        const job = state.jobs.find((j) => j.id === c.jobId)!;
+        // Source of truth: the pre-existing organizational post. Job, unit and
+        // manager are projections from the post hierarchy, not form inputs.
+        const position = state.positions.find((p) => p.id === employment.positionId)!;
+        const manager = position.parentPositionId
+          ? positionHolder(state, position.parentPositionId, employment.hiredAt)
+          : undefined;
         state.people.push({
           id: personId, name: c.name, code: employment.code.trim(),
-          jobId: c.jobId, unit: job.unit, managerId: employment.managerId ?? "",
+          jobId: position.jobId,
+          unit: state.organizationUnits.find((u) => u.id === position.unitId)?.name ?? position.unit,
+          managerId: manager?.id ?? "",
           performance: null, potential: assessment.potential,
           observed: [...assessment.scores],
           evidence: "ارزیابی اولیه بدو استخدام: " + assessment.evidence,
@@ -662,29 +676,13 @@ export class Store {
             hiredAt: employment.hiredAt, potentialReviewedAt: assessment.evaluatedAt,
           },
         });
-        // Explicit vacancy selection is canonical. Existing hiring flows may still
-        // supply a manager: create the missing position for backwards compatibility.
-        let positionId = employment.positionId;
-        if (!positionId) {
-          const parent = employment.managerId
-            ? positionOf(state, employment.managerId) : undefined;
-          positionId = `staff-${personId}`;
-          const unitId = state.organizationUnits.find((u) => u.name === job.unit)?.id
-            ?? state.organizationUnits[0].id;
-          state.positions.push({
-            id: positionId, code: `POST-${employment.code.trim()}`,
-            title: job.title, jobId: c.jobId, unit: job.unit, holderId: "",
-            unitId, locationId: parent?.locationId ?? state.workLocations[0].id,
-            parentPositionId: parent?.id ?? null, isActive: true,
-            critical: false, reason: "", probability: 1, impact: 1, months: 6,
-          });
-        }
         const error = assignPosition(state, {
-          id: crypto.randomUUID(), personId, positionId,
+          id: crypto.randomUUID(), personId, positionId: position.id,
           type: "primary", effectiveFrom: employment.hiredAt, effectiveTo: null,
-          referenceNo: "HIRING", note: "انتصاب اولیه پس از استخدام",
+          referenceNo: employment.referenceNo?.trim() || "HIRING",
+          note: "انتصاب اولیه پس از استخدام",
         });
-        if (error) throw new Error(error); // Prevalidated above.
+        if (error) throw new Error(error); // The vacancy is prevalidated above.
         projectStaffing(state);
       }
     });
