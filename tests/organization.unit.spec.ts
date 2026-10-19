@@ -108,6 +108,16 @@ describe("organizational structure and effective-dated appointments", () => {
     expect(s.currentPositionHolder("vac-j1", "2026-10-20")).toBeUndefined();
   });
 
+  it("preserves manager access to their team in the seeded hierarchy", () => {
+    const s = new Store();
+    expect(s.currentManager("p12")?.id).toBe("p2");
+    expect(s.directReports("p2").map((p) => p.id)).toContain("p12");
+    s.actor.set("p2");
+    s.role.set("manager");
+    expect(s.allowedPerson("p12")).toBe(true);
+    expect(s.allowedPerson("p1")).toBe(false);
+  });
+
   it("does not allow a manager or employee to change the org chart", () => {
     const s = new Store();
     s.role.set("manager");
