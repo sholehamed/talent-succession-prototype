@@ -917,7 +917,7 @@ export class Store {
       return this.fail("بانک سؤال Snapshot شده باید پنج شایستگی را پوشش دهد.");
     this.commit("شروع دریافت پاسخ کمپین با تأیید منابع انسانی", id, (state) => {
       state.campaigns.find((x) => x.id === id)!.status = "active";
-      state.campaigns.find((x) => x.id === id)!.publishedAt = new Date().toISOString();
+      state.campaigns.find((x) => x.id === id)!.startedAt = new Date().toISOString();
       state.cycles.filter((c) => c.campaignId === id).forEach((c) => { c.status = "collecting"; });
     });
     return true;
@@ -1036,6 +1036,8 @@ export class Store {
   advance(id: string, notes = "") {
     const c = this.cycle(id);
     if (this.role() !== "hr" || !c) return false;
+    if (c.campaignId && c.status === "preparing")
+      return this.fail("شروع پاسخ‌گیری پرونده‌های گروهی فقط از صفحه دوره و با تأیید منابع انسانی مجاز است.");
     if (c.status === "preparing" && !canStart(c))
       return this.fail(
         "حداقل یک سرپرست، دو هم‌سطح، دو زیردست و در ۵۴۰ یک بیرونی لازم است.",
