@@ -1,7 +1,7 @@
 import {
   DemoState, OrganizationUnit, Person, Position, PositionAppointment, WorkLocation,
 } from "./models";
-import { rolesForPerson } from "./auth";
+import { normalizeRoleAssignments, rolesForPerson } from "./auth";
 
 /**
  * Backwards-compatible, deterministic migration for v1 browser snapshots.
@@ -9,6 +9,7 @@ import { rolesForPerson } from "./auth";
  * Historical job/unit/manager fields stay as read-model compatibility projections.
  */
 export function hydrateOrganization(state: DemoState): DemoState {
+  state.roleAssignments = normalizeRoleAssignments(state.people, state.roleAssignments);
   const units: OrganizationUnit[] = Array.isArray(state.organizationUnits)
     ? state.organizationUnits : [];
   const locations: WorkLocation[] = Array.isArray(state.workLocations)
