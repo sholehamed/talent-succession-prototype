@@ -19,6 +19,8 @@ export interface ReportAccess {
   allowedPersonIds: ReadonlySet<string>;
   /** Unit of the authenticated manager; cannot be overridden by a UI filter. */
   restrictedUnit: string;
+  /** Viewer unit, needed for published knowledge visibility (separate from filter unit). */
+  viewerUnit: string;
   /** Use the existing validity checks, including legacy and dynamic question banks. */
   hasAnswered: (cycle:Cycle, assignment:Assignment)=>boolean;
 }
@@ -319,7 +321,9 @@ export function buildReport(
       rows,"از تاریخ ثبت داوطلب برای فیلتر زمانی استفاده می‌شود، نه از تاریخ تکمیل هر مرحله. انتخاب گروه و ثبت استخدام انسانی است.");
   }
   if (kind==="knowledge") {
-    const items=state.knowledge.filter(k=>k.status==="published" && jobIds.has(k.jobId));
+    const items=state.knowledge.filter(k=>k.status==="published" && jobIds.has(k.jobId) &&
+      (access.role!=="executive" || k.access==="داخلی" ||
+        state.jobs.find(j=>j.id===k.jobId)?.unit===access.viewerUnit));
     const kinds=[...new Set(items.map(k=>k.kind))].sort();
     const rows=items.map(k=>row(k.id,{
       title:k.title,job:look(state,k.jobId),kind:k.kind,views:k.views,
