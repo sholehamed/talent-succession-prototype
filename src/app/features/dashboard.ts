@@ -34,27 +34,6 @@ import { competencies } from "../core/models";
         }
       </div>
     </div>
-    <div class="chips">
-      <button mat-button
-        class="chip"
-        [class.selected]="view() === 'hr'"
-        (click)="view.set('hr')"
-      >
-        منابع انسانی</button
-      ><button mat-button
-        class="chip"
-        [class.selected]="view() === 'executive'"
-        (click)="view.set('executive')"
-      >
-        مدیرعامل</button
-      ><button mat-button
-        class="chip"
-        [class.selected]="view() === 'unit'"
-        (click)="view.set('unit'); unit.set('دفتر پروژه‌ها')"
-      >
-        مدیر واحد
-      </button>
-    </div>
     <div class="filterbar">
       <mat-form-field appearance="outline"
         ><mat-label>دوره ارزیابی و توسعه</mat-label><mat-select
@@ -214,7 +193,6 @@ import { competencies } from "../core/models";
               همه برنامه‌ها ←
             </a>
           </div>
-          >
         </div>
         <div class="table-wrap">
           <table mat-table [dataSource]="plans().slice(0, 5)" class="royesh-table">
@@ -304,7 +282,12 @@ export default class Dashboard {
   readonly gapColumns = ["person","unit",...competencies.map((_, i) => "gap" + i),"source"];
   route = inject(ActivatedRoute);
   reports = !!this.route.snapshot.data["reports"];
-  view = signal(this.route.snapshot.paramMap.get("view") ?? "hr");
+  // Dashboard context comes from the guarded URL / active role, not UI tabs.
+  // Shared /reports must also respect the signed-in management role.
+  readonly view = computed(() => this.reports
+    ? this.s.role() === "executive" ? "executive"
+      : this.s.role() === "manager" ? "unit" : "hr"
+    : this.route.snapshot.paramMap.get("view") ?? "hr");
   period = signal("1405-autumn");
   unit = signal(
     this.s.role() === "manager" ||
