@@ -69,6 +69,26 @@ describe("grouped sidebar configuration", () => {
       .not.toContain("/evaluations/campaigns");
   });
 
+  it("routes each management role only to its own dashboard and keeps shared development", () => {
+    const cases = [
+      { role: "hr" as Role, path: "/dashboard/hr", label: "داشبورد منابع انسانی" },
+      { role: "manager" as Role, path: "/dashboard/unit", label: "داشبورد مدیر واحد" },
+      { role: "executive" as Role, path: "/dashboard/executive", label: "داشبورد مدیرعامل" },
+    ];
+    for (const {role, path, label} of cases) {
+      const groups = visibleNavigationGroups(role);
+      const dashboard = groups.find(g => g.id === "dashboards")!;
+      expect(dashboard.children).toHaveLength(2);
+      expect(dashboard.children[0]).toMatchObject({path, title: label});
+      expect(dashboard.children[1].path).toBe("/dashboard/development");
+      expect(activeNavigationPath(path, dashboard)).toBe(path);
+      expect(groups.flatMap(g => g.children).filter(x => x.path.startsWith("/dashboard/")))
+        .toHaveLength(2);
+    }
+    for (const role of ["owner", "employee", "evaluator"] as Role[])
+      expect(visibleNavigationGroups(role).some(g => g.id === "dashboards")).toBe(false);
+  });
+
   it("expands the correct permitted group for detail URLs and selects the longest child", () => {
     const groups = visibleNavigationGroups("hr");
     const find = (url: string) => navigationGroupForUrl(url, groups);
