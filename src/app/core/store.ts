@@ -11,6 +11,7 @@ import {
   EvaluationQuestion,
   EntryQuestion,
   EntryCommitteeStage,
+  EntryEvaluatorGroup,
   QuestionAnswer,
   Assignment,
   Group,
@@ -40,7 +41,7 @@ import { performanceBand, performanceScore } from "./performance";
 import { campaignCycle, campaignPreview } from "./evaluation-campaigns";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, rolesForPerson } from "./auth";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
-import { activeEntryQuestions, combinedEntryScores, defaultEntryQuestions, entryBankError, entryScores } from "./entry-committees";
+import { activeEntryQuestions, combinedEntryScores, defaultEntryQuestions, defaultEntryEvaluatorGroups, entryBankError, entryScores } from "./entry-committees";
 import { DevelopmentTemplate, defaultDevelopmentTemplates, templatesForCompetency } from "./development-templates";
 import {
   aggregate,
@@ -169,6 +170,13 @@ export class Store {
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
             questions: Array.isArray(d.questions) ? d.questions : defaultEvaluationQuestions(),
             entryQuestions: Array.isArray(d.entryQuestions) ? d.entryQuestions : defaultEntryQuestions(d.jobs),
+            entryEvaluatorGroups: Array.isArray(d.entryEvaluatorGroups) ? d.entryEvaluatorGroups
+              : defaultEntryEvaluatorGroups(d.jobs,
+                Array.isArray(d.entryCommitteeMembers)
+                  ? d.entryCommitteeMembers.filter((m: {stage: string; personId: string}) =>
+                      m.stage === "specialist" && d.people.some((p: {id: string}) => p.id === m.personId))
+                    .map((m: {personId: string}) => m.personId)
+                  : ["p5", "p6"]),
             entryCommitteeMembers: Array.isArray(d.entryCommitteeMembers) ? d.entryCommitteeMembers : [
               { stage: "general", personId: "p3" }, { stage: "general", personId: "p4" },
               { stage: "specialist", personId: "p5" }, { stage: "specialist", personId: "p6" },
@@ -471,7 +479,7 @@ export class Store {
   latestEntryAssessment(id: string) {
     return this.candidate(id)?.assessments.at(-1);
   }
-  /** Candidate referral is sequential: HR -> general -> specialist -> HR decision. */
+  /** General committee still uses direct members; specialist referrals use reusable groups. */
   entryMembers(stage: EntryCommitteeStage) {
     return this.state().entryCommitteeMembers
       .filter((m) => m.stage === stage)
@@ -482,13 +490,38 @@ export class Store {
   }
   setEntryCommitteeMember(stage: EntryCommitteeStage, personId: string, enabled: boolean) {
     if (!this.canAccess(["hr"])) return this.fail("تنظیم ترکیب کمیته فقط برای منابع انسانی مجاز است.");
-    if (!["general","specialist"].includes(stage) ||
+    if (stage !== "general" ||
       !this.state().people.some((p) => p.id === personId && rolesForPerson(p.id).includes("evaluator")))
-      return this.fail("عضو کمیته باید شخص دارای نقش ارزیاب باشد.");
-    this.commit("عضویت کمیته بدو استخدام تنظیم شد", personId, (state) => {
+      return this.fail("عضو کمیته عمومی باید شخص دارای نقش ارزیاب باشد.");
+    this.commit("عضویت کمیته عمومی بدو استخدام تنظیم شد", personId, (state) => {
       state.entryCommitteeMembers = state.entryCommitteeMembers.filter((m) =>
         !(m.stage === stage && m.personId === personId));
       if (enabled) state.entryCommitteeMembers.push({ stage, personId });
+    });
+    return true;
+  }
+  entryGroupsForJob(jobId: string) {
+    return this.state().entryEvaluatorGroups.filter(g => g.isActive && g.jobIds.includes(jobId) &&
+      g.memberIds.length > 0);
+  }
+  saveEntryEvaluatorGroup(value: EntryEvaluatorGroup) {
+    if (!this.canAccess(["hr"])) return this.fail("مدیریت گروه ارزیاب فقط برای منابع انسانی مجاز است.");
+    const name = value.name?.trim();
+    const jobIds = [...new Set(value.jobIds ?? [])];
+    const memberIds = [...new Set(value.memberIds ?? [])];
+    const existing = this.state().entryEvaluatorGroups.find(g => g.id === value.id);
+    if (!name || !jobIds.length || !memberIds.length ||
+      jobIds.some(id => !this.publishedJobs().some(j => j.id === id)) ||
+      memberIds.some(id => !this.state().people.some(p =>
+        p.id === id && rolesForPerson(p.id).includes("evaluator"))) ||
+      this.state().entryEvaluatorGroups.some(g => g.id !== value.id && g.name === name))
+      return this.fail("نام یکتا، حداقل یک شغل منتشرشده و یک ارزیاب معتبر الزامی است.");
+    const id = existing?.id ?? crypto.randomUUID();
+    this.commit("گروه ارزیاب تخصصی ذخیره شد", id, state => {
+      const group: EntryEvaluatorGroup = {id, name, jobIds, memberIds, isActive: value.isActive !== false};
+      const index = state.entryEvaluatorGroups.findIndex(g => g.id === id);
+      if (index < 0) state.entryEvaluatorGroups.push(group);
+      else state.entryEvaluatorGroups[index] = group;
     });
     return true;
   }
@@ -523,16 +556,29 @@ export class Store {
   }
   entryQueue(stage: EntryCommitteeStage) {
     if (!this.canAccess(["evaluator"])) return [];
-    return this.state().candidates.filter((c) =>
-      !c.decision && !!c.entryWorkflow &&
-      (stage === "general" ? c.entryWorkflow.general : c.entryWorkflow.specialist)?.assignedTo === this.actor());
+    return this.state().candidates.filter(c => {
+      if (c.decision || !c.entryWorkflow) return false;
+      const review = stage === "general" ? c.entryWorkflow.general : c.entryWorkflow.specialist;
+      return !!review && (review.assignments
+        ? review.assignments.some(a => a.assignedTo === this.actor())
+        : review.assignedTo === this.actor());
+    });
   }
-  referEntry(candidateId: string, stage: EntryCommitteeStage, assignee: string) {
+  /** General accepts a personId. Specialist accepts a reusable groupId, never a fixed individual. */
+  referEntry(candidateId: string, stage: EntryCommitteeStage, targetId: string) {
     const candidate = this.candidate(candidateId);
     if (!this.canAccess(["hr"]) || !candidate || candidate.decision)
       return this.fail("ارجاع ارزیابی فقط برای منابع انسانی و پرونده باز مجاز است.");
-    if (!this.state().entryCommitteeMembers.some((m) => m.stage === stage && m.personId === assignee))
-      return this.fail("ارزیاب انتخاب‌شده عضو این کمیته نیست.");
+    if (stage !== "general" && stage !== "specialist")
+      return this.fail("مرحله ارزیابی نامعتبر است.");
+    const group = stage === "specialist"
+      ? this.entryGroupsForJob(candidate.jobId).find(g => g.id === targetId) : undefined;
+    if (stage === "general" && !this.state().entryCommitteeMembers.some(m =>
+      m.stage === "general" && m.personId === targetId))
+      return this.fail("ارزیاب انتخاب‌شده عضو کمیته عمومی نیست.");
+    if (stage === "specialist" && (!group || !group.memberIds.every(id =>
+      this.state().people.some(p => p.id === id && rolesForPerson(id).includes("evaluator")))))
+      return this.fail("گروه تخصصی فعال و مرتبط با شغل و دارای اعضای معتبر انتخاب کنید.");
     if (stage === "general" && (candidate.entryWorkflow || candidate.assessments.length))
       return this.fail("ارجاع اولیه فقط برای داوطلب فاقد ارزیابی و ارجاع قبلی مجاز است.");
     if (stage === "specialist" &&
@@ -542,13 +588,15 @@ export class Store {
     const error = entryBankError(questions);
     if (error) return this.fail(error);
     const referral = {
-      stage, assignedTo: assignee, assignedAt: new Date().toISOString(),
-      questions: structuredClone(questions),
+      stage, assignedTo: stage === "general" ? targetId : group!.memberIds[0],
+      assignedAt: new Date().toISOString(), questions: structuredClone(questions),
+      ...(group ? {groupId: group.id, groupName: group.name,
+        assignments: group.memberIds.map(assignedTo => ({assignedTo}))} : {}),
     };
-    this.commit(stage === "general" ? "ارجاع به کمیته عمومی ثبت شد" : "ارجاع به کمیته تخصصی ثبت شد",
-      candidateId, (state) => {
-        const c = state.candidates.find((x) => x.id === candidateId)!;
-        if (stage === "general") c.entryWorkflow = { general: referral };
+    this.commit(stage === "general" ? "ارجاع به کمیته عمومی ثبت شد" : "ارجاع به گروه تخصصی ثبت شد",
+      candidateId, state => {
+        const c = state.candidates.find(x => x.id === candidateId)!;
+        if (stage === "general") c.entryWorkflow = {general: referral};
         else c.entryWorkflow!.specialist = referral;
       });
     return true;
@@ -558,19 +606,40 @@ export class Store {
     const candidate = this.candidate(candidateId);
     const review = stage === "general"
       ? candidate?.entryWorkflow?.general : candidate?.entryWorkflow?.specialist;
+    const groupAssignment = review?.assignments?.find(a => a.assignedTo === this.actor());
     if (!this.canAccess(["evaluator"]) || !candidate || candidate.decision ||
-      !review || review.assignedTo !== this.actor() || review.completedAt)
+      !review || review.completedAt ||
+      (review.assignments ? !groupAssignment || !!groupAssignment.completedAt : review.assignedTo !== this.actor()))
       return this.fail("این پرسشنامه به حساب و مرحله فعلی شما تخصیص نیافته است.");
     const scores = entryScores(review.questions, answers);
     if (!scores || !evidence.trim())
       return this.fail("پاسخ معتبر به همه سؤال‌ها و شواهد مستند این مرحله الزامی است.");
-    this.commit("نتیجه کمیته ارزیابی بدو استخدام ثبت شد", candidateId, (state) => {
-      const c = state.candidates.find((x) => x.id === candidateId)!;
+    this.commit("نتیجه کمیته ارزیابی بدو استخدام ثبت شد", candidateId, state => {
+      const c = state.candidates.find(x => x.id === candidateId)!;
       const target = stage === "general" ? c.entryWorkflow!.general : c.entryWorkflow!.specialist!;
-      target.answers = answers.map((a) => ({ ...a }));
-      target.scores = scores;
-      target.evidence = evidence.trim();
-      target.completedAt = new Date().toISOString();
+      const now = new Date().toISOString();
+      if (target.assignments) {
+        const assignment = target.assignments.find(a => a.assignedTo === this.actor())!;
+        assignment.answers = answers.map(a => ({...a}));
+        assignment.scores = [...scores];
+        assignment.evidence = evidence.trim();
+        assignment.completedAt = now;
+        if (target.assignments.every(a => a.completedAt && a.scores?.length === competencies.length)) {
+          target.scores = competencies.map((_, i) => Math.round(
+            target.assignments!.reduce((sum, a) => sum + a.scores![i], 0) /
+            target.assignments!.length * 10) / 10);
+          target.evidence = target.assignments.map(a => {
+            const person = state.people.find(p => p.id === a.assignedTo);
+            return (person?.name ?? a.assignedTo) + ": " + a.evidence;
+          }).join("\n");
+          target.completedAt = now;
+        }
+      } else {
+        target.answers = answers.map(a => ({...a}));
+        target.scores = scores;
+        target.evidence = evidence.trim();
+        target.completedAt = now;
+      }
     });
     return true;
   }

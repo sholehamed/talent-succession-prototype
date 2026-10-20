@@ -11,10 +11,13 @@ import { UI } from "../shared/ui";
     <div class="page-header">
       <div>
         <div class="eyebrow">منابع انسانی · سنجش بدو استخدام</div>
-        <h1>بانک سؤالات و ترکیب کمیته‌های استخدام</h1>
+        <h1>بانک سؤالات ارزیابی بدو استخدام</h1>
         <p>سؤالات عمومی سازمانی و تخصصی وابسته به شغل؛ هر سؤال به یکی از پنج شایستگی متصل است.</p>
       </div>
-      <a mat-button class="secondary" routerLink="/evaluations/questions">بانک سؤالات ۳۶۰/۵۴۰ ←</a>
+      <div class="actions">
+        <a mat-button class="secondary" routerLink="/hiring/evaluator-groups">مدیریت گروه‌های تخصصی ←</a>
+        <a mat-button class="secondary" routerLink="/evaluations/questions">بانک سؤالات ۳۶۰/۵۴۰ ←</a>
+      </div>
     </div>
     <div class="info">
       سؤالات زمان ارجاع به کمیته Snapshot می‌شوند؛ تغییر بانک روی پرونده‌های قبلاً ارجاع‌شده اثر ندارد.
@@ -68,6 +71,7 @@ import { UI } from "../shared/ui";
         <button mat-button class="primary" (click)="save()">ذخیره سؤال</button>
       </mat-card>
     </div>
+    @if (stage() === 'general') {
     <mat-card class="panel">
       <div class="panel-head"><h2>اعضای {{ labels[stage()] }}</h2><small>تنها اعضای این فهرست برای ارجاع انتخاب می‌شوند.</small></div>
       <div class="grid three">
@@ -79,6 +83,9 @@ import { UI } from "../shared/ui";
         }
       </div>
     </mat-card>
+    } @else {
+      <div class="info">برای ارزیابی تخصصی، اعضا را در <a routerLink="/hiring/evaluator-groups">گروه‌های ارزیاب تخصصی</a> مدیریت کنید. هر گروه می‌تواند چند شغل را پوشش دهد.</div>
+    }
   `,
 })
 export default class EntryQuestionsPage {

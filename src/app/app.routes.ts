@@ -43,6 +43,11 @@ export const routes: Routes = [
   })),
   { path: "organization", redirectTo: "organization/chart", pathMatch: "full" },
   {
+    path: "hiring/evaluator-groups",
+    canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/entry-evaluator-groups"),
+  },
+  {
     path: "hiring/questions",
     canActivate: [permit(["hr"])],
     loadComponent: () => import("./features/entry-questions"),

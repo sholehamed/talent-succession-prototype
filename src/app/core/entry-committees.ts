@@ -1,5 +1,5 @@
 import {
-  competencies, EntryCommitteeReview, EntryCommitteeStage, EntryQuestion, Job, QuestionAnswer,
+  competencies, EntryCommitteeReview, EntryCommitteeStage, EntryEvaluatorGroup, EntryQuestion, Job, QuestionAnswer,
 } from "./models";
 
 /**
@@ -74,4 +74,16 @@ export function combinedEntryScores(
     general.scores.length !== competencies.length ||
     specialist.scores.length !== competencies.length) return null;
   return general.scores.map((x,i) => Math.round((x+specialist.scores![i])/2*10)/10);
+}
+
+/** Two illustrative reusable groups; no candidate, question or assessment is copied. */
+export function defaultEntryEvaluatorGroups(jobs: Job[], memberIds = ["p5", "p6"]): EntryEvaluatorGroup[] {
+  const management = new Set(["j1", "j2", "j4", "j8"]);
+  const active = jobs.filter(j => j.version > 0).map(j => j.id);
+  return [
+    {id: "entry-group-management", name: "ارزیابان مشاغل مدیریتی",
+      jobIds: active.filter(id => management.has(id)), memberIds: [...memberIds], isActive: true},
+    {id: "entry-group-other", name: "ارزیابان سایر مشاغل",
+      jobIds: active.filter(id => !management.has(id)), memberIds: [...memberIds], isActive: true},
+  ].filter(group => group.jobIds.length > 0);
 }

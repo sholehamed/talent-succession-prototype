@@ -27,10 +27,10 @@ import { UI } from "../shared/ui";
           <div class="metric-line">
             <div class="grow">
               <strong>{{ c.name }}</strong>
-              <small>{{ s.job(c.jobId).title }} · {{ review(c)?.completedAt ? 'ارزیابی ثبت‌شده' : 'در انتظار پاسخ' }}</small>
+              <small>{{ s.job(c.jobId).title }} · {{ myCompleted(review(c)) ? 'ارزیابی ثبت‌شده' : 'در انتظار پاسخ' }}</small>
             </div>
             <a mat-button [routerLink]="['/hiring/committee', stage, c.id]">
-              {{ review(c)?.completedAt ? 'مشاهده نتیجه' : 'تکمیل پرسشنامه' }} ←
+              {{ myCompleted(review(c)) ? 'مشاهده نتیجه' : 'تکمیل پرسشنامه' }} ←
             </a>
           </div>
         } @empty {
@@ -42,12 +42,12 @@ import { UI } from "../shared/ui";
         <mat-card class="panel">
           <div class="panel-head">
             <div><h2>{{ c.name }} · {{ s.job(c.jobId).title }}</h2>
-              <small>{{ labels[stage] }} · ارجاع {{ task.assignedAt | faDate }}</small>
+              <small>{{ labels[stage] }} · ارجاع {{ task.assignedAt | faDate }} @if (task.groupName) { · {{ task.groupName }} }</small>
             </div>
             <a [routerLink]="['/hiring/committee', stage]">بازگشت به کارتابل ←</a>
           </div>
           <div class="info">پاسخ‌ها در مقیاس ۱ تا ۵ هستند. همه سؤال‌ها و ثبت شواهد ضروری است. هر پاسخ به یکی از پنج شایستگی متصل می‌شود.</div>
-          @if (!task.completedAt) {
+          @if (!myCompleted(task)) {
             @for (q of task.questions; track q.id; let i = $index) {
               <div class="metric-line">
                 <div class="grow">
@@ -73,10 +73,10 @@ import { UI } from "../shared/ui";
             <div class="info">نتیجه این کمیته ثبت شده و در پرونده داوطلب محفوظ است. برای جلوگیری از تغییر نتیجه، پاسخ مجدد مجاز نیست.</div>
             <div class="grid three">
               @for (name of competencies; track name; let i = $index) {
-                <div class="stat"><small class="label">{{ name }}</small><strong>{{ task.scores?.[i] | fa }}</strong></div>
+                <div class="stat"><small class="label">{{ name }}</small><strong>{{ myScores(task)?.[i] | fa }}</strong></div>
               }
             </div>
-            <p>شواهد کمیته: {{ task.evidence }}</p>
+            <p>شواهد ارزیابی شما: {{ myEvidence(task) }}</p>
           }
         </mat-card>
       } @else {
@@ -103,6 +103,18 @@ export default class HiringCommittee {
   readonly candidate = computed(() => this.inbox().find((c) => c.id === this.selectedId));
   review(c: Candidate) {
     return this.stage === "general" ? c.entryWorkflow?.general : c.entryWorkflow?.specialist;
+  }
+  myAssignment(task: {assignments?: {assignedTo: string; completedAt?: string; scores?: number[]; evidence?: string}[]}) {
+    return task.assignments?.find(a => a.assignedTo === this.s.actor());
+  }
+  myCompleted(task: ReturnType<HiringCommittee["review"]>) {
+    return !!(task?.assignments ? this.myAssignment(task)?.completedAt : task?.completedAt);
+  }
+  myScores(task: NonNullable<ReturnType<HiringCommittee["review"]>>) {
+    return task.assignments ? this.myAssignment(task)?.scores : task.scores;
+  }
+  myEvidence(task: NonNullable<ReturnType<HiringCommittee["review"]>>) {
+    return task.assignments ? this.myAssignment(task)?.evidence : task.evidence;
   }
   score(id: string, value: number) {
     this.answerValues.update((map) => ({...map,[id]:value}));

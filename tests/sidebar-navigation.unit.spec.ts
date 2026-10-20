@@ -29,13 +29,13 @@ describe("grouped sidebar configuration", () => {
     const all = navigationGroups.flatMap((g) => g.children.map((x) => x.path));
     expect(navigationGroups).toHaveLength(7);
     expect(new Set(all).size).toBe(all.length);
-    expect(all).toHaveLength(26);
+    expect(all).toHaveLength(27);
     expect(all).toEqual(expect.arrayContaining([
       "/dashboard/hr", "/dashboard/development",
       "/people", "/organization/chart", "/organization/units",
       "/organization/positions", "/organization/appointments",
       "/organization/locations", "/jobs", "/career-paths",
-      "/hiring", "/hiring/questions", "/hiring/committee/general",
+      "/hiring", "/hiring/questions", "/hiring/evaluator-groups", "/hiring/committee/general",
       "/hiring/committee/specialist", "/performance", "/evaluations/campaigns",
       "/evaluations/cycles", "/evaluations/inbox", "/evaluations/questions",
       "/development", "/development/tasks", "/development/templates",

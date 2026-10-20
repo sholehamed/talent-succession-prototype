@@ -47,6 +47,7 @@ export const navigationGroups: NavigationGroup[] = [
     children: [
       { path: "/hiring", title: "ارزیابی بدو استخدام", icon: "person_add" },
       { path: "/hiring/questions", title: "بانک سؤالات استخدام", icon: "description" },
+      { path: "/hiring/evaluator-groups", title: "گروه‌های ارزیاب تخصصی", icon: "groups" },
       { path: "/hiring/committee/general", title: "ارزیابی عمومی", icon: "groups" },
       { path: "/hiring/committee/specialist", title: "ارزیابی تخصصی", icon: "school" },
     ],
@@ -94,7 +95,7 @@ export function navigationPathVisible(path: string, role: Role): boolean {
     "/jobs", "/career-paths", "/knowledge",
   ].includes(path);
   if ([
-    "/hiring", "/hiring/questions", "/hiring/committee/general",
+    "/hiring", "/hiring/questions", "/hiring/evaluator-groups", "/hiring/committee/general",
     "/hiring/committee/specialist", "/evaluations/campaigns",
     "/evaluations/cycles", "/evaluations/questions", "/evaluations/inbox",
     "/development/templates", "/development/tasks",
