@@ -523,6 +523,13 @@ test("general then specialist committees lead to documented hiring and unknown p
   await page.getByRole("button", { name: "ارجاع به کمیته عمومی" }).click();
   await expect(page.locator("main")).toContainText("در انتظار پاسخ");
   await signIn(page, "p3", "evaluator");
+  await nav(page, "/evaluations/inbox");
+  const generalInbox = page.locator("mat-card.panel").filter({
+    has: page.getByRole("heading", {name:"ارزیابی عمومی بدو استخدام"}),
+  });
+  await expect(generalInbox).toContainText("سارا روشن");
+  await expect(generalInbox.getByRole("link",{name:/تکمیل پرسشنامه/}))
+    .toHaveAttribute("href",new RegExp("/hiring/committee/general/" + candidateId + "$"));
   await page.getByRole("button", { name: "جذب و استخدام" }).click();
   await expect(page.locator("mat-sidenav")).toContainText("ارزیابی عمومی");
   await expect(page.locator("mat-sidenav")).toContainText("ارزیابی تخصصی");
@@ -546,9 +553,15 @@ test("general then specialist committees lead to documented hiring and unknown p
   await page.getByRole("button",{name:"ارجاع به کمیته تخصصی"}).click();
 
   await signIn(page,"p5","evaluator");
-  await nav(page,"/hiring/committee/specialist");
-  await expect(page.locator("main")).toContainText("سارا روشن");
-  await page.getByRole("link",{name:"تکمیل پرسشنامه"}).click();
+  await nav(page,"/evaluations/inbox");
+  const specialistInbox = page.locator("mat-card.panel").filter({
+    has: page.getByRole("heading",{name:"ارزیابی تخصصی بدو استخدام"}),
+  });
+  await expect(specialistInbox).toContainText("سارا روشن");
+  await expect(specialistInbox).toContainText("ارزیابان مشاغل مدیریتی");
+  await expect(specialistInbox).toContainText("در انتظار پاسخ");
+  await specialistInbox.getByRole("link",{name:/تکمیل پرسشنامه/}).click();
+  await expect(page).toHaveURL(new RegExp("/hiring/committee/specialist/" + candidateId + "$"));
   const specialistInputs = page.getByRole("combobox",{name:"امتیاز سؤال"});
   await expect(specialistInputs).toHaveCount(5);
   for(let i=0;i<5;i++){
@@ -563,9 +576,14 @@ test("general then specialist committees lead to documented hiring and unknown p
   await expect(page.locator("main")).toContainText("۱ از ۲ ارزیاب پاسخ داده‌اند");
   await expect(page.getByRole("button",{name:"تأیید جمع‌بندی دو کمیته"})).toHaveCount(0);
   await signIn(page,"p6","evaluator");
-  await nav(page,"/hiring/committee/specialist");
-  await expect(page.locator("main")).toContainText("سارا روشن");
-  await page.getByRole("link",{name:"تکمیل پرسشنامه"}).click();
+  await nav(page,"/evaluations/inbox");
+  const secondInbox = page.locator("mat-card.panel").filter({
+    has: page.getByRole("heading",{name:"ارزیابی تخصصی بدو استخدام"}),
+  });
+  await expect(secondInbox).toContainText("سارا روشن");
+  await expect(secondInbox).toContainText("در انتظار پاسخ");
+  await secondInbox.getByRole("link",{name:/تکمیل پرسشنامه/}).click();
+  await expect(page).toHaveURL(new RegExp("/hiring/committee/specialist/" + candidateId + "$"));
   const secondInputs = page.getByRole("combobox",{name:"امتیاز سؤال"});
   await expect(secondInputs).toHaveCount(5);
   for(let i=0;i<5;i++){
