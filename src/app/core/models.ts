@@ -112,6 +112,10 @@ export interface EntryCommitteeAssignment {
 }
 export interface EntryCommitteeReview {
   stage: EntryCommitteeStage;
+  /** Legacy undefined means a questionnaire-based review. */
+  method?: "questionnaire" | "manual";
+  /** For a manual general assessment: the HR person who entered the scores. */
+  enteredBy?: string;
   assignedTo: string;
   assignedAt: string;
   questions: EntryQuestion[];
@@ -141,6 +145,8 @@ export interface EntryAssessment {
   evaluatedAt: string;
   /** Legacy manually recorded entries retain their original model. */
   source?: "legacy" | "committees";
+  /** Snapshot of general-stage method; older committee assessments used questionnaires. */
+  generalMethod?: "questionnaire" | "manual";
   generalReviewAt?: string;
   specialistReviewAt?: string;
 }
