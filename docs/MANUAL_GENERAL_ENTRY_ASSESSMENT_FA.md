@@ -70,6 +70,7 @@ final[i] = round1((general.scores[i] + specialist.scores[i]) / 2)
 | `src/app/core/entry-committees.ts` | سازنده مشترک Snapshot ارجاع گروه تخصصی |
 | `src/app/core/store.ts` | متد ثبت اتمیک، جلوگیری از حضور نتیجه دستی در کارتابل عمومی، حفظ محاسبات جمع‌بندی و اعتبارسنجی |
 | `src/app/features/hiring.ts` | چک‌باکس، فرم پنج شاخص، شواهد، انتخاب گروه تخصصی، برچسب منشأ و پیوند به گردش فعلی |
+| `src/app/core/reporting/reports.ts` | افزودن ستون «روش ارزیابی عمومی» به گزارش منابع انسانی و خروجی‌های همان گزارش |
 | `tests/manual-general-entry.unit.spec.ts` | امتیاز/شواهد نامعتبر، گروه نامعتبر یا غیرفعال، بانک ناقص، عدم تغییر در شکست، مجوز، Snapshot، ماندگاری، جمع‌بندی و مسیر عادی |
 | `tests/e2e/manual-general-entry.spec.ts` | سناریوی کامل انتخاب دستی، ارجاع تخصصی، کارتابل اعضا، ثبت پاسخ‌ها، جمع‌بندی نهایی و Refresh |
 | `tests/e2e/specialist-inbox-referrals.spec.ts` و تست‌های موجود | مسیر پرسشنامه عمومی عادی باید بدون تغییر باقی بماند |
