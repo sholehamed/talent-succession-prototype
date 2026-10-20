@@ -310,7 +310,11 @@ import { UI } from "../shared/ui";
                     <textarea matInput rows="2" [ngModel]="potentialReason()" (ngModelChange)="potentialReason.set($event)"></textarea>
                   </mat-form-field>
                 </div>
-                <button mat-button class="primary" (click)="finalize()">تأیید جمع‌بندی دو کمیته</button>
+                <button mat-button class="primary" (click)="finalize()">
+                  {{ w.general.method === 'manual'
+                    ? 'تأیید جمع‌بندی ارزیابی عمومی دستی و تخصصی'
+                    : 'تأیید جمع‌بندی دو کمیته' }}
+                </button>
               }
             }
           }
