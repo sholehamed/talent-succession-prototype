@@ -216,6 +216,7 @@ export default class ReportsPage {
       role:this.s.role(),
       allowedPersonIds,
       restrictedUnit:this.s.role()==="manager"?this.s.currentPerson()?.unit??"":"",
+      viewerUnit:this.s.currentPerson()?.unit??"",
       hasAnswered:(cycle,assignment)=>this.s.hasAnswered(cycle,assignment),
     });
   });
