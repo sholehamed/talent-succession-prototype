@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, input, signal } from "@angular/cor
 import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router } from "@angular/router";
 import { Store } from "../core/store";
-import { Group, competencies, groups, EvaluationQuestion, Cycle } from "../core/models";
+import { Group, Candidate, EntryCommitteeStage, competencies, groups, EvaluationQuestion, Cycle } from "../core/models";
 import { evaluationAnchors } from "../core/evaluation-questions";
 import { UI } from "../shared/ui";
 import { Chart } from "../shared/chart";
@@ -103,7 +103,8 @@ import { Chart } from "../shared/chart";
       </div>
     } @else if (view === "inbox") {
       <div class="panel">
-        <div class="info">کارتابل اختصاصی {{ s.currentPerson()?.name }}؛ فقط ارزیابی‌هایی که به حساب شما تخصیص یافته‌اند نمایش داده می‌شوند.</div>
+        <div class="info">کارتابل اختصاصی {{ s.currentPerson()?.name }}؛ ارزیابی‌های ۳۶۰/۵۴۰ و ارجاع‌های عمومی و تخصصی بدو استخدام که به حساب شما تخصیص یافته‌اند، در همین صفحه نمایش داده می‌شوند.</div>
+        <h2 style="margin:16px 0 12px">ارزیابی چندمنبعی ۳۶۰/۵۴۰</h2>
         @for (item of inbox(); track item.a.id) {
           <div class="metric-line">
             <div class="grow">
@@ -124,10 +125,57 @@ import { Chart } from "../shared/chart";
           </div>
         } @empty {
           <div class="empty">
-            تکلیف فعالی برای این شخصیت وجود ندارد. دوره باید در مرحله دریافت
-            پاسخ باشد.
+            تکلیف ۳۶۰/۵۴۰ در وضعیت دریافت پاسخ به شما ارجاع نشده است.
           </div>
         }
+      </div>
+      <div class="grid two">
+        <mat-card class="panel">
+          <div class="panel-head">
+            <h2>ارزیابی عمومی بدو استخدام</h2>
+            <span class="badge">{{ generalInbox().length | fa }} پرونده</span>
+          </div>
+          @for (candidate of generalInbox(); track candidate.id) {
+            <div class="metric-line">
+              <div class="grow">
+                <strong>{{ candidate.name }}</strong>
+                <small>{{ s.job(candidate.jobId).title }} · کمیته عمومی</small>
+              </div>
+              <span class="badge">{{ entryCompleted(candidate, "general") ? "ثبت‌شده" : "در انتظار پاسخ" }}</span>
+              <a mat-button [routerLink]="['/hiring/committee', 'general', candidate.id]">
+                {{ entryCompleted(candidate, "general") ? "مشاهده نتیجه" : "تکمیل پرسشنامه" }} ←
+              </a>
+            </div>
+          } @empty {
+            <div class="empty">ارجاع عمومی برای حساب شما وجود ندارد.</div>
+          }
+        </mat-card>
+        <mat-card class="panel">
+          <div class="panel-head">
+            <h2>ارزیابی تخصصی بدو استخدام</h2>
+            <span class="badge">{{ specialistInbox().length | fa }} پرونده</span>
+          </div>
+          @for (candidate of specialistInbox(); track candidate.id) {
+            <div class="metric-line">
+              <div class="grow">
+                <strong>{{ candidate.name }}</strong>
+                <small>{{ s.job(candidate.jobId).title }} ·
+                  @if (candidate.entryWorkflow?.specialist?.groupName; as group) {
+                    گروه {{ group }}
+                  } @else {
+                    کمیته تخصصی
+                  }
+                </small>
+              </div>
+              <span class="badge">{{ entryCompleted(candidate, "specialist") ? "ثبت‌شده" : "در انتظار پاسخ" }}</span>
+              <a mat-button [routerLink]="['/hiring/committee', 'specialist', candidate.id]">
+                {{ entryCompleted(candidate, "specialist") ? "مشاهده نتیجه" : "تکمیل پرسشنامه" }} ←
+              </a>
+            </div>
+          } @empty {
+            <div class="empty">ارجاع تخصصی برای حساب شما وجود ندارد.</div>
+          }
+        </mat-card>
       </div>
       @if (selected()) {
         <mat-card class="panel">
@@ -512,6 +560,16 @@ export default class Evaluations {
           .map((a) => ({ a, c })),
       ),
   );
+  /** Reuse the authorized queues of the dedicated hiring committee screens. */
+  readonly generalInbox = computed(() => this.s.entryQueue("general"));
+  readonly specialistInbox = computed(() => this.s.entryQueue("specialist"));
+  entryCompleted(candidate: Candidate, stage: EntryCommitteeStage): boolean {
+    const review = stage === "general" ? candidate.entryWorkflow?.general : candidate.entryWorkflow?.specialist;
+    if (!review) return false;
+    return review.assignments
+      ? !!review.assignments.find(a => a.assignedTo === this.s.actor())?.completedAt
+      : !!review.completedAt;
+  }
   chartSeries = computed(() => {
     const c = this.cycle()!;
     const previous = this.s
