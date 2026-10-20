@@ -1,4 +1,5 @@
 import type { Role } from "./core/models";
+import { homeForRole } from "./core/auth";
 
 export interface NavigationItem {
   path: string;
@@ -106,7 +107,16 @@ export function visibleNavigationGroups(role: Role): NavigationGroup[] {
   return navigationGroups
     .map((group) => ({
       ...group,
-      children: group.children.filter((child) => navigationPathVisible(child.path, role)),
+      children: group.children
+        .filter((child) => navigationPathVisible(child.path, role))
+        .map((child) => group.id === "dashboards" && child.path === "/dashboard/hr"
+          ? {
+              ...child,
+              path: homeForRole(role, ""),
+              title: role === "executive" ? "داشبورد مدیرعامل"
+                : role === "manager" ? "داشبورد مدیر واحد" : "داشبورد منابع انسانی",
+            }
+          : child),
     }))
     .filter((group) => group.children.length > 0);
 }
