@@ -76,7 +76,7 @@ export const navigationGroups: NavigationGroup[] = [
     id: "knowledge", title: "دانش و گزارش‌ها", icon: "menu_book", sections: ["knowledge", "reports"],
     children: [
       { path: "/knowledge", title: "مدیریت دانش", icon: "menu_book" },
-      { path: "/reports", title: "گزارش‌ها و تحلیل", icon: "analytics" },
+      { path: "/reports", title: "مرکز گزارش‌ها و تحلیل", icon: "analytics" },
     ],
   },
 ];
