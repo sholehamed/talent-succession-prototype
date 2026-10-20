@@ -76,7 +76,7 @@ test("HR enters general indicators manually and the specialist group receives ta
   await expect(page.locator("main")).toContainText("امتیازهای کمیته تخصصی");
   await page.getByRole("textbox",{name:"جمع‌بندی و شواهد منابع انسانی"}).fill("تأیید مستند دو مرحله");
   await page.getByRole("textbox",{name:"استدلال پتانسیل"}).fill("شواهد رفتار و ظرفیت یادگیری");
-  await page.getByRole("button",{name:"تأیید جمع‌بندی دو کمیته"}).click();
+  await page.getByRole("button",{name:"تأیید جمع‌بندی ارزیابی عمومی دستی و تخصصی"}).click();
   const final=await page.evaluate(candidateId=>{
     const state=JSON.parse(localStorage.getItem("royesh.demo.v1")!);
     return state.candidates.find((x:any)=>x.id===candidateId).assessments;
