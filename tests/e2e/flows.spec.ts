@@ -542,7 +542,7 @@ test("general then specialist committees lead to documented hiring and unknown p
   await signIn(page, "p1", "hr");
   await page.goto(detailUrl);
   await expect(page.locator("main")).toContainText("شواهد مصاحبه عمومی ثبت شد");
-  await selectMaterial(page,"ارزیاب کمیته تخصصی","علی پارسا · EMP-1005");
+  await selectMaterial(page,"گروه ارزیاب تخصصی","ارزیابان مشاغل مدیریتی · ۲ نفر");
   await page.getByRole("button",{name:"ارجاع به کمیته تخصصی"}).click();
 
   await signIn(page,"p5","evaluator");
@@ -560,7 +560,26 @@ test("general then specialist committees lead to documented hiring and unknown p
 
   await signIn(page,"p1","hr");
   await page.goto(detailUrl);
+  await expect(page.locator("main")).toContainText("۱ از ۲ ارزیاب پاسخ داده‌اند");
+  await expect(page.getByRole("button",{name:"تأیید جمع‌بندی دو کمیته"})).toHaveCount(0);
+  await signIn(page,"p6","evaluator");
+  await nav(page,"/hiring/committee/specialist");
+  await expect(page.locator("main")).toContainText("سارا روشن");
+  await page.getByRole("link",{name:"تکمیل پرسشنامه"}).click();
+  const secondInputs = page.getByRole("combobox",{name:"امتیاز سؤال"});
+  await expect(secondInputs).toHaveCount(5);
+  for(let i=0;i<5;i++){
+    await secondInputs.nth(i).click();
+    await page.getByRole("option",{name:"۴ از ۵"}).click();
+  }
+  await page.getByRole("textbox",{name:"شواهد و توضیح کمیته"}).fill("شواهد عضو دوم تخصصی ثبت شد");
+  await page.getByRole("button",{name:"ثبت نتیجه کمیته ارزیابی تخصصی"}).click();
+
+  await signIn(page,"p1","hr");
+  await page.goto(detailUrl);
+  await expect(page.locator("main")).toContainText("۲ از ۲ ارزیاب پاسخ داده‌اند");
   await expect(page.locator("main")).toContainText("شواهد تحلیل مسئله تخصصی ثبت شد");
+  await expect(page.locator("main")).toContainText("شواهد عضو دوم تخصصی ثبت شد");
   await selectMaterial(page,"قضاوت انسانی درباره پتانسیل","بالا");
   await page.getByRole("textbox",{name:"جمع‌بندی و شواهد منابع انسانی"}).fill("مصاحبه عمومی و سنجش تخصصی مستند است");
   await page.getByRole("textbox",{name:"استدلال پتانسیل"}).fill("توان یادگیری و رشد مشاهده شد");
@@ -599,6 +618,9 @@ test("general then specialist committees lead to documented hiring and unknown p
   expect(state.positions.some((p: any) => p.id === `staff-${hired.id}`)).toBe(false);
   expect(candidate.entryWorkflow.general.completedAt).toBeTruthy();
   expect(candidate.entryWorkflow.specialist.completedAt).toBeTruthy();
+  expect(candidate.entryWorkflow.specialist.groupId).toBe("entry-group-management");
+  expect(candidate.entryWorkflow.specialist.assignments).toHaveLength(2);
+  expect(candidate.entryWorkflow.specialist.assignments.every((a:any)=>a.completedAt)).toBe(true);
   expect(candidate.decision.personId).toBe(hired.id);
   await nav(page, "/talent/9box");
   await expect(page.locator("main")).toContainText("هنوز ارزیابی عملکرد یا پتانسیل لازم");
