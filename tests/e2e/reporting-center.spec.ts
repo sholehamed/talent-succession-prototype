@@ -35,7 +35,7 @@ test("hiring filters and all rows are included in the printable RTL PDF view",as
   await page.goto("/reports");
   await page.getByRole("button",{name:"ارزیابی بدو استخدام",exact:true}).click();
   await expect(page.getByRole("combobox",{name:"وضعیت"})).toBeVisible();
-  await expect(page.getByRole("textbox",{name:"از تاریخ ثبت (میلادی)"})).toBeVisible();
+  await expect(page.getByLabel("از تاریخ ثبت (میلادی)")).toBeVisible();
   await page.getByRole("combobox",{name:"وضعیت"}).click();
   await page.getByRole("option",{name:"در انتظار ارجاع"}).click();
   await expect(page.locator("table.report-data tbody tr").first()).toContainText("در انتظار ارجاع");
