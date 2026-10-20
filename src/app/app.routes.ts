@@ -21,11 +21,16 @@ export const routes: Routes = [
     canActivate: [permit(management)],
     loadComponent: () => import("./features/development-dashboard"),
   },
-  {
-    path: "dashboard/:view",
-    canActivate: [permit(management)],
+  // Distinct role-owned dashboard URLs; reports and development remain shared.
+  ...([
+    { view: "hr", role: "hr" },
+    { view: "executive", role: "executive" },
+    { view: "unit", role: "manager" },
+  ] as const).map(({ view, role }) => ({
+    path: "dashboard/" + view,
+    canActivate: [permit([role])],
     loadComponent: () => import("./features/dashboard"),
-  },
+  })),
   { path: "jobs/new", canActivate: [permit(["hr","manager"])], loadComponent: () => import("./features/jobs") },
   { path: "jobs", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/jobs") },
   { path: "jobs/:id", canActivate: [permit(["hr","manager","executive","owner"])], loadComponent: () => import("./features/jobs") },
