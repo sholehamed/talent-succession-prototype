@@ -15,7 +15,7 @@ import { UI } from "../shared/ui";
         <h1>{{ labels[stage] }}</h1>
         <p>فقط پرونده‌های ارجاع‌شده به شناسه شما نمایش داده می‌شوند؛ امتیاز هر شایستگی از پاسخ‌ها محاسبه می‌شود.</p>
       </div>
-      <a mat-button class="secondary" routerLink="/evaluations/inbox">کارتابل ۳۶۰/۵۴۰ ←</a>
+      <a mat-button class="secondary" routerLink="/evaluations/inbox">کارتابل همه ارزیابی‌ها ←</a>
     </div>
     @if (!selectedId) {
       <mat-card class="panel">
