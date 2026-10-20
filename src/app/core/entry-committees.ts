@@ -76,6 +76,22 @@ export function combinedEntryScores(
   return general.scores.map((x,i) => Math.round((x+specialist.scores![i])/2*10)/10);
 }
 
+/** Single referral contract for both the standard and manually entered general path. */
+export function specialistReferral(
+  group: EntryEvaluatorGroup, questions: EntryQuestion[], assignedAt: string,
+): EntryCommitteeReview {
+  return {
+    stage: "specialist",
+    method: "questionnaire",
+    assignedTo: group.memberIds[0],
+    assignedAt,
+    questions: structuredClone(questions),
+    groupId: group.id,
+    groupName: group.name,
+    assignments: group.memberIds.map(assignedTo => ({assignedTo})),
+  };
+}
+
 /** Two illustrative reusable groups; no candidate, question or assessment is copied. */
 export function defaultEntryEvaluatorGroups(jobs: Job[], memberIds = ["p5", "p6"]): EntryEvaluatorGroup[] {
   const management = new Set(["j1", "j2", "j4", "j8"]);

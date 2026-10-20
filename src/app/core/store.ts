@@ -43,7 +43,7 @@ import { assessPositionRisk, validatePositionRiskInput } from "./position-risk";
 import { campaignCycle, campaignPreview } from "./evaluation-campaigns";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, roleOrder } from "./auth";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
-import { activeEntryQuestions, combinedEntryScores, defaultEntryQuestions, defaultEntryEvaluatorGroups, entryBankError, entryScores } from "./entry-committees";
+import { activeEntryQuestions, combinedEntryScores, defaultEntryQuestions, defaultEntryEvaluatorGroups, entryBankError, entryScores, specialistReferral } from "./entry-committees";
 import { DevelopmentTemplate, defaultDevelopmentTemplates, templatesForCompetency } from "./development-templates";
 import {
   aggregate,
@@ -640,7 +640,7 @@ export class Store {
     return this.state().candidates.filter(c => {
       if (c.decision || !c.entryWorkflow) return false;
       const review = stage === "general" ? c.entryWorkflow.general : c.entryWorkflow.specialist;
-      return !!review && (review.assignments
+      return !!review && review.method !== "manual" && (review.assignments
         ? review.assignments.some(a => a.assignedTo === this.actor())
         : review.assignedTo === this.actor());
     });
@@ -668,12 +668,15 @@ export class Store {
     const questions = activeEntryQuestions(this.state().entryQuestions, stage, candidate.jobId);
     const error = entryBankError(questions);
     if (error) return this.fail(error);
-    const referral = {
-      stage, assignedTo: stage === "general" ? targetId : group!.memberIds[0],
-      assignedAt: new Date().toISOString(), questions: structuredClone(questions),
-      ...(group ? {groupId: group.id, groupName: group.name,
-        assignments: group.memberIds.map(assignedTo => ({assignedTo}))} : {}),
-    };
+    const now = new Date().toISOString();
+    const referral = stage === "specialist"
+      ? specialistReferral(group!, questions, now)
+      : {
+          stage: "general" as const,
+          method: "questionnaire" as const,
+          assignedTo: targetId, assignedAt: now,
+          questions: structuredClone(questions),
+        };
     this.commit(stage === "general" ? "ارجاع به کمیته عمومی ثبت شد" : "ارجاع به گروه تخصصی ثبت شد",
       candidateId, state => {
         const c = state.candidates.find(x => x.id === candidateId)!;
@@ -682,13 +685,48 @@ export class Store {
       });
     return true;
   }
+  /**
+   * HR records the five general competencies, then immediately refers the
+   * candidate to a valid specialist group. No partial writes on failure.
+   */
+  recordManualGeneralAndReferSpecialist(
+    candidateId: string, scores: number[], evidence: string, groupId: string,
+  ): boolean {
+    const candidate = this.candidate(candidateId);
+    if (!this.canAccess(["hr"]) || !candidate || candidate.decision ||
+        candidate.entryWorkflow || candidate.assessments.length)
+      return this.fail("ثبت دستی عمومی فقط برای منابع انسانی و پرونده ارزیابی‌نشده مجاز است.");
+    if (!Array.isArray(scores) || !validScores(scores) || typeof evidence !== "string" || !evidence.trim())
+      return this.fail("پنج امتیاز صحیح از ۱ تا ۵ و شواهد مستند ارزیابی عمومی الزامی است.");
+    const group = this.entryGroupsForJob(candidate.jobId).find(g => g.id === groupId);
+    if (!group || !group.memberIds.length)
+      return this.fail("یک گروه تخصصی فعال، مرتبط با شغل و دارای ارزیاب معتبر انتخاب کنید.");
+    const questions = activeEntryQuestions(this.state().entryQuestions, "specialist", candidate.jobId);
+    const bankError = entryBankError(questions);
+    if (bankError) return this.fail(bankError);
+    const now = new Date().toISOString();
+    const actorId = this.actor();
+    this.commit("نتیجه عمومی دستی ثبت و به گروه تخصصی ارجاع شد", candidateId, state => {
+      const saved = state.candidates.find(c => c.id === candidateId)!;
+      saved.entryWorkflow = {
+        general: {
+          stage: "general", method: "manual", enteredBy: actorId,
+          assignedTo: actorId, assignedAt: now, completedAt: now,
+          questions: [], scores: [...scores], evidence: evidence.trim(),
+        },
+        specialist: specialistReferral(group, questions, now),
+      };
+    });
+    return true;
+  }
+
   submitEntryReview(candidateId: string, stage: EntryCommitteeStage,
     answers: QuestionAnswer[], evidence: string) {
     const candidate = this.candidate(candidateId);
     const review = stage === "general"
       ? candidate?.entryWorkflow?.general : candidate?.entryWorkflow?.specialist;
     const groupAssignment = review?.assignments?.find(a => a.assignedTo === this.actor());
-    if (!this.canAccess(["evaluator"]) || !candidate || candidate.decision ||
+    if (review?.method === "manual" || !this.canAccess(["evaluator"]) || !candidate || candidate.decision ||
       !review || review.completedAt ||
       (review.assignments ? !groupAssignment || !!groupAssignment.completedAt : review.assignedTo !== this.actor()))
       return this.fail("این پرسشنامه به حساب و مرحله فعلی شما تخصیص نیافته است.");
@@ -740,8 +778,11 @@ export class Store {
       state.candidates.find((c) => c.id === candidateId)!.assessments.push({
         id: crypto.randomUUID(), scores, potential,
         evidence: evidence.trim(), potentialReason: potentialReason.trim(),
-        assessor: "منابع انسانی (تأیید جمع‌بندی دو کمیته)",
+        assessor: workflow.general.method === "manual"
+          ? "منابع انسانی (جمع‌بندی عمومی دستی و تخصصی)"
+          : "منابع انسانی (تأیید جمع‌بندی دو کمیته)",
         source: "committees",
+        generalMethod: workflow.general.method === "manual" ? "manual" : "questionnaire",
         generalReviewAt: workflow.general.completedAt,
         specialistReviewAt: workflow.specialist!.completedAt,
         evaluatedAt: new Date().toISOString(),
