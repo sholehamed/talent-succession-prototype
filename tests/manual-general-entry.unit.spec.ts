@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { Store } from "../src/app/core/store";
 import { QuestionAnswer } from "../src/app/core/models";
 import { combinedEntryScores } from "../src/app/core/entry-committees";
+import { buildReport, ReportAccess, ReportFilters } from "../src/app/core/reporting/reports";
 
 const memory = new Map<string, string>();
 Object.defineProperty(globalThis, "localStorage", {configurable:true,value:{
@@ -103,6 +104,20 @@ describe("manual general assessment with atomic specialist referral",()=>{
       scores:[2.5,3,3.5,4,2],source:"committees",generalMethod:"manual",potential:"high",
     });
     expect(s.finalizeEntryReview(id,"medium","دوباره","تکرار")).toBe(false);
+  });
+
+  it("exposes the general method in the existing HR hiring report",()=>{
+    const s=new Store(),id=s.registerCandidate("داوطلب گزارش","j1");
+    expect(s.recordManualGeneralAndReferSpecialist(id,scores,evidence,"entry-group-management")).toBe(true);
+    const filters:ReportFilters={unit:"",jobId:"",period:"",status:"",search:"",from:"",to:""};
+    const access:ReportAccess={
+      role:"hr",allowedPersonIds:new Set(s.state().people.map(p=>p.id)),
+      restrictedUnit:"",viewerUnit:"",
+      hasAnswered:(c,a)=>s.hasAnswered(c,a),
+    };
+    const result=buildReport(s.state(),"hiring",filters,access);
+    expect(result.columns.some(c=>c.key==="generalMethod")).toBe(true);
+    expect(result.rows.find(r=>r.id===id)?.values.generalMethod).toBe("ثبت دستی منابع انسانی");
   });
 
   it("leaves the questionnaire route available and legacy stage provenance readable",()=>{
