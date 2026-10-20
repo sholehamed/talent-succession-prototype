@@ -9,13 +9,13 @@ test("HR can assign and remove a person's owner role",async({page})=>{
   await page.goto("/access/roles");
   await expect(page.getByRole("heading",{name:"مدیریت نقش‌های کاربران"})).toBeVisible();
   await page.getByRole("textbox",{name:"جستجوی نام، کد پرسنلی یا شناسه"}).fill("p3");
-  await page.locator(".access-person").filter({hasText:"p3"}).click();
+  await page.locator(".access-person").filter({hasText:"p3"}).first().click();
   await page.getByRole("checkbox",{name:"مالک خانواده شغلی"}).check();
   await page.getByRole("button",{name:"ذخیره نقش‌های فرد"}).click();
   await expect(page.locator(".access-person").first()).toContainText("مالک خانواده شغلی");
   await page.reload();
   await page.getByRole("textbox",{name:"جستجوی نام، کد پرسنلی یا شناسه"}).fill("p3");
-  await page.locator(".access-person").filter({hasText:"p3"}).click();
+  await page.locator(".access-person").filter({hasText:"p3"}).first().click();
   await expect(page.getByRole("checkbox",{name:"مالک خانواده شغلی"})).toBeChecked();
   await page.getByRole("checkbox",{name:"مالک خانواده شغلی"}).uncheck();
   await page.getByRole("button",{name:"ذخیره نقش‌های فرد"}).click();
