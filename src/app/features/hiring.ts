@@ -185,6 +185,7 @@ import { UI } from "../shared/ui";
                 @if (w.specialist) {
                   @if (w.specialist.groupId) {
                     <small>گروه: {{ w.specialist.groupName }} · {{ completedCount(w.specialist) | fa }} از {{ (w.specialist.assignments?.length ?? 0) | fa }} ارزیاب پاسخ داده‌اند</small>
+                    <small>ارجاع برای هر عضو گروه در «کارتابل ارزیابی» همان فرد با نقش ارزیاب قابل مشاهده است.</small>
                     @for (assignment of w.specialist.assignments ?? []; track assignment.assignedTo) {
                       <small>{{ personName(assignment.assignedTo) }} · {{ assignment.completedAt ? 'تکمیل‌شده' : 'در انتظار پاسخ' }}</small>
                       @if (assignment.completedAt) {
