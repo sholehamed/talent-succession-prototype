@@ -29,8 +29,8 @@ test("HR sees only HR dashboard; restricted manager/executive URLs redirect, rep
   await page.goto("/dashboard/undefined");
   await expect(page.getByRole("heading", { name: /صفحه/ })).toBeVisible();
   await page.goto("/reports");
-  await expect(page.getByRole("heading", { name: "گزارش‌ها و تحلیل مدیریتی" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "دریافت گزارش CSV" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "گزارش‌ها و تحلیل", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /خروجی CSV/ })).toBeVisible();
   await expect(page.locator("main .chips")).toHaveCount(0);
   await page.goto("/dashboard/development");
   await expect(page.getByRole("heading", { name: "داشبورد توسعه سرمایه انسانی" })).toBeVisible();
@@ -58,7 +58,7 @@ test("executive and manager role switch updates dashboard link, heading, scope a
   await page.goto("/dashboard/executive");
   await expectDashboard(page, "/dashboard/unit", "داشبورد مدیر واحد", "داشبورد مدیر واحد");
   await page.goto("/reports");
-  await expect(page.getByRole("heading", { name: "گزارش‌ها و تحلیل مدیریتی" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "گزارش‌ها و تحلیل", exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "واحد سازمانی" })).toBeDisabled();
   await page.goto("/dashboard/development");
   await expect(page.getByRole("heading", { name: "داشبورد توسعه سرمایه انسانی" })).toBeVisible();
