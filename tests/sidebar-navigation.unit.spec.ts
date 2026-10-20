@@ -29,12 +29,12 @@ describe("grouped sidebar configuration", () => {
     const all = navigationGroups.flatMap((g) => g.children.map((x) => x.path));
     expect(navigationGroups).toHaveLength(7);
     expect(new Set(all).size).toBe(all.length);
-    expect(all).toHaveLength(27);
+    expect(all).toHaveLength(28);
     expect(all).toEqual(expect.arrayContaining([
       "/dashboard/hr", "/dashboard/development",
       "/people", "/organization/chart", "/organization/units",
       "/organization/positions", "/organization/appointments",
-      "/organization/locations", "/jobs", "/career-paths",
+      "/organization/locations", "/access/roles", "/jobs", "/career-paths",
       "/hiring", "/hiring/questions", "/hiring/evaluator-groups", "/hiring/committee/general",
       "/hiring/committee/specialist", "/performance", "/evaluations/campaigns",
       "/evaluations/cycles", "/evaluations/inbox", "/evaluations/questions",
@@ -67,6 +67,11 @@ describe("grouped sidebar configuration", () => {
       .toContain("/development/tasks");
     expect(visibleNavigationGroups("manager").flatMap((g) => g.children.map((c) => c.path)))
       .not.toContain("/evaluations/campaigns");
+    expect(visibleNavigationGroups("hr").flatMap(g => g.children.map(c => c.path)))
+      .toContain("/access/roles");
+    for (const role of ["manager","executive","owner","employee","evaluator"] as Role[])
+      expect(visibleNavigationGroups(role).flatMap(g => g.children.map(c => c.path)))
+        .not.toContain("/access/roles");
   });
 
   it("routes each management role only to its own dashboard and keeps shared development", () => {

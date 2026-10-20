@@ -42,6 +42,8 @@ export const routes: Routes = [
     loadComponent: () => import("./features/organization"),
   })),
   { path: "organization", redirectTo: "organization/chart", pathMatch: "full" },
+  { path: "access/roles", canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/access-management") },
   {
     path: "hiring/evaluator-groups",
     canActivate: [permit(["hr"])],

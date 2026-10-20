@@ -41,7 +41,7 @@ import {
 import { performanceBand, performanceScore } from "./performance";
 import { assessPositionRisk, validatePositionRiskInput } from "./position-risk";
 import { campaignCycle, campaignPreview } from "./evaluation-campaigns";
-import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, rolesForPerson } from "./auth";
+import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, roleOrder } from "./auth";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
 import { activeEntryQuestions, combinedEntryScores, defaultEntryQuestions, defaultEntryEvaluatorGroups, entryBankError, entryScores } from "./entry-committees";
 import { DevelopmentTemplate, defaultDevelopmentTemplates, templatesForCompetency } from "./development-templates";
@@ -64,8 +64,12 @@ export class Store {
   readonly authenticated = computed(() =>
     !!this.actor() && this.state().people.some((p) => p.id === this.actor()));
   readonly currentPerson = computed(() => this.state().people.find((p) => p.id === this.actor()));
+  /** All permissions derive from persisted person grants, never a hardcoded ID list. */
+  rolesOf(personId: string): Role[] {
+    return this.state().roleAssignments[personId] ?? [];
+  }
   readonly permittedRoles = computed(() =>
-    this.authenticated() ? rolesForPerson(this.actor()) : []);
+    this.authenticated() ? this.rolesOf(this.actor()) : []);
   readonly activeRoleAllowed = computed(() => this.authenticated() &&
     (this.permittedRoles().includes(this.role()) || typeof window === "undefined"));
   readonly assignedActions = computed(() => this.state().plans.flatMap((plan) =>
@@ -77,7 +81,7 @@ export class Store {
       const stored = sessionStorage.getItem(SESSION_KEY);
       if (!stored) return null;
       const value = JSON.parse(stored);
-      if (typeof value.id !== "string" || !rolesForPerson(value.id).includes(value.role))
+      if (typeof value.id !== "string" || !roleOrder.includes(value.role))
         return null;
       return value;
     } catch { return null; }
@@ -91,14 +95,24 @@ export class Store {
       }
     } catch { this.storageWarning.set("نشست در مرورگر قابل نگهداری نیست."); }
   }
+  constructor() {
+    // Validate persisted sessions against current grants after the Store is hydrated.
+    if (this.actor() && !this.rolesOf(this.actor()).includes(this.role())) {
+      const fallback = this.rolesOf(this.actor())[0];
+      if (fallback) this.role.set(fallback);
+      else { this.actor.set(""); this.role.set("employee"); }
+      this.persistSession();
+    }
+  }
   login(id: string, password: string) {
     const normalized = id.trim();
     const person = this.state().people.find((p) => p.id === normalized);
     if (!person || password !== DEFAULT_PASSWORD)
       return this.fail("شناسه کاربری یا رمز عبور صحیح نیست.");
     this.actor.set(person.id);
-    this.role.set(rolesForPerson(person.id).find((r) =>
-      !["employee", "evaluator"].includes(r)) ?? "employee");
+    const preferred: Role[] = ["hr", "executive", "manager", "owner"];
+    this.role.set(preferred.find(role => this.rolesOf(person.id).includes(role))
+      ?? this.rolesOf(person.id)[0] ?? "employee");
     this.persistSession();
     this.notice.set("");
     return true;
@@ -114,6 +128,31 @@ export class Store {
       return this.fail("این نقش به حساب شما اختصاص داده نشده است.");
     this.role.set(role);
     this.persistSession();
+    return true;
+  }
+  /**
+   * HR-only role assignment. Replace the person's full role set atomically.
+   * Keep one role, block self-revocation of HR and protect the last HR account.
+   */
+  setPersonRoles(personId: string, requested: Role[]): boolean {
+    if (!this.canAccess(["hr"]))
+      return this.fail("مدیریت نقش‌های کاربران فقط برای منابع انسانی مجاز است.");
+    if (!this.state().people.some(p => p.id === personId) || !Array.isArray(requested) ||
+      !requested.length || requested.some(role => !roleOrder.includes(role)))
+      return this.fail("فرد و حداقل یک نقش معتبر الزامی هستند.");
+    const next = roleOrder.filter(role => requested.includes(role));
+    if (personId === this.actor() && !next.includes("hr"))
+      return this.fail("برای جلوگیری از قطع دسترسی، امکان حذف نقش منابع انسانی از حساب فعلی وجود ندارد.");
+    if (this.rolesOf(personId).includes("hr") && !next.includes("hr") &&
+      !this.state().people.some(p => p.id !== personId && this.rolesOf(p.id).includes("hr")))
+      return this.fail("حذف آخرین کاربر منابع انسانی مجاز نیست.");
+    if (JSON.stringify(next) === JSON.stringify(this.rolesOf(personId))) return true;
+    this.commit("نقش‌های کاربر تغییر کرد", personId, state => {
+      state.roleAssignments[personId] = next;
+    });
+    if (personId === this.actor() && !next.includes(this.role())) {
+      this.role.set(next[0]); this.persistSession();
+    }
     return true;
   }
   home() { return homeForRole(this.role(), this.actor()); }
@@ -524,16 +563,16 @@ export class Store {
   /** General committee still uses direct members; specialist referrals use reusable groups. */
   entryMembers(stage: EntryCommitteeStage) {
     return this.state().entryCommitteeMembers
-      .filter((m) => m.stage === stage)
-      .flatMap((m) => {
-        const person = this.state().people.find((p) => p.id === m.personId);
+      .filter(m => m.stage === stage && this.rolesOf(m.personId).includes("evaluator"))
+      .flatMap(m => {
+        const person = this.state().people.find(p => p.id === m.personId);
         return person ? [person] : [];
       });
   }
   setEntryCommitteeMember(stage: EntryCommitteeStage, personId: string, enabled: boolean) {
     if (!this.canAccess(["hr"])) return this.fail("تنظیم ترکیب کمیته فقط برای منابع انسانی مجاز است.");
     if (stage !== "general" ||
-      !this.state().people.some((p) => p.id === personId && rolesForPerson(p.id).includes("evaluator")))
+      !this.state().people.some((p) => p.id === personId && this.rolesOf(p.id).includes("evaluator")))
       return this.fail("عضو کمیته عمومی باید شخص دارای نقش ارزیاب باشد.");
     this.commit("عضویت کمیته عمومی بدو استخدام تنظیم شد", personId, (state) => {
       state.entryCommitteeMembers = state.entryCommitteeMembers.filter((m) =>
@@ -544,7 +583,7 @@ export class Store {
   }
   entryGroupsForJob(jobId: string) {
     return this.state().entryEvaluatorGroups.filter(g => g.isActive && g.jobIds.includes(jobId) &&
-      g.memberIds.length > 0);
+      g.memberIds.length > 0 && g.memberIds.every(id => this.rolesOf(id).includes("evaluator")));
   }
   saveEntryEvaluatorGroup(value: EntryEvaluatorGroup) {
     if (!this.canAccess(["hr"])) return this.fail("مدیریت گروه ارزیاب فقط برای منابع انسانی مجاز است.");
@@ -555,7 +594,7 @@ export class Store {
     if (!name || !jobIds.length || !memberIds.length ||
       jobIds.some(id => !this.publishedJobs().some(j => j.id === id)) ||
       memberIds.some(id => !this.state().people.some(p =>
-        p.id === id && rolesForPerson(p.id).includes("evaluator"))) ||
+        p.id === id && this.rolesOf(p.id).includes("evaluator"))) ||
       this.state().entryEvaluatorGroups.some(g => g.id !== value.id && g.name === name))
       return this.fail("نام یکتا، حداقل یک شغل منتشرشده و یک ارزیاب معتبر الزامی است.");
     const id = existing?.id ?? crypto.randomUUID();
@@ -616,10 +655,10 @@ export class Store {
     const group = stage === "specialist"
       ? this.entryGroupsForJob(candidate.jobId).find(g => g.id === targetId) : undefined;
     if (stage === "general" && !this.state().entryCommitteeMembers.some(m =>
-      m.stage === "general" && m.personId === targetId))
+      m.stage === "general" && m.personId === targetId && this.rolesOf(targetId).includes("evaluator")))
       return this.fail("ارزیاب انتخاب‌شده عضو کمیته عمومی نیست.");
     if (stage === "specialist" && (!group || !group.memberIds.every(id =>
-      this.state().people.some(p => p.id === id && rolesForPerson(id).includes("evaluator")))))
+      this.state().people.some(p => p.id === id && this.rolesOf(id).includes("evaluator")))))
       return this.fail("گروه تخصصی فعال و مرتبط با شغل و دارای اعضای معتبر انتخاب کنید.");
     if (stage === "general" && (candidate.entryWorkflow || candidate.assessments.length))
       return this.fail("ارجاع اولیه فقط برای داوطلب فاقد ارزیابی و ارجاع قبلی مجاز است.");
@@ -791,6 +830,7 @@ export class Store {
             hiredAt: employment.hiredAt, potentialReviewedAt: assessment.evaluatedAt,
           },
         });
+        state.roleAssignments[personId] = ["employee", "evaluator"];
         const error = assignPosition(state, {
           id: crypto.randomUUID(), personId, positionId: position.id,
           type: "primary", effectiveFrom: employment.hiredAt, effectiveTo: null,

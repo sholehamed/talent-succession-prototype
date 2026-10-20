@@ -382,6 +382,8 @@ export interface DemoState {
   schema: 1;
   jobs: Job[];
   people: Person[];
+  /** Roles granted per person; legacy browser data is migrated from default demo grants. */
+  roleAssignments: Record<string, Role[]>;
   /** Optional in older browser snapshots; normalized to [] when restored. */
   performanceReviews: PerformanceReview[];
   /** Restored from an empty array for browser snapshots predating hiring. */
