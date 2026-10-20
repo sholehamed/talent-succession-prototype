@@ -4,9 +4,10 @@ import { Store } from "../core/store";
 import { Band, bands, competencies, Nomination } from "../core/models";
 import { UI } from "../shared/ui";
 import { Chart } from "../shared/chart";
+import { PositionRisk } from "./position-risk";
 @Component({
   standalone: true,
-  imports: [...UI, Chart],
+  imports: [...UI, Chart, PositionRisk],
   template: `<div class="page-header">
       <div>
         <div class="eyebrow">تداوم سازمان، توسعه فرصت‌ها</div>
@@ -86,9 +87,9 @@ import { Chart } from "../shared/chart";
         <div class="filterbar">
           <mat-form-field appearance="outline" class="search"
             ><mat-label>پست حیاتی</mat-label><mat-select
-              [ngModel]="positionId()"
+              [ngModel]="position()?.id ?? ''"
               (ngModelChange)="
-                positionId.set($event); draft = undefined; compare.set([])
+                selectPosition($event)
               "
             >
               @for (p of critical(); track p.id) {
@@ -110,12 +111,9 @@ import { Chart } from "../shared/chart";
               <p>{{ p.reason }}</p>
             </div>
             <div>
-              <small>احتمال × اثر خروج</small>
-              <h3>
-                {{ p.probability | fa }} × {{ p.impact | fa }} =
-                {{ p.probability * p.impact | fa }}
-              </h3>
-              <p>برآورد جایگزینی {{ p.months | fa }} ماه</p>
+              <small>ارزیابی ریسک خروج</small>
+              <h3>{{ riskStatus(p.id) }}</h3>
+              <p>امتیاز معتبر و زمان جایگزینی در بخش ارزیابی ریسک</p>
             </div>
             <div>
               <small>پوشش جانشین آماده</small>
@@ -125,8 +123,13 @@ import { Chart } from "../shared/chart";
               <a [routerLink]="['/jobs', p.jobId]">شناسنامه شغل هدف ←</a>
             </div>
           </div>
+        } @else {
+          <div class="empty">پست حیاتی مجازی برای این نقش وجود ندارد.</div>
         }
       </mat-card>
+      @if (position(); as p) {
+        <app-position-risk [positionId]="p.id" />
+      }
       <div class="grid three">
         @for (n of nominations(); track n.id) {
           <mat-card class="panel">
@@ -245,11 +248,10 @@ export default class Talent {
   unit = signal("");
   cell = signal("");
   positionId = signal(
-    this.s
-      .state()
-      .positions.find(
-        (p) => p.jobId === this.route.snapshot.queryParamMap.get("job"),
-      )?.id ?? "pos1",
+    this.route.snapshot.queryParamMap.get("position") ??
+    this.s.state().positions.find(p =>
+      p.jobId === this.route.snapshot.queryParamMap.get("job") && p.critical)?.id ??
+    "pos1",
   );
   compare = signal<string[]>(["p1", "p2"]);
   draft?: Nomination;
@@ -267,17 +269,32 @@ export default class Talent {
       .state()
       .positions.filter(
         (p) =>
-          p.critical &&
-          (this.s.role() !== "manager" || p.unit === this.s.currentPerson()?.unit),
+          p.critical && p.isActive !== false &&
+          (this.s.role() !== "manager" ||
+            (!!p.unitId && p.unitId === this.s.currentUnit(this.s.actor())?.id)),
       ),
   );
   position = computed(() =>
-    this.s.state().positions.find((p) => p.id === this.positionId()),
+    this.critical().find(p => p.id === this.positionId()) ?? this.critical()[0],
   );
+  riskStatus(id: string) {
+    return {
+      current: "ارزیابی معتبر",
+      unassessed: "فاقد ارزیابی مستند",
+      stale: "نیازمند بازبینی",
+      vacant: "بلاتصدی",
+      inactive: "غیرفعال",
+    }[this.s.positionRisk(id).status];
+  }
+  selectPosition(id: string) {
+    this.positionId.set(id);
+    this.draft = undefined;
+    this.compare.set([]);
+  }
   nominations = computed(() =>
     this.s
       .state()
-      .nominations.filter((n) => n.positionId === this.positionId()),
+      .nominations.filter((n) => !!this.position() && n.positionId === this.position()!.id),
   );
   ready = computed(() => this.nominations().some((n) => n.readiness === "A"));
   people = computed(() =>
@@ -323,7 +340,7 @@ export default class Talent {
     this.draft = {
       id: "",
       personId: "p1",
-      positionId: this.positionId(),
+      positionId: this.position()?.id ?? "",
       readiness: "C",
       evidence: "",
       at: "",
