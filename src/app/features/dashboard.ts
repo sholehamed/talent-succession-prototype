@@ -282,12 +282,10 @@ export default class Dashboard {
   readonly gapColumns = ["person","unit",...competencies.map((_, i) => "gap" + i),"source"];
   route = inject(ActivatedRoute);
   reports = !!this.route.snapshot.data["reports"];
-  // Dashboard context comes from the guarded URL / active role, not UI tabs.
-  // Shared /reports must also respect the signed-in management role.
-  readonly view = computed(() => this.reports
-    ? this.s.role() === "executive" ? "executive"
-      : this.s.role() === "manager" ? "unit" : "hr"
-    : this.route.snapshot.paramMap.get("view") ?? "hr");
+  // All dashboard and report views follow the authorized management role.
+  // Explicit routes no longer have a :view URL parameter.
+  readonly view = computed(() => this.s.role() === "executive" ? "executive"
+    : this.s.role() === "manager" ? "unit" : "hr");
   period = signal("1405-autumn");
   unit = signal(
     this.s.role() === "manager" ||
