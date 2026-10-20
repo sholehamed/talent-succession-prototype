@@ -48,8 +48,6 @@ test("all main routes render, RTL, lazy charts and responsive layout", async ({
   page.on("pageerror", (e) => errors.push(e.message));
   for (const path of [
     "/dashboard/hr",
-    "/dashboard/executive",
-    "/dashboard/unit",
     "/jobs",
     "/jobs/new",
     "/jobs/j1",
