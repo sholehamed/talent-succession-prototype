@@ -206,8 +206,9 @@ import { competencies } from "../core/models";
 export default class DevelopmentDashboard {
   readonly s = inject(Store);
   readonly period = signal("1405-autumn");
-  readonly unit = signal(this.s.role() === "manager" ? "دفتر پروژه‌ها" : "");
-  readonly effectiveUnit = computed(() => this.s.role() === "manager" ? "دفتر پروژه‌ها" : this.unit());
+  readonly unit = signal(this.s.role() === "manager" ? this.s.currentPerson()?.unit ?? "" : "");
+  readonly effectiveUnit = computed(() => this.s.role() === "manager"
+    ? this.s.currentPerson()?.unit ?? "" : this.unit());
   readonly competencies = competencies;
   readonly growthColumns = ["person", "cycles", "score", "gap", "link"];
   readonly reviewCategories = ["مؤثر", "تاحدی مؤثر", "بدون اثربخشی"];
