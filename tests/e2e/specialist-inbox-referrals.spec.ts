@@ -36,6 +36,8 @@ test("a newly defined specialist group appears for each assigned member in the m
   await page.getByRole("textbox",{name:"نام و نام خانوادگی داوطلب"}).fill("داوطلب جدید کارتابل");
   await select(page,"شغل هدف استخدام","مدیر پروژه · دفتر پروژه‌ها");
   await page.getByRole("button",{name:"ثبت و آغاز ارزیابی"}).click();
+  // Angular's router navigation can complete after the submit click has resolved.
+  await expect(page).toHaveURL(/\/hiring\/[^/]+$/);
   const candidatePath=new URL(page.url()).pathname;
   const candidateId=candidatePath.split("/").at(-1)!;
   await select(page,"ارزیاب کمیته عمومی","نیما روشن · EMP-1003");
