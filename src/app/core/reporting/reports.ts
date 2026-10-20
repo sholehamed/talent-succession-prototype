@@ -1,5 +1,6 @@
 import { developmentMetrics } from "../development-metrics";
 import { positionHolder } from "../organization";
+import { assessPositionRisk } from "../position-risk";
 import { Assignment, Band, Candidate, Cycle, DemoState, Role, bands, statusLabels } from "../models";
 
 export type ReportKind =
@@ -221,13 +222,19 @@ export function buildReport(
     const levels=["A","B","C"];
     const rows=selected.map(p=>{
       const n=nominees(p.id);
+      const risk=assessPositionRisk(state,p.id);
+      const riskStatus={
+        current:"ارزیابی مستند معتبر",unassessed:"فاقد ارزیابی مستند",
+        stale:"نیازمند بازبینی",vacant:"بلاتصدی",inactive:"غیرفعال",
+      }[risk.status];
       return row(p.id,{position:p.title,unit:p.unit,job:look(state,p.jobId),
-        risk:p.probability*p.impact,candidates:n.length,
+        risk:risk.score,riskStatus,replacementMonths:risk.replacementMonths,
+        riskReviewedAt:risk.reviewedAt?.slice(0,10) ?? "—",candidates:n.length,
         A:n.filter(x=>x.readiness==="A").length,
         B:n.filter(x=>x.readiness==="B").length,
         C:n.filter(x=>x.readiness==="C").length,
         ready:n.some(x=>x.readiness==="A")?"دارای جانشین آماده":"فاقد جانشین آماده"
-      },"/talent/succession?job="+encodeURIComponent(p.jobId));
+      },"/talent/succession?position="+encodeURIComponent(p.id));
     });
     const nready=selected.filter(p=>nominees(p.id).some(n=>n.readiness==="A")).length;
     return build("جانشین‌پروری و ریسک پست‌ها","پوشش آمادگی انسانی A/B/C برای هر پست حیاتی فعال",
@@ -238,8 +245,9 @@ export function buildReport(
       [bar("پراکندگی آمادگی نامزدها",levels,"نامزد",levels.map(l=>selected.reduce((n,p)=>
         n+nominees(p.id).filter(x=>x.readiness===l).length,0)))],
       cols(["position","پست"],["unit","واحد"],["job","شغل"],["risk","احتمال × اثر"],
+        ["riskStatus","وضعیت ارزیابی"],["replacementMonths","جایگزینی (ماه)"],["riskReviewedAt","آخرین بررسی"],
         ["candidates","نامزدها"],["A","A"],["B","B"],["C","C"],["ready","پوشش"]),
-      rows,"آمادگی به رابطه نامزد و پست وابسته است؛ به‌صورت خودکار از موقعیت ۹خانه محاسبه نمی‌شود.");
+      rows,"ریسک فقط برای ارزیابی مستند معتبر نمایش دارد؛ پیش‌فرض‌های Seed ریسک معتبر نیستند. آمادگی A/B/C مستقل از ریسک و تصمیم انسانی است.");
   }
   if (kind==="development") {
     const scopedState:DemoState={...state,plans:state.plans.filter(p=>!filter.jobId||p.jobId===filter.jobId),

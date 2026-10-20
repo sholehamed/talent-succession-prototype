@@ -155,7 +155,8 @@ import { printReportPdf } from "../core/reporting/pdf-print";
                 }
                 <td>
                   @if (item.link) {
-                    <a [routerLink]="item.link">مشاهده ←</a>
+                    <a [routerLink]="kind() === 'succession' ? '/talent/succession' : item.link"
+                      [queryParams]="kind() === 'succession' ? { position: item.id } : null">مشاهده ←</a>
                   } @else { <span class="muted">—</span> }
                 </td>
               </tr>

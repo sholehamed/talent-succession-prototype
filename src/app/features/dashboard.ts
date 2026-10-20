@@ -354,7 +354,7 @@ export default class Dashboard {
     this.s
       .state()
       .positions.filter(
-        (p) => p.critical && (!this.unit() || p.unit === this.unit()),
+        (p) => p.critical && p.isActive !== false && (!this.unit() || p.unit === this.unit()),
       ),
   );
   unready = computed(() =>

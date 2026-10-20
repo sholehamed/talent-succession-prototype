@@ -165,6 +165,10 @@ import { UI } from "../shared/ui";
               <small>بالاسری: {{ positionName(p.parentPositionId) }} · {{ locationName(p.locationId) }}</small>
             </div>
             <span>{{ s.currentPositionHolder(p.id)?.name ?? 'بلاتصدی' }}</span>
+            @if (p.critical && p.isActive !== false) {
+              <a mat-button [routerLink]="['/talent/succession']"
+                [queryParams]="{ position: p.id }">ارزیابی ریسک ←</a>
+            }
             @if (s.canManageOrganization()) { <button mat-button (click)="position = clone(p)">ویرایش</button> }
           </div>
         }

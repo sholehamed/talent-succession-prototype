@@ -76,6 +76,12 @@ export function savePosition(state: DemoState, draft: Position): string {
     unit: state.organizationUnits.find((u) => u.id === draft.unitId)!.name,
     parentPositionId: parent, isActive: draft.isActive !== false,
     holderId: old?.holderId ?? "",
+    // Structural edits must not overwrite independently approved risk reviews
+    // with legacy or blank form defaults.
+    ...(old ? {
+      probability: old.probability, impact: old.impact, months: old.months,
+      reason: old.reason, riskReview: old.riskReview,
+    } : {}),
   };
   const i = state.positions.findIndex((x) => x.id === row.id);
   if (i >= 0) state.positions[i] = row;

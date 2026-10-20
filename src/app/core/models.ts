@@ -161,6 +161,29 @@ export interface Candidate {
     personId?: string;
   };
 }
+/** Evidence-backed review of turnover risk for a particular staffing appointment. */
+export interface PositionRiskReview {
+  assessedAt: string;
+  assessedBy: string;
+  appointmentIdAtReview: string;
+  horizonMonths: 12;
+  probabilityEvidence: string;
+  impactEvidence: string;
+  replacementBasis: string;
+  mitigationAction: string;
+}
+
+export interface PositionRiskInput {
+  probability: 1 | 2 | 3;
+  impact: 1 | 2 | 3;
+  months: number;
+  reason: string;
+  probabilityEvidence: string;
+  impactEvidence: string;
+  replacementBasis: string;
+  mitigationAction: string;
+}
+
 export interface Position {
   id: string;
   title: string;
@@ -179,6 +202,8 @@ export interface Position {
   probability: number;
   impact: number;
   months: number;
+  /** Missing on old/seed records: numeric defaults do not count as an assessment. */
+  riskReview?: PositionRiskReview;
 }
 /** Organization structure is independent of job descriptions. */
 export interface OrganizationUnit {
