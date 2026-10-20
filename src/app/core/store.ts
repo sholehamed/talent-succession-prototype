@@ -22,6 +22,7 @@ import {
   OrganizationUnit,
   WorkLocation,
   Position,
+  PositionRiskInput,
   PositionAppointment,
   Plan,
   PerformanceKpiInput,
@@ -38,6 +39,7 @@ import {
   saveLocation, saveUnit, savePosition, assignPosition, finishAppointment, projectStaffing,
 } from "./organization-actions";
 import { performanceBand, performanceScore } from "./performance";
+import { assessPositionRisk, validatePositionRiskInput } from "./position-risk";
 import { campaignCycle, campaignPreview } from "./evaluation-campaigns";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, rolesForPerson } from "./auth";
 import { defaultEvaluationQuestions, legacyCycleQuestions, orderedQuestions, validateQuestionBank } from "./evaluation-questions";
@@ -305,6 +307,46 @@ export class Store {
   saveOrganizationPosition(value: Position) {
     const id = value.id || crypto.randomUUID();
     return this.orgMutation("پست سازمانی ثبت شد", id, (s) => savePosition(s, {...value, id}));
+  }
+  canReviewPositionRisk(positionId: string): boolean {
+    if (!this.canAccess(["hr", "manager"])) return false;
+    const p = this.positionRecord(positionId);
+    if (!p || p.isActive === false || !p.critical) return false;
+    return this.role() === "hr" || (!!p.unitId &&
+      p.unitId === this.currentUnit(this.actor())?.id);
+  }
+  positionRisk(positionId: string) {
+    return assessPositionRisk(this.state(), positionId);
+  }
+  savePositionRisk(positionId: string, input: PositionRiskInput): boolean {
+    if (!this.canReviewPositionRisk(positionId))
+      return this.fail("ثبت ریسک این پست برای نقش یا واحد شما مجاز نیست.");
+    const error = validatePositionRiskInput(input);
+    if (error) return this.fail(error);
+    const appointment = this.state().appointments.find(a =>
+      a.type === "primary" && a.positionId === positionId &&
+      a.effectiveFrom <= new Date().toISOString().slice(0, 10) &&
+      (!a.effectiveTo || a.effectiveTo >= new Date().toISOString().slice(0, 10)));
+    if (!appointment) return this.fail("این پست متصدی جاری ندارد؛ احتمال خروج قابل ارزیابی نیست.");
+    const now = new Date().toISOString();
+    this.commit("ارزیابی ریسک پست ثبت شد", positionId, s => {
+      const p = s.positions.find(x => x.id === positionId)!;
+      p.probability = input.probability;
+      p.impact = input.impact;
+      p.months = input.months;
+      p.reason = input.reason.trim();
+      p.riskReview = {
+        assessedAt: now,
+        assessedBy: this.actor(),
+        appointmentIdAtReview: appointment.id,
+        horizonMonths: 12,
+        probabilityEvidence: input.probabilityEvidence.trim(),
+        impactEvidence: input.impactEvidence.trim(),
+        replacementBasis: input.replacementBasis.trim(),
+        mitigationAction: input.mitigationAction.trim(),
+      };
+    });
+    return true;
   }
   appointPerson(personId: string, positionId: string, effectiveFrom: string,
     referenceNo = "", note = "") {
