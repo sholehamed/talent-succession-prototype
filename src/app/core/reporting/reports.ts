@@ -312,7 +312,11 @@ export function buildReport(
       const sp=c.entryWorkflow?.specialist, completed=sp?.assignments?.filter(a=>a.completedAt).length??0,
         total=sp?.assignments?.length??0;
       return row(c.id,{person:c.name,job:look(state,c.jobId),date:c.createdAt.slice(0,10),
-        status:hiringStatus[candidateStatus(c)],group:sp?.groupName??(sp?"ارجاع تک‌نفره قدیمی":"—"),
+        status:hiringStatus[candidateStatus(c)],
+        generalMethod:c.entryWorkflow?.general.method==="manual"
+          ? "ثبت دستی منابع انسانی"
+          : c.entryWorkflow?.general ? "پرسشنامه کمیته عمومی" : "—",
+        group:sp?.groupName??(sp?"ارجاع تک‌نفره قدیمی":"—"),
         progress:sp?.assignments ? completed+" / "+total : sp?sp.completedAt?"تکمیل‌شده":"در جریان":"—",
         assessed:c.assessments.length,
       },"/hiring/"+c.id);
@@ -325,7 +329,8 @@ export function buildReport(
       [bar("وضعیت پرونده‌های جذب",statuses.map(s=>hiringStatus[s]),"پرونده",
         statuses.map(s=>items.filter(c=>candidateStatus(c)===s).length))],
       cols(["person","داوطلب"],["job","شغل هدف"],["date","تاریخ ثبت"],
-        ["status","وضعیت"],["group","گروه تخصصی"],["progress","پیشرفت اعضا"],["assessed","نتایج نهایی"]),
+        ["status","وضعیت"],["generalMethod","روش ارزیابی عمومی"],
+        ["group","گروه تخصصی"],["progress","پیشرفت اعضا"],["assessed","نتایج نهایی"]),
       rows,"از تاریخ ثبت داوطلب برای فیلتر زمانی استفاده می‌شود، نه از تاریخ تکمیل هر مرحله. انتخاب گروه و ثبت استخدام انسانی است.");
   }
   if (kind==="knowledge") {
