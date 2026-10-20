@@ -110,8 +110,9 @@ export class Store {
     if (!person || password !== DEFAULT_PASSWORD)
       return this.fail("شناسه کاربری یا رمز عبور صحیح نیست.");
     this.actor.set(person.id);
-    this.role.set(this.rolesOf(person.id).find((r) =>
-      !["employee", "evaluator"].includes(r)) ?? this.rolesOf(person.id)[0] ?? "employee");
+    const preferred: Role[] = ["hr", "executive", "manager", "owner"];
+    this.role.set(preferred.find(role => this.rolesOf(person.id).includes(role))
+      ?? this.rolesOf(person.id)[0] ?? "employee");
     this.persistSession();
     this.notice.set("");
     return true;
