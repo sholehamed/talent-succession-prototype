@@ -189,8 +189,7 @@ export const routes: Routes = [
   {
     path: "reports",
     canActivate: [permit(management)],
-    data: { reports: true },
-    loadComponent: () => import("./features/dashboard"),
+    loadComponent: () => import("./features/reports"),
   },
   { path: "settings", canActivate: [permit()], loadComponent: () => import("./features/settings") },
   { path: "demo/settings", redirectTo: "settings" },
