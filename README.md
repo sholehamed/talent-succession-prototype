@@ -79,6 +79,7 @@ docs/                 محدوده، راهنمای داخلی ارائه و ر�
 
 ## اسناد پروژه
 
+- [طرح فنی پیشنهادی ارزیابی ریسک پست حیاتی](docs/CRITICAL_POSITION_RISK_ASSESSMENT_FA.md) — **صرفاً مستند طراحی؛ هنوز پیاده‌سازی نشده**؛ مدل داده، فرم، دسترسی، گزارش و تست
 - [راهنمای گروه‌بندی سایدبار، رفتار Accordion و دسترسی نقش‌ها](docs/SIDEBAR_NAVIGATION_FA.md)
 - [راهنمای داشبوردهای مستقل و نقش‌محور](docs/ROLE_DASHBOARD_NAVIGATION_FA.md)
 - [راهنمای مرکز گزارش‌ها، منابع شاخص‌ها، فیلترها و Excel/PDF](docs/REPORTING_CENTER_FA.md)
