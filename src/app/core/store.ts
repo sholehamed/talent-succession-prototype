@@ -19,6 +19,7 @@ import {
   Job,
   Knowledge,
   Nomination,
+  ProspectiveIndicator, ProspectiveQuestion, ProspectiveEvaluationRun,
   OrganizationUnit,
   WorkLocation,
   Position,
@@ -30,6 +31,7 @@ import {
   Role,
   competencies,
 } from "./models";
+import { defaultProspectiveIndicators, defaultProspectiveQuestions, prospectiveSnapshotError, scoreProspectiveAnswers } from "./prospective";
 import { seed } from "./seed";
 import {
   hydrateOrganization, appointmentOn, positionOf, positionHolder, managerOf,
@@ -209,6 +211,11 @@ export class Store {
             performanceReviews: Array.isArray(d.performanceReviews) ? d.performanceReviews : [],
             campaigns: Array.isArray(d.campaigns) ? d.campaigns : [],
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
+            prospectiveIndicators: Array.isArray(d.prospectiveIndicators)
+              ? d.prospectiveIndicators : defaultProspectiveIndicators(),
+            prospectiveQuestions: Array.isArray(d.prospectiveQuestions)
+              ? d.prospectiveQuestions : defaultProspectiveQuestions(),
+            prospectiveRuns: Array.isArray(d.prospectiveRuns) ? d.prospectiveRuns : [],
             questions: Array.isArray(d.questions) ? d.questions : defaultEvaluationQuestions(),
             entryQuestions: Array.isArray(d.entryQuestions) ? d.entryQuestions : defaultEntryQuestions(d.jobs),
             entryEvaluatorGroups: Array.isArray(d.entryEvaluatorGroups) ? d.entryEvaluatorGroups
