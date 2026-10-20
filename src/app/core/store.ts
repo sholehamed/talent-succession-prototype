@@ -778,7 +778,9 @@ export class Store {
       state.candidates.find((c) => c.id === candidateId)!.assessments.push({
         id: crypto.randomUUID(), scores, potential,
         evidence: evidence.trim(), potentialReason: potentialReason.trim(),
-        assessor: "منابع انسانی (تأیید جمع‌بندی دو کمیته)",
+        assessor: workflow.general.method === "manual"
+          ? "منابع انسانی (جمع‌بندی عمومی دستی و تخصصی)"
+          : "منابع انسانی (تأیید جمع‌بندی دو کمیته)",
         source: "committees",
         generalMethod: workflow.general.method === "manual" ? "manual" : "questionnaire",
         generalReviewAt: workflow.general.completedAt,
