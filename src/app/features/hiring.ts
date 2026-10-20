@@ -153,26 +153,77 @@ import { UI } from "../shared/ui";
           <div class="panel-head">
             <div>
               <h2>گردش ارجاع کمیته‌های بدو استخدام</h2>
-              <small>ابتدا عمومی، سپس تخصصی؛ نمره‌ها فقط از پاسخ به بانک سؤالات استخراج می‌شوند.</small>
+              <small>ارزیابی عمومی با پرسشنامه یا ثبت دستی منابع انسانی؛ سپس کمیته تخصصی با پرسشنامه شغل هدف.</small>
             </div>
             <a routerLink="/hiring/questions">بانک سؤالات ←</a>
           </div>
           @if (!c.entryWorkflow && !c.assessments.length) {
-            <div class="info">مرحله اول: یک عضو کمیته عمومی را انتخاب و پرسشنامه را به او ارجاع کنید.</div>
-            <mat-form-field appearance="outline" style="width:100%;max-width:380px">
-              <mat-label>ارزیاب کمیته عمومی</mat-label>
-              <mat-select [ngModel]="generalAssignee()" (ngModelChange)="generalAssignee.set($event)">
-                @for (member of s.entryMembers('general'); track member.id) {
-                  <mat-option [value]="member.id">{{ member.name }} · {{ member.code }}</mat-option>
+            <mat-checkbox [checked]="manualGeneral()" (change)="manualGeneral.set($event.checked)">
+              ثبت دستی نتیجه ارزیابی عمومی
+            </mat-checkbox>
+            @if (manualGeneral()) {
+              <div class="info">
+                پنج شاخص عمومی را با امتیاز ۱ تا ۵ و شواهد مستند ثبت کنید.
+                پس از ثبت موفق، پرونده مستقیم به گروه تخصصی انتخاب‌شده ارجاع می‌شود.
+                این روش به کمیته عمومی تکلیف یا پرسشنامه‌ای ارسال نمی‌کند.
+              </div>
+              <div class="form-grid">
+                @for (comp of competencies; track comp; let i = $index) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>امتیاز {{ comp }}</mat-label>
+                    <mat-select [ngModel]="manualScores()[i]" (ngModelChange)="setManualScore(i, $event)">
+                      <mat-option [value]="0">انتخاب امتیاز</mat-option>
+                      @for (v of levels; track v) {
+                        <mat-option [value]="v">{{ v | fa }} از ۵</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
                 }
-              </mat-select>
-            </mat-form-field>
-            <button mat-button class="primary" (click)="refer('general')">ارجاع به کمیته عمومی</button>
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>شواهد و توضیحات ارزیابی عمومی</mat-label>
+                  <textarea matInput rows="3" [ngModel]="manualEvidence()"
+                    (ngModelChange)="manualEvidence.set($event)"></textarea>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>گروه ارزیاب تخصصی</mat-label>
+                  <mat-select [ngModel]="specialistGroupId()" (ngModelChange)="specialistGroupId.set($event)">
+                    @for (group of s.entryGroupsForJob(c.jobId); track group.id) {
+                      <mat-option [value]="group.id">{{ group.name }} · {{ group.memberIds.length | fa }} نفر</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              @if (!s.entryGroupsForJob(c.jobId).length) {
+                <div class="warning">
+                  برای این شغل گروه تخصصی فعال وجود ندارد.
+                  <a routerLink="/hiring/evaluator-groups">تعریف گروه تخصصی</a>
+                </div>
+              }
+              <button mat-button class="primary" (click)="recordManualGeneral()">
+                ثبت ارزیابی عمومی و ارجاع به کمیته تخصصی
+              </button>
+            } @else {
+              <div class="info">مرحله اول: یک عضو کمیته عمومی را انتخاب و پرسشنامه را به او ارجاع کنید.</div>
+              <mat-form-field appearance="outline" style="width:100%;max-width:380px">
+                <mat-label>ارزیاب کمیته عمومی</mat-label>
+                <mat-select [ngModel]="generalAssignee()" (ngModelChange)="generalAssignee.set($event)">
+                  @for (member of s.entryMembers('general'); track member.id) {
+                    <mat-option [value]="member.id">{{ member.name }} · {{ member.code }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <button mat-button class="primary" (click)="refer('general')">ارجاع به کمیته عمومی</button>
+            }
           } @else if (c.entryWorkflow; as w) {
             <div class="metric-line">
               <div class="grow">
-                <strong>۱. ارزیابی عمومی</strong>
-                <small>ارزیاب: {{ s.person(w.general.assignedTo).name }} · {{ w.general.completedAt ? 'تکمیل‌شده' : 'در انتظار پاسخ' }}</small>
+                <strong>۱. ارزیابی عمومی {{ w.general.method === 'manual' ? '(ثبت دستی)' : '(پرسشنامه)' }}</strong>
+                @if (w.general.method === 'manual') {
+                  <small>ثبت دستی منابع انسانی: {{ personName(w.general.enteredBy ?? w.general.assignedTo) }}
+                    · {{ w.general.completedAt | faDate }}</small>
+                } @else {
+                  <small>ارزیاب: {{ personName(w.general.assignedTo) }} · {{ w.general.completedAt ? 'تکمیل‌شده' : 'در انتظار پاسخ' }}</small>
+                }
               </div>
               <span class="badge">{{ w.general.completedAt ? 'ثبت شده' : 'در جریان' }}</span>
             </div>
@@ -217,13 +268,14 @@ import { UI } from "../shared/ui";
               <p>امتیازهای کمیته تخصصی: {{ scoreText(w.specialist?.scores ?? []) }} · شواهد: {{ w.specialist?.evidence }}</p>
               <div class="panel-head">
                 <h3>نتایج شایستگی به تفکیک کمیته</h3>
-                <small>امتیاز هر شایستگی از میانگین سؤال‌های همان مرحله محاسبه شده است.</small>
+                <small>نتیجه عمومی می‌تواند از پرسشنامه یا ورود دستی باشد؛ نتیجه تخصصی از پاسخ ارزیابان استخراج می‌شود.</small>
               </div>
               <div class="table-wrap">
                 <table class="royesh-table" style="width:100%">
                   <thead><tr>
                     <th>شایستگی</th><th>انتظار شغل</th>
-                    <th>کمیته عمومی</th><th>کمیته تخصصی</th><th>جمع‌بندی</th>
+                    <th>عمومی {{ w.general.method === 'manual' ? '(دستی)' : '(پرسشنامه)' }}</th>
+                    <th>کمیته تخصصی</th><th>جمع‌بندی</th>
                   </tr></thead>
                   <tbody>
                     @for (name of competencies; track name; let i = $index) {
@@ -238,7 +290,7 @@ import { UI } from "../shared/ui";
                   </tbody>
                 </table>
               </div>
-              <div class="info">جمع‌بندی کمیته‌ها میانگین مساوی دو مرحله است؛ پتانسیل رشد به‌صورت مستقل و انسانی تأیید می‌شود.</div>
+              <div class="info">جمع‌بندی برابر میانگین نتایج عمومی و تخصصی است؛ شیوه ثبت عمومی مشخص می‌ماند و پتانسیل رشد مستقل از امتیازها و با نظر انسانی تأیید می‌شود.</div>
               @if (!latest(c)) {
                 <div class="form-grid">
                   <mat-form-field appearance="outline">
@@ -312,7 +364,11 @@ import { UI } from "../shared/ui";
           <div class="metric-line">
             <div class="grow">
               <strong>پتانسیل: {{ bands[a.potential] }} · {{ a.evaluatedAt | faDate }}</strong>
-              @if (a.source === 'committees') { <small>منبع: جمع‌بندی عمومی و تخصصی</small> }
+              @if (a.source === 'committees') {
+                <small>منبع: {{ a.generalMethod === 'manual'
+                  ? 'نتیجه عمومی دستی و کمیته تخصصی'
+                  : 'جمع‌بندی پرسشنامه‌های عمومی و تخصصی' }}</small>
+              }
               <small>{{ a.assessor }} · امتیازهای شایستگی: {{ scoreText(a.scores) }}</small>
               <p>{{ a.evidence }}</p>
               <p>استدلال پتانسیل: {{ a.potentialReason }}</p>
@@ -420,6 +476,9 @@ export default class Hiring {
   readonly employeeCode = signal("");
   readonly appointmentReference = signal("");
   readonly generalAssignee = signal("");
+  readonly manualGeneral = signal(false);
+  readonly manualScores = signal<number[]>([0, 0, 0, 0, 0]);
+  readonly manualEvidence = signal("");
   readonly specialistGroupId = signal("");
   readonly positionId = signal("");
   readonly hiredAt = signal(new Date().toISOString().slice(0, 10));
@@ -472,6 +531,20 @@ export default class Hiring {
   combined(c: Candidate) {
     const w = c.entryWorkflow;
     return w?.specialist ? combinedEntryScores(w.general, w.specialist) : null;
+  }
+  setManualScore(index: number, value: number) {
+    this.manualScores.update(scores => scores.map((score, i) => i === index ? value : score));
+  }
+  recordManualGeneral() {
+    const candidate = this.candidate();
+    if (!candidate) return;
+    if (this.s.recordManualGeneralAndReferSpecialist(
+      candidate.id, this.manualScores(), this.manualEvidence(), this.specialistGroupId(),
+    )) {
+      this.manualGeneral.set(false);
+      this.manualScores.set([0, 0, 0, 0, 0]);
+      this.manualEvidence.set("");
+    }
   }
   refer(stage: EntryCommitteeStage) {
     const c = this.candidate();
