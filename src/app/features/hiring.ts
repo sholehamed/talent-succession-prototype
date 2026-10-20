@@ -17,7 +17,8 @@ import { UI } from "../shared/ui";
           <p>ثبت داوطلب، سنجش شایستگی و پتانسیل با شواهد، و تشکیل پرونده پس از تصمیم انسانی</p>
         </div>
         <div class="actions">
-          <a mat-button class="secondary" routerLink="/hiring/questions">بانک سؤالات و اعضای کمیته‌ها ←</a>
+          <a mat-button class="secondary" routerLink="/hiring/questions">بانک سؤالات ←</a>
+          <a mat-button class="secondary" routerLink="/hiring/evaluator-groups">گروه‌های ارزیاب ←</a>
           <span class="badge">{{ candidates().length | fa }} داوطلب</span>
         </div>
       </div>
@@ -182,20 +183,33 @@ import { UI } from "../shared/ui";
               <div class="grow">
                 <strong>۲. ارزیابی تخصصی</strong>
                 @if (w.specialist) {
-                  <small>ارزیاب: {{ s.person(w.specialist.assignedTo).name }} · {{ w.specialist.completedAt ? 'تکمیل‌شده' : 'در انتظار پاسخ' }}</small>
+                  @if (w.specialist.groupId) {
+                    <small>گروه: {{ w.specialist.groupName }} · {{ completedCount(w.specialist) | fa }} از {{ (w.specialist.assignments?.length ?? 0) | fa }} ارزیاب پاسخ داده‌اند</small>
+                    @for (assignment of w.specialist.assignments ?? []; track assignment.assignedTo) {
+                      <small>{{ personName(assignment.assignedTo) }} · {{ assignment.completedAt ? 'تکمیل‌شده' : 'در انتظار پاسخ' }}</small>
+                      @if (assignment.completedAt) {
+                        <small>نمرات: {{ scoreText(assignment.scores ?? []) }} · شواهد: {{ assignment.evidence }}</small>
+                      }
+                    }
+                  } @else {
+                    <small>ارزیاب: {{ personName(w.specialist.assignedTo) }} · {{ w.specialist.completedAt ? 'تکمیل‌شده' : 'در انتظار پاسخ' }}</small>
+                  }
                 } @else { <small>در انتظار ارجاع منابع انسانی</small> }
               </div>
               <span class="badge">{{ w.specialist?.completedAt ? 'ثبت شده' : w.specialist ? 'در جریان' : 'ارجاع نشده' }}</span>
             </div>
             @if (w.general.completedAt && !w.specialist) {
               <mat-form-field appearance="outline" style="width:100%;max-width:380px">
-                <mat-label>ارزیاب کمیته تخصصی</mat-label>
-                <mat-select [ngModel]="specialistAssignee()" (ngModelChange)="specialistAssignee.set($event)">
-                  @for (member of s.entryMembers('specialist'); track member.id) {
-                    <mat-option [value]="member.id">{{ member.name }} · {{ member.code }}</mat-option>
+                <mat-label>گروه ارزیاب تخصصی</mat-label>
+                <mat-select [ngModel]="specialistGroupId()" (ngModelChange)="specialistGroupId.set($event)">
+                  @for (group of s.entryGroupsForJob(c.jobId); track group.id) {
+                    <mat-option [value]="group.id">{{ group.name }} · {{ group.memberIds.length | fa }} نفر</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
+              @if (!s.entryGroupsForJob(c.jobId).length) {
+                <div class="warning">برای این شغل گروه فعال تعریف نشده است. <a routerLink="/hiring/evaluator-groups">تعریف گروه تخصصی</a></div>
+              }
               <button mat-button class="primary" (click)="refer('specialist')">ارجاع به کمیته تخصصی</button>
             }
             @if (w.specialist?.completedAt) {
@@ -405,7 +419,7 @@ export default class Hiring {
   readonly employeeCode = signal("");
   readonly appointmentReference = signal("");
   readonly generalAssignee = signal("");
-  readonly specialistAssignee = signal("");
+  readonly specialistGroupId = signal("");
   readonly positionId = signal("");
   readonly hiredAt = signal(new Date().toISOString().slice(0, 10));
   readonly candidates = computed(() => this.s.state().candidates);
@@ -448,6 +462,12 @@ export default class Hiring {
     } as Record<string, string>)[this.stageCode(c)];
   }
   latest(c: Candidate) { return c.assessments.at(-1); }
+  completedCount(review: {assignments?: {completedAt?: string}[]}) {
+    return review.assignments?.filter(a => !!a.completedAt).length ?? 0;
+  }
+  personName(id: string) {
+    return this.s.state().people.find(p => p.id === id)?.name ?? id;
+  }
   combined(c: Candidate) {
     const w = c.entryWorkflow;
     return w?.specialist ? combinedEntryScores(w.general, w.specialist) : null;
@@ -456,7 +476,7 @@ export default class Hiring {
     const c = this.candidate();
     if (!c) return;
     this.s.referEntry(c.id, stage,
-      stage === "general" ? this.generalAssignee() : this.specialistAssignee());
+      stage === "general" ? this.generalAssignee() : this.specialistGroupId());
   }
   finalize() {
     const c = this.candidate();
