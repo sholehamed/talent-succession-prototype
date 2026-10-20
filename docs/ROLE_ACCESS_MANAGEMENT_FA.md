@@ -1,6 +1,6 @@
 # مدیریت نقش‌های کاربران در رویش
 
-> وضعیت: پیاده‌سازی روی Branch `feat/role-access-management`. این نسخه صرفاً **Functional Prototype** با Angular/Signals/LocalStorage است و RBAC سمت سرور یا سرویس کاربران واقعی ندارد.
+> وضعیت: از طریق PR #28 در `main` ادغام شده و آزمون‌های Build، Unit و Playwright موفق بوده‌اند. این نسخه صرفاً **Functional Prototype** با Angular/Signals/LocalStorage است و RBAC سمت سرور یا سرویس کاربران واقعی ندارد.
 
 ## هدف و مسیر استفاده
 
