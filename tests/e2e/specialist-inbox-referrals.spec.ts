@@ -38,9 +38,9 @@ test("a newly defined specialist group appears for each assigned member in the m
   await page.getByRole("button",{name:"ثبت و آغاز ارزیابی"}).click();
   const candidatePath=new URL(page.url()).pathname;
   const candidateId=candidatePath.split("/").at(-1)!;
-  await select(page,"ارزیاب کمیته عمومی","مهسا سپهر · EMP-1004");
+  await select(page,"ارزیاب کمیته عمومی","نیما روشن · EMP-1003");
   await page.getByRole("button",{name:"ارجاع به کمیته عمومی"}).click();
-  await signIn(page,"p4","evaluator");
+  await signIn(page,"p3","evaluator");
   await page.goto("/evaluations/inbox");
   const general=page.locator("mat-card.panel").filter({
     has:page.getByRole("heading",{name:"ارزیابی عمومی بدو استخدام"}),
@@ -55,9 +55,16 @@ test("a newly defined specialist group appears for each assigned member in the m
   }
   await page.getByRole("textbox",{name:"شواهد و توضیح کمیته"}).fill("مستندات مصاحبه عمومی");
   await page.getByRole("button",{name:"ثبت نتیجه کمیته ارزیابی عمومی"}).click();
+  await expect(page).toHaveURL(/\/hiring\/committee\/general$/);
+  const completed=await page.evaluate((id)=>{
+    const state=JSON.parse(localStorage.getItem("royesh.demo.v1")!);
+    return state.candidates.find((c:any)=>c.id===id)?.entryWorkflow?.general?.completedAt;
+  },candidateId);
+  expect(completed).toBeTruthy();
 
   await signIn(page,"p1","hr");
   await page.goto(candidatePath);
+  await expect(page.locator("main")).toContainText("مستندات مصاحبه عمومی");
   await select(page,"گروه ارزیاب تخصصی","گروه اختصاصی آزمون کارتابل · ۲ نفر");
   await page.getByRole("button",{name:"ارجاع به کمیته تخصصی"}).click();
   const snapshot=await page.evaluate((id)=>{
