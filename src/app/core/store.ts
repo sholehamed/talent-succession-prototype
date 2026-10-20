@@ -562,9 +562,9 @@ export class Store {
   /** General committee still uses direct members; specialist referrals use reusable groups. */
   entryMembers(stage: EntryCommitteeStage) {
     return this.state().entryCommitteeMembers
-      .filter((m) => m.stage === stage)
-      .flatMap((m) => {
-        const person = this.state().people.find((p) => p.id === m.personId);
+      .filter(m => m.stage === stage && this.rolesOf(m.personId).includes("evaluator"))
+      .flatMap(m => {
+        const person = this.state().people.find(p => p.id === m.personId);
         return person ? [person] : [];
       });
   }
@@ -582,7 +582,7 @@ export class Store {
   }
   entryGroupsForJob(jobId: string) {
     return this.state().entryEvaluatorGroups.filter(g => g.isActive && g.jobIds.includes(jobId) &&
-      g.memberIds.length > 0);
+      g.memberIds.length > 0 && g.memberIds.every(id => this.rolesOf(id).includes("evaluator")));
   }
   saveEntryEvaluatorGroup(value: EntryEvaluatorGroup) {
     if (!this.canAccess(["hr"])) return this.fail("مدیریت گروه ارزیاب فقط برای منابع انسانی مجاز است.");
@@ -654,7 +654,7 @@ export class Store {
     const group = stage === "specialist"
       ? this.entryGroupsForJob(candidate.jobId).find(g => g.id === targetId) : undefined;
     if (stage === "general" && !this.state().entryCommitteeMembers.some(m =>
-      m.stage === "general" && m.personId === targetId))
+      m.stage === "general" && m.personId === targetId && this.rolesOf(targetId).includes("evaluator")))
       return this.fail("ارزیاب انتخاب‌شده عضو کمیته عمومی نیست.");
     if (stage === "specialist" && (!group || !group.memberIds.every(id =>
       this.state().people.some(p => p.id === id && this.rolesOf(id).includes("evaluator")))))
