@@ -1,6 +1,6 @@
 import { developmentMetrics } from "../development-metrics";
 import { positionHolder } from "../organization";
-import { Band, Candidate, Cycle, DemoState, Person, Role, bands, competencies, statusLabels } from "../models";
+import { Assignment, Band, Candidate, Cycle, DemoState, Role, bands, statusLabels } from "../models";
 
 export type ReportKind =
   "overview" | "evaluations" | "talent" | "succession" |
@@ -19,6 +19,8 @@ export interface ReportAccess {
   allowedPersonIds: ReadonlySet<string>;
   /** Unit of the authenticated manager; cannot be overridden by a UI filter. */
   restrictedUnit: string;
+  /** Use the existing validity checks, including legacy and dynamic question banks. */
+  hasAnswered: (cycle:Cycle, assignment:Assignment)=>boolean;
 }
 export interface ReportMetric {
   title: string;
@@ -138,9 +140,7 @@ export function buildReport(
   const ready = critical.filter(p=>nominees(p.id).some(n=>n.readiness==="A")).length;
   const activity = plans.flatMap(p=>p.actions);
   const done = activity.filter(a=>a.status==="completed").length;
-  const answered = (c:Cycle) => c.assignments.filter(a=>
-    c.questions ? !!a.answers && a.answers.length>0 :
-      !!a.scores && a.scores.length>0).length;
+  const answered = (c:Cycle) => c.assignments.filter(a=>access.hasAnswered(c,a)).length;
   const build = (title:string,description:string,metrics:ReportMetric[],
     charts:ReportChart[],columns:ReportColumn[],rows:ReportRow[],note:string):ReportResult =>
     withSearch({kind,title,description,metrics,charts,columns,rows,note},filter);
