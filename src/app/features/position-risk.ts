@@ -39,7 +39,11 @@ import { UI } from "../shared/ui";
           </div>
           <div>
             <small>زمان جایگزینی</small>
-            <h3>{{ risk().replacementMonths === null ? "—" : (risk().replacementMonths | fa) + " ماه" }}</h3>
+            @if (risk().replacementMonths !== null) {
+              <h3>{{ risk().replacementMonths | fa }} ماه</h3>
+            } @else {
+              <h3>—</h3>
+            }
             @if (p.riskReview) {
               <small>آخرین بررسی: {{ p.riskReview.assessedAt | faDate }}</small>
             }
@@ -52,7 +56,7 @@ import { UI } from "../shared/ui";
             <p><strong>شواهد اثر:</strong> {{ p.riskReview.impactEvidence }}</p>
             <p><strong>مبنای زمان جایگزینی:</strong> {{ p.riskReview.replacementBasis }}</p>
             <p><strong>اقدام کنترلی:</strong> {{ p.riskReview.mitigationAction }}</p>
-            <small>ثبت‌کننده: {{ s.state().people.find(x => x.id === p.riskReview?.assessedBy)?.name ?? "نامشخص" }}</small>
+            <small>ثبت‌کننده: {{ assessorName(p.riskReview.assessedBy) }}</small>
           </div>
         } @else {
           <div class="info">اعداد پیش‌فرض قدیمی صرفاً نمایشی هستند؛ برای این پست ارزیابی مستند ثبت نشده است.</div>
@@ -131,6 +135,9 @@ export class PositionRisk {
     });
   }
 
+  assessorName(id: string) {
+    return this.s.state().people.find(x => x.id === id)?.name ?? "نامشخص";
+  }
   statusLabel(status: PositionRiskStatus) {
     return {
       current: "ارزیابی مستند معتبر",
