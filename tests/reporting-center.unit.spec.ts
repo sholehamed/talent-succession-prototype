@@ -15,6 +15,7 @@ function access(s:Store,role:"hr"|"manager"|"executive"="hr"):ReportAccess {
   return {
     role,allowedPersonIds:new Set(s.state().people.filter(p=>s.allowedPerson(p.id)).map(p=>p.id)),
     restrictedUnit:role==="manager"?s.currentPerson()?.unit??"":"",
+    viewerUnit:s.currentPerson()?.unit??"",
     hasAnswered:(cycle,assignment)=>s.hasAnswered(cycle,assignment),
   };
 }
