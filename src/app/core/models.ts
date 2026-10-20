@@ -95,11 +95,30 @@ export interface EntryQuestion {
   order: number;
   isActive: boolean;
 }
+/** HR-defined, reusable specialist evaluators for several published job profiles. */
+export interface EntryEvaluatorGroup {
+  id: string;
+  name: string;
+  jobIds: string[];
+  memberIds: string[];
+  isActive: boolean;
+}
+export interface EntryCommitteeAssignment {
+  assignedTo: string;
+  answers?: QuestionAnswer[];
+  scores?: number[];
+  evidence?: string;
+  completedAt?: string;
+}
 export interface EntryCommitteeReview {
   stage: EntryCommitteeStage;
   assignedTo: string;
   assignedAt: string;
   questions: EntryQuestion[];
+  /** Snapshot of the selected specialist group; old reviews have neither field. */
+  groupId?: string;
+  groupName?: string;
+  assignments?: EntryCommitteeAssignment[];
   answers?: QuestionAnswer[];
   scores?: number[];
   evidence?: string;
@@ -346,6 +365,8 @@ export interface DemoState {
   entryQuestions: EntryQuestion[];
   /** HR-managed membership in the two interview committees. */
   entryCommitteeMembers: { stage: EntryCommitteeStage; personId: string }[];
+  /** Optional in legacy snapshots; HR-managed group definitions for specialist referrals. */
+  entryEvaluatorGroups: EntryEvaluatorGroup[];
   positions: Position[];
   organizationUnits: OrganizationUnit[];
   workLocations: WorkLocation[];
