@@ -33,7 +33,7 @@ export const navigationGroups: NavigationGroup[] = [
       { path: "/organization/positions", title: "پست‌های سازمانی", icon: "assignment_ind" },
       { path: "/organization/appointments", title: "انتصاب کارکنان", icon: "event" },
       { path: "/organization/locations", title: "محل‌های خدمت", icon: "place" },
-      { path: "/access/roles", title: "مدیریت نقش‌ها و دسترسی‌ها", icon: "admin_panel_settings" },
+      { path: "/access/roles", title: "مدیریت نقش‌ها و دسترسی‌ها", icon: "assignment_ind" },
     ],
   },
   {
