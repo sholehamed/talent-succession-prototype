@@ -38,7 +38,7 @@ test("a newly defined specialist group appears for each assigned member in the m
   await page.getByRole("button",{name:"ثبت و آغاز ارزیابی"}).click();
   const candidatePath=new URL(page.url()).pathname;
   const candidateId=candidatePath.split("/").at(-1)!;
-  await select(page,"ارزیاب کمیته عمومی","آرزو محمدی · EMP-1004");
+  await select(page,"ارزیاب کمیته عمومی","مهسا سپهر · EMP-1004");
   await page.getByRole("button",{name:"ارجاع به کمیته عمومی"}).click();
   await signIn(page,"p4","evaluator");
   await page.goto("/evaluations/inbox");
