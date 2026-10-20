@@ -33,3 +33,10 @@
 Node 24.19.0، pnpm 11.25.0. دانلود مستقیم Chromium توسط Playwright در محیط اجرا فایل ناقص برگرداند؛ مرورگر Chromium از بسته `@sparticuz/chromium` در محیط موقت آماده و با متغیر `PLAYWRIGHT_CHROMIUM_EXECUTABLE` اجرا شد. این وابستگی محیطی وارد برنامه یا package.json پروژه نشده است. در محیط عادی دستور `pnpm exec playwright install chromium` کافی است.
 
 این بررسی ادعای تست امنیت عملیاتی، همه مرورگرها، روان‌سنجی معتبر، تست بار سازمانی یا پذیرش نهایی کارفرما نیست. نقش‌ها و ذخیره‌سازی فقط برای دمو هستند.
+
+
+## گروه‌های مشترک ارزیاب تخصصی (مهر ۱۴۰۵)
+
+- تست واحد: `tests/entry-evaluator-groups.unit.spec.ts` برای CRUD گروه چندشغلی، انتخاب وابسته به شغل، مجوز HR، Snapshot، پاسخ مستقل و تجمیع و حفظ پرونده Legacy.
+- رگرسیون: `tests/hiring-committees.unit.spec.ts` و `tests/e2e/flows.spec.ts` برای چرخه عمومی ← گروه تخصصی چندنفره ← تأیید انسانی ← استخدام و انتصاب.
+- اجرای نهایی در CI: `pnpm build`، `pnpm test`، `pnpm test:e2e`. مستند فرآیند: [HIRING_COMMITTEES_FA.md](HIRING_COMMITTEES_FA.md).
