@@ -25,6 +25,15 @@ const enter=(store:Store,id:string,role?:Role)=>{
 };
 
 describe("HR role management from persisted per-person grants",()=>{
+  it("keeps the original executive dashboard as the default for a dual-role leader",()=>{
+    const s=new Store();
+    enter(s,"p11");
+    expect(s.rolesOf("p11")).toContain("manager");
+    expect(s.rolesOf("p11")).toContain("executive");
+    expect(s.role()).toBe("executive");
+    expect(s.switchRole("manager")).toBe(true);
+    expect(s.role()).toBe("manager");
+  });
   it("preserves current legacy grants and migrates old snapshots without erasing organizational data",()=>{
     const hr=new Store();
     expect(hr.rolesOf("p1")).toContain("hr");
