@@ -257,6 +257,7 @@ export function seed(): DemoState {
     schema: 1,
     jobs,
     people,
+    roleAssignments: {}, // hydrated with prior demo grants; newly hired people get the basic roles
     performanceReviews: [],
     questions: defaultEvaluationQuestions(),
     entryQuestions: defaultEntryQuestions(jobs),
