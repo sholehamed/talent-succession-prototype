@@ -67,10 +67,21 @@ test("reference titles/colors enrich all nine cells without changing the existin
 test("unit filtering and narrow-screen 3x3 layout continue working",async({page})=>{
   await page.goto("/talent/9box");
   const cells=page.locator("button.nine-cell");
-  await page.getByRole("combobox",{name:"واحد سازمانی"}).click();
+  const unit=page.getByRole("combobox",{name:"واحد سازمانی"});
+  await unit.click();
   await page.getByRole("option",{name:"دفتر پروژه‌ها",exact:true}).click();
-  const count=expectedCount((await cells.nth(4).getAttribute("aria-label"))!);
-  await cells.nth(4).click();
+  await expect(unit).toContainText("دفتر پروژه‌ها");
+  // Wait for Angular to apply the selected unit before reading the 9-box
+  // cell count; otherwise the number can still belong to "all units".
+  const expectedUnitPeople=await page.evaluate(()=>{
+    const state=JSON.parse(localStorage.getItem("royesh.demo.v1")!);
+    return state.people.filter((p:{unit:string})=>p.unit==="دفتر پروژه‌ها").length;
+  });
+  await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(expectedUnitPeople);
+  const tile=cells.nth(4);
+  const count=expectedCount((await tile.getAttribute("aria-label"))!);
+  await tile.click();
+  await expect(tile).toHaveAttribute("aria-pressed","true");
   await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(count);
   await page.setViewportSize({width:390,height:844});
   await expect(cells).toHaveCount(9);
