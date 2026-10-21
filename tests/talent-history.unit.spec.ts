@@ -151,6 +151,15 @@ describe("read-only demo historical timeline",()=>{
     expect(JSON.stringify(s.state())).toBe(before);
     expect(s.state().talentHistory.some(e=>e.source==="demo")).toBe(false);
   });
+  it("keeps the same synthetic position across unit and person filters",()=>{
+    const store=new Store(),all=store.state().people,today="2026-10-21";
+    const full=demoNineBoxHistory(all,today);
+    const subset=demoNineBoxHistory(all.slice(2,7),today);
+    for(const person of all.slice(2,7)){
+      expect(subset.filter(e=>e.personId===person.id))
+        .toEqual(full.filter(e=>e.personId===person.id));
+    }
+  });
   it("still reports insufficient real history before baseline, regardless of preview",()=>{
     const s=new Store(),people=s.state().people,today="2026-10-21";
     const sample=demoNineBoxHistory(people,today);
