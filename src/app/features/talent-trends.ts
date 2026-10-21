@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { Store } from "../core/store";
-import { Band, bands, Person, TalentPositionEvent } from "../core/models";
+import { Band, bands, TalentPositionEvent } from "../core/models";
 import { nineBoxProfile } from "../core/nine-box";
-import { nineBoxChanges, NineBoxChange, NineBoxMovement } from "../core/talent-history";
+import { nineBoxChanges, NineBoxMovement } from "../core/talent-history";
+import { demoNineBoxHistory } from "../core/demo-talent-history";
 import { UI } from "../shared/ui";
 
 function dayString(date:Date):string{
@@ -25,6 +26,11 @@ const movementNames:Record<NineBoxMovement,string>={
   standalone:true,
   imports:[...UI,RouterLink],
   styles:[`
+    .demo-banner {display:flex;align-items:center;justify-content:space-between;gap:12px;
+      flex-wrap:wrap;padding:12px 16px;border:1px solid var(--line,#e3e7e8);
+      border-radius:10px;margin-bottom:16px}
+    .demo-banner.active {background:#fff4db;border-color:#e5bc67;color:#69490d}
+    .demo-banner p {margin:0;flex:1;min-width:220px}
     .trend-compare {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
     .trend-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;direction:ltr}
     .trend-cell {--tone:#f5e2e0;--ink:#67454b;border:1px solid color-mix(in srgb,var(--ink) 22%,transparent);
@@ -58,6 +64,21 @@ const movementNames:Record<NineBoxMovement,string>={
     <div class="info">این تحلیل از تاریخچه ثبت‌شده هنگام تغییر وضعیت استفاده می‌کند.
       برای تاریخ پیش از نخستین وضعیت ثبت‌شده، موقعیت فرضی ساخته نمی‌شود.
       هر خانه با محور عملکرد از چپ به راست و پتانسیل از پایین به بالا نمایش داده می‌شود.</div>
+    <div class="demo-banner" [class.active]="demoMode()" data-testid="talent-demo-banner">
+      <p>
+        @if (demoMode()) {
+          <strong>حالت نمایشی فعال است:</strong>
+          داده‌های تاریخچه ساختگی هستند و فقط برای نمایش جابه‌جایی‌ها ساخته شده‌اند.
+          تاریخچه ثبت‌شده و اطلاعات مرورگر تغییر نمی‌کنند.
+        } @else {
+          تاریخچه واقعی تنها از زمان شروع ثبت رویدادها قابل مقایسه است.
+          برای مشاهده نمونه رشد و افت می‌توانید سناریوی آزمایشی را فعال کنید.
+        }
+      </p>
+      <button mat-button class="secondary" type="button" (click)="toggleDemo()">
+        {{ demoMode() ? 'بازگشت به تاریخچه ثبت‌شده' : 'نمایش سناریوی نمونه' }}
+      </button>
+    </div>
     <mat-card class="panel">
       <div class="filterbar">
         <mat-form-field appearance="outline">
@@ -69,16 +90,10 @@ const movementNames:Record<NineBoxMovement,string>={
             <mat-option value="custom">بازه دلخواه</mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>تاریخ مبنا (میلادی)</mat-label>
-          <input matInput type="date" [max]="endDay()" [ngModel]="startDay()"
-            (ngModelChange)="setStart($event)" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>تاریخ پایان (میلادی)</mat-label>
-          <input matInput type="date" [max]="today" [ngModel]="endDay()"
-            (ngModelChange)="setEnd($event)" />
-        </mat-form-field>
+        <app-date-field label="تاریخ مبنا (شمسی)" [ngModel]="startDay()"
+          (ngModelChange)="setStart($event)" />
+        <app-date-field label="تاریخ پایان (شمسی)" [ngModel]="endDay()"
+          (ngModelChange)="setEnd($event)" />
         <mat-form-field appearance="outline">
           <mat-label>واحد سازمانی</mat-label>
           <mat-select [ngModel]="unit()" (ngModelChange)="unit.set($event)">
@@ -97,7 +112,7 @@ const movementNames:Record<NineBoxMovement,string>={
         </mat-form-field>
       </div>
       @if (!validRange()) {
-        <div class="warning" role="alert">تاریخ مبنا باید قبل از تاریخ پایان یا برابر با آن باشد؛ تاریخ آینده مجاز نیست.</div>
+        <div class="warning" role="alert">تاریخ مبنا باید معتبر، قبل از تاریخ پایان یا برابر با آن باشد؛ تاریخ آینده مجاز نیست.</div>
       } @else {
         <div class="trend-stats">
           @for (item of stats(); track item.status) {
@@ -115,7 +130,7 @@ const movementNames:Record<NineBoxMovement,string>={
           <mat-card class="panel">
             <div class="panel-head">
               <h2>{{ side === 'from' ? 'مقطع مبنا' : 'مقطع پایان' }}</h2>
-              <small>{{ side === 'from' ? startDay() : endDay() }}</small>
+              <small>{{ (side === 'from' ? startDay() : endDay()) | faDate }}</small>
             </div>
             <div class="trend-grid" role="group" [attr.aria-label]="side === 'from' ? 'نقشه مبنا' : 'نقشه پایان'">
               @for (y of ys; track y) {
@@ -169,7 +184,7 @@ const movementNames:Record<NineBoxMovement,string>={
             · عملکرد: {{ label(item.from?.performance) }} ← {{ label(item.to?.performance) }}
             · پتانسیل: {{ label(item.from?.potential) }} ← {{ label(item.to?.potential) }}
             · {{ movementNames[item.movement] }}.
-            <div>زمان ثبت مبنا: {{ item.from?.at ?? 'فاقد سابقه' }}؛ زمان ثبت پایان: {{ item.to?.at ?? 'فاقد سابقه' }}</div>
+            <div>زمان ثبت مبنا: {{ item.from?.at | faDate }}؛ زمان ثبت پایان: {{ item.to?.at | faDate }}</div>
           </div>
         }
         @if (stats()[4].count) {
@@ -190,6 +205,8 @@ export default class TalentTrends {
   readonly query=signal("");
   readonly selectedCell=signal("");
   readonly selectedPersonId=signal("");
+  /** UI-only projection: the real Store never receives demo events. */
+  readonly demoMode=signal(false);
   readonly xs:Band[]=["low","medium","high"];
   readonly ys:Band[]=["high","medium","low"];
   readonly sides=["from","to"] as const;
@@ -205,8 +222,10 @@ export default class TalentTrends {
   });
   readonly validRange=computed(()=>!!this.startDay()&&!!this.endDay()&&
     this.startDay()<=this.endDay()&&this.endDay()<=this.today);
+  readonly demoEvents=computed(()=>demoNineBoxHistory(this.people(),this.today));
   readonly rows=computed(()=>this.validRange()?
-    nineBoxChanges(this.s.state(),this.people(),this.startDay(),this.endDay()):[]);
+    nineBoxChanges(this.s.state(),this.people(),this.startDay(),this.endDay(),
+      this.demoMode()?this.demoEvents():this.s.state().talentHistory):[]);
   readonly stats=computed(()=>([
     ["improved","رشد"],["declined","افت"],["mixed","تغییر ترکیبی"],
     ["unchanged","بدون تغییر"],["insufficient","سابقه ناکافی"],
@@ -240,6 +259,7 @@ export default class TalentTrends {
     }).length;
   }
   noPositionCount(side:"from"|"to"){return this.rows().length-this.mappedCount(side);}
+  toggleDemo(){this.demoMode.update(v=>!v);this.selectedCell.set("");this.selectedPersonId.set("");}
   selectCell(side:"from"|"to",x:Band,y:Band){
     const key=side+":"+x+"-"+y;
     this.selectedCell.set(this.selectedCell()===key?"":key);
