@@ -165,6 +165,11 @@ export const routes: Routes = [
     loadComponent: () => import("./features/talent"),
   },
   {
+    path: "talent/9box/trends",
+    canActivate: [permit(management)],
+    loadComponent: () => import("./features/talent-trends"),
+  },
+  {
     path: "talent/succession",
     canActivate: [permit(management)],
     loadComponent: () => import("./features/talent"),
