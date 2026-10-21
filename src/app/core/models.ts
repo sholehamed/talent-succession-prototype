@@ -49,6 +49,18 @@ export interface Person {
   observed: number[];
   evidence: string;
 }
+/** Dated position in the nine-box matrix, recorded automatically by Store commits.
+ * Historical backdating of a current-only baseline is forbidden. */
+export interface TalentPositionEvent {
+  id:string;
+  personId:string;
+  at:string;
+  performance:Band|null;
+  potential:Band|null;
+  unit:string;
+  source:"baseline"|"change";
+  action?:string;
+}
 /** A period's documented results are separate from 360/540 competency assessments. */
 export interface PerformanceKpiResult {
   title: string;
@@ -421,6 +433,8 @@ export interface DemoState {
   roleAssignments: Record<string, Role[]>;
   /** Optional in older browser snapshots; normalized to [] when restored. */
   performanceReviews: PerformanceReview[];
+  /** Optional in saved v1 snapshots; hydrated from today's known state. */
+  talentHistory: TalentPositionEvent[];
   /** Restored from an empty array for browser snapshots predating hiring. */
   candidates: Candidate[];
   /** Separate scoped bank; 360/540 questions remain unchanged. */

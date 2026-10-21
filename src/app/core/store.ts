@@ -41,6 +41,7 @@ import {
   saveLocation, saveUnit, savePosition, assignPosition, finishAppointment, projectStaffing,
 } from "./organization-actions";
 import { performanceBand, performanceScore } from "./performance";
+import { captureTalentChanges, hydrateTalentHistory } from "./talent-history";
 import { assessPositionRisk, validatePositionRiskInput } from "./position-risk";
 import { campaignCycle, campaignPreview } from "./evaluation-campaigns";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, roleOrder } from "./auth";
@@ -98,6 +99,21 @@ export class Store {
     } catch { this.storageWarning.set("نشست در مرورگر قابل نگهداری نیست."); }
   }
   constructor() {
+    // Persist the first observed baseline immediately, even if the user only views
+    // the matrix. Otherwise a future reload would move the baseline forward.
+    if (typeof window !== "undefined") {
+      try {
+        const raw=localStorage.getItem(KEY);
+        const persisted=raw?JSON.parse(raw):null;
+        const saved=Array.isArray(persisted?.talentHistory)?persisted.talentHistory:[];
+        if (saved.length!==this.state().talentHistory.length)
+          localStorage.setItem(KEY,JSON.stringify(this.state()));
+      } catch {
+        // Preserve the existing invalid/corrupted-storage diagnostic from restore().
+        if (!this.storageWarning())
+          this.storageWarning.set("ذخیره نخستین وضعیت تاریخی در مرورگر ممکن نشد.");
+      }
+    }
     // Validate persisted sessions against current grants after the Store is hydrated.
     if (this.actor() && !this.rolesOf(this.actor()).includes(this.role())) {
       const fallback = this.rolesOf(this.actor())[0];
@@ -207,8 +223,9 @@ export class Store {
           d.cycles.every((c: any) => Array.isArray(c.assignments)) &&
           d.plans.every((p: any) => Array.isArray(p.actions))
         )
-          return hydrateOrganization({ ...d,
+          return hydrateTalentHistory(hydrateOrganization({ ...d,
             performanceReviews: Array.isArray(d.performanceReviews) ? d.performanceReviews : [],
+            talentHistory: Array.isArray(d.talentHistory) ? d.talentHistory : [],
             campaigns: Array.isArray(d.campaigns) ? d.campaigns : [],
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
             prospectiveIndicators: Array.isArray(d.prospectiveIndicators)
@@ -232,7 +249,7 @@ export class Store {
             developmentTemplates: Array.isArray(d.developmentTemplates)
               ? d.developmentTemplates.map((t: DevelopmentTemplate) => ({ ...t, isActive: t.isActive !== false }))
               : defaultDevelopmentTemplates(),
-          });
+          }),new Date().toISOString());
         this.storageWarning.set(
           "اطلاعات ذخیره‌شده ناسازگار بود؛ وضعیت اولیه بازیابی شد.",
         );
@@ -245,11 +262,14 @@ export class Store {
     return seed();
   }
   commit(action: string, entity: string, mutate: (s: DemoState) => void) {
-    const s = structuredClone(this.state());
+    const before=this.state();
+    const s = structuredClone(before);
     mutate(s);
+    const at=new Date().toISOString();
+    captureTalentChanges(before,s,at,action);
     s.audit.unshift({
       id: crypto.randomUUID(),
-      at: new Date().toISOString(),
+      at,
       role: this.role(),
       action,
       entity,

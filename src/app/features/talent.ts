@@ -37,6 +37,11 @@ import { ProspectiveReviewDialog } from "./prospective-review-dialog";
       خانه‌ای یا نتیجه آزمون به‌تنهایی حکم انتصاب ایجاد نمی‌کند.
     </div>
     @if (nine) {
+      <div class="actions" style="margin-bottom:14px">
+        <a mat-button class="secondary" routerLink="/talent/9box/trends">
+          مشاهده روند تغییرات نقشه استعداد ←
+        </a>
+      </div>
       <div class="panel">
         <div class="filterbar">
           <mat-form-field appearance="outline"

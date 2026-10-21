@@ -73,6 +73,7 @@ export const navigationGroups: NavigationGroup[] = [
       { path: "/talent/prospective/indicators", title: "شاخص‌های ارزیابی آینده‌نگر", icon: "analytics" },
       { path: "/talent/prospective/questions", title: "سؤالات ارزیابی آینده‌نگر", icon: "description" },
       { path: "/talent/9box", title: "نقشه استعداد ۹ خانه", icon: "dashboard" },
+      { path: "/talent/9box/trends", title: "تحلیل روند نقشه استعداد", icon: "trending_up" },
     ],
   },
   {
