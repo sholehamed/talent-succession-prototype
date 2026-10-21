@@ -236,8 +236,8 @@ import { ProspectiveReviewDialog } from "./prospective-review-dialog";
                     : "افزودن به مقایسه"
                 }}
               </button>
-              @if (s.editable() && !run()) {
-                <button mat-button (click)="edit(n)">ثبت نظر آمادگی</button>
+              @if (s.editable() && currentNomination(n.personId)) {
+                <button mat-button (click)="editCurrentNomination(n.personId)">ثبت نظر آمادگی</button>
               }
             </div>
           </mat-card>
@@ -480,6 +480,13 @@ export default class Talent {
       this.compare.update((v) => v.filter((x) => x !== id));
     else if (this.compare().length < 3) this.compare.update((v) => [...v, id]);
     else this.s.fail("حداکثر سه نفر را هم‌زمان مقایسه کنید.");
+  }
+  currentNomination(personId:string){
+    return this.nominations().find(n=>n.personId===personId);
+  }
+  editCurrentNomination(personId:string){
+    const current=this.currentNomination(personId);
+    if(current)this.edit(current);
   }
   edit(n: Nomination) {
     this.draft = structuredClone(n);
