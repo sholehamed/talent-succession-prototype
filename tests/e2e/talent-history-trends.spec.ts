@@ -30,6 +30,8 @@ test("nine-box navigation opens automatic comparison without any snapshot action
 test("unit scope, date validation and matrix filters apply to historical comparison",async({page})=>{
   await signIn(page);
   await page.goto("/talent/9box/trends");
+  const before=await page.locator("table.royesh-table tbody tr").count();
+  expect(before).toBeGreaterThan(0);
   await page.getByRole("combobox",{name:"واحد سازمانی"}).click();
   await page.getByRole("option",{name:"دفتر پروژه‌ها",exact:true}).click();
   await page.getByRole("textbox",{name:"جستجوی کارمند"}).fill("NO-SUCH-EMPLOYEE");
@@ -37,8 +39,7 @@ test("unit scope, date validation and matrix filters apply to historical compari
   await page.getByRole("textbox",{name:"جستجوی کارمند"}).fill("");
   await page.getByRole("combobox",{name:"واحد سازمانی"}).click();
   await page.getByRole("option",{name:"همه واحدهای مجاز",exact:true}).click();
-  const before=await page.locator("table.royesh-table tbody tr").count();
-  expect(before).toBeGreaterThan(0);
+  await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(before);
   const selected=page.locator("button.trend-cell").nth(11);
   await selected.click();
   await expect(selected).toHaveAttribute("aria-pressed","true");
