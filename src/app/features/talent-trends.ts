@@ -191,8 +191,8 @@ const movementNames:Record<NineBoxMovement,string>={
 export default class TalentTrends {
   readonly s=inject(Store);
   readonly today=dayString(new Date());
-  readonly range=signal("3");
-  readonly startDay=signal(monthsAgo(3));
+  readonly range=signal("12");
+  readonly startDay=signal(monthsAgo(12));
   readonly endDay=signal(this.today);
   readonly unit=signal("");
   readonly query=signal("");

@@ -20,13 +20,14 @@ test("nine-box navigation opens automatic comparison without any snapshot action
     const saved=JSON.parse(localStorage.getItem("royesh.demo.v1")!);
     return saved.talentHistory;
   });
-  expect(initialHistory.length).toBeGreaterThan(0);
+  expect(initialHistory.filter((e:{source:string})=>e.source==="demo")).toHaveLength(540);
+  await expect(page.getByTestId("talent-demo-banner")).toContainText("داده آزمایشی");
   await page.reload();
   const afterReload=await page.evaluate(()=>JSON.parse(localStorage.getItem("royesh.demo.v1")!).talentHistory);
   expect(afterReload).toEqual(initialHistory);
   await expect(page.locator(".trend-grid")).toHaveCount(2);
   await expect(page.locator("button.trend-cell")).toHaveCount(18);
-  await expect(page.locator("main")).toContainText("سابقه ناکافی");
+  await expect(page.locator(".trend-stat").last()).toContainText("۰");
   await expect(page.locator("main")).toContainText("ستاره‌ها");
   await expect(page.getByRole("button",{name:/ثبت Snapshot|ثبت وضعیت|شروع دوره/})).toHaveCount(0);
   await page.getByRole("combobox",{name:"بازه مقایسه"}).click();
@@ -77,20 +78,34 @@ test("manager can see scoped movements, employee cannot open the comparison rout
   await expect(page).not.toHaveURL(/\/talent\/9box\/trends$/);
 });
 
-test("Jalali dates and isolated demo movements never overwrite the stored history",async({page})=>{
+test("12-month seeded history is available on first load and survives refresh",async({page})=>{
   await signIn(page);
   await page.goto("/talent/9box/trends");
-  const original=await page.evaluate(()=>localStorage.getItem("royesh.demo.v1"));
-  await expect(page.getByRole("textbox",{name:"تاریخ پایان (شمسی)"})).toBeVisible();
-  await page.getByRole("button",{name:"نمایش سناریوی نمونه"}).click();
-  await expect(page.getByTestId("talent-demo-banner")).toContainText("حالت نمایشی فعال است");
-  const totals=await page.locator(".trend-stat strong").allTextContents();
-  const ascii=(t:string)=>t.replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
-  expect(totals.slice(0,3).some(t=>Number(ascii(t))>0)).toBe(true);
-  expect(await page.evaluate(()=>localStorage.getItem("royesh.demo.v1"))).toBe(original);
-  await page.getByRole("button",{name:"بازگشت به تاریخچه ثبت‌شده"}).click();
-  await expect(page.getByTestId("talent-demo-banner")).not.toContainText("حالت نمایشی فعال است");
-  expect(await page.evaluate(()=>localStorage.getItem("royesh.demo.v1"))).toBe(original);
+  await expect(page.getByRole("combobox",{name:"بازه مقایسه"})).toContainText("۱۲ ماه گذشته");
+  await expect(page.getByTestId("talent-demo-banner")).toContainText("داده آزمایشی");
+  await expect(page.locator(".trend-stat").last()).toContainText("۰");
+  await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(36);
+  await expect(page.locator("table.royesh-table tbody tr").first()).toContainText("نمایشی");
+  const saved=await page.evaluate(()=>localStorage.getItem("royesh.demo.v1"));
   await page.reload();
-  await expect(page.getByRole("button",{name:"نمایش سناریوی نمونه"})).toBeVisible();
+  expect(await page.evaluate(()=>localStorage.getItem("royesh.demo.v1"))).toBe(saved);
+  await expect(page.getByRole("button",{name:"نمایش سناریوی نمونه"})).toHaveCount(0);
+});
+test("preexisting browser save gets 15-month samples without resetting actual data",async({page})=>{
+  await signIn(page);
+  await page.goto("/talent/9box/trends");
+  const old=await page.evaluate(()=>{
+    const state=JSON.parse(localStorage.getItem("royesh.demo.v1")!);
+    state.talentHistory=state.talentHistory.filter((e:{source:string})=>e.source!=="demo");
+    localStorage.setItem("royesh.demo.v1",JSON.stringify(state));
+    return {actual:state.talentHistory,people:state.people};
+  });
+  await page.reload();
+  const migrated=await page.evaluate(()=>JSON.parse(localStorage.getItem("royesh.demo.v1")!));
+  expect(migrated.people).toEqual(old.people);
+  expect(migrated.talentHistory.filter((e:{source:string})=>e.source!=="demo")).toEqual(old.actual);
+  expect(migrated.talentHistory.filter((e:{source:string})=>e.source==="demo")).toHaveLength(540);
+  await page.reload();
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("royesh.demo.v1")!)
+    .talentHistory.filter((e:{source:string})=>e.source==="demo").length)).toBe(540);
 });

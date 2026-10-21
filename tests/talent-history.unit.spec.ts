@@ -1,7 +1,7 @@
 import "@angular/compiler";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Store } from "../src/app/core/store";
-import { demoNineBoxHistory } from "../src/app/core/demo-talent-history";
+import { monthlyDemoHistory, seedDemoTalentHistory } from "../src/app/core/demo-talent-history";
 import {
   captureTalentChanges, hydrateTalentHistory, nineBoxAt, nineBoxChanges,
   nineBoxMovement, talentBaseline,
@@ -23,7 +23,8 @@ function event(personId:string,at:string,performance:Band|null,potential:Band|nu
 describe("automatic talent history without manual period/snapshot buttons",()=>{
   it("starts with today's current known positions and refuses to backdate them",()=>{
     const s=new Store();
-    expect(s.state().talentHistory).toHaveLength(s.state().people.length);
+    expect(s.state().talentHistory).toHaveLength(s.state().people.length*16);
+    expect(s.state().talentHistory.filter(e=>e.source==="demo")).toHaveLength(36*15);
     const baseline=s.state().talentHistory.find(x=>x.personId==="p1")!;
     expect(baseline).toMatchObject({
       source:"baseline",
@@ -38,11 +39,12 @@ describe("automatic talent history without manual period/snapshot buttons",()=>{
     delete (legacy as Partial<typeof legacy>).talentHistory;
     memory.set("royesh.demo.v1",JSON.stringify(legacy));
     const restored=new Store();
-    expect(restored.state().talentHistory).toHaveLength(legacy.people.length);
+    expect(restored.state().talentHistory).toHaveLength(legacy.people.length*16);
     expect(restored.state().people).toEqual(legacy.people);
     expect(restored.state().performanceReviews).toEqual(legacy.performanceReviews);
     expect(restored.state().nominations).toEqual(legacy.nominations);
-    expect(nineBoxAt(restored.state().talentHistory,"p1","2026-01-01")).toBeUndefined();
+    expect(restored.state().talentHistory.filter(e=>e.source==="demo")).toHaveLength(540);
+    expect(new Store().state().talentHistory).toEqual(restored.state().talentHistory);
   });
   it("captures actual changes from the existing HR sync flow once, with no manual button",()=>{
     const s=new Store();
@@ -57,10 +59,10 @@ describe("automatic talent history without manual period/snapshot buttons",()=>{
       action:"اطلاعات منابع انسانی به‌روزرسانی شد",
     });
     expect(history.at(-1)!.performance).not.toBe(prior);
-    expect(new Store().state().talentHistory.filter(x=>x.personId==="p3")).toHaveLength(2);
+    expect(new Store().state().talentHistory.filter(x=>x.personId==="p3")).toHaveLength(before.length+1);
     // Non-talent commits must not flood history.
     expect(s.setPersonRoles("p3",["employee","evaluator"])).toBe(true);
-    expect(s.state().talentHistory.filter(x=>x.personId==="p3")).toHaveLength(2);
+    expect(s.state().talentHistory.filter(x=>x.personId==="p3")).toHaveLength(before.length+1);
   });
   it("captures approved KPI performance in the same commit and never changes potential",()=>{
     const s=new Store(),person=s.person("p3");
@@ -73,7 +75,7 @@ describe("automatic talent history without manual period/snapshot buttons",()=>{
     expect(s.state().talentHistory).toHaveLength(before);
     expect(s.approvePerformanceReview(reviewId)).toBe(true);
     const updated=s.state().talentHistory.filter(e=>e.personId===person.id);
-    expect(updated).toHaveLength(2);
+    expect(updated).toHaveLength(17);
     expect(updated.at(-1)).toMatchObject({performance:"high",potential:person.potential,
       action:"ارزیابی عملکرد دوره‌ای تأیید شد"});
   });
@@ -134,38 +136,63 @@ describe("automatic talent history without manual period/snapshot buttons",()=>{
   });
 });
 
-describe("read-only demo historical timeline",()=>{
-  it("creates stable past/current records, all movement classes, and does not mutate the state",()=>{
-    const s=new Store(),people=s.state().people;
-    const before=JSON.stringify(s.state());
-    const today="2026-10-21",sample=demoNineBoxHistory(people,today);
-    expect(sample).toHaveLength(people.length*5);
-    expect(sample.every(e=>e.source==="demo")).toBe(true);
-    expect(demoNineBoxHistory(people,today)).toEqual(sample);
-    const changed=nineBoxChanges(s.state(),people,"2026-07-21",today,sample);
-    for(const movement of ["improved","declined","mixed","unchanged"]){
-      expect(changed.some(row=>row.movement===movement)).toBe(true);
-    }
-    expect(changed[0].to?.performance).toBe(people[0].performance);
-    expect(Date.parse(sample[0].at)).toBeLessThan(Date.parse(sample[4].at));
-    expect(JSON.stringify(s.state())).toBe(before);
-    expect(s.state().talentHistory.some(e=>e.source==="demo")).toBe(false);
-  });
-  it("keeps the same synthetic position across unit and person filters",()=>{
-    const store=new Store(),all=store.state().people,today="2026-10-21";
-    const full=demoNineBoxHistory(all,today);
-    const subset=demoNineBoxHistory(all.slice(2,7),today);
-    for(const person of all.slice(2,7)){
-      expect(subset.filter(e=>e.personId===person.id))
-        .toEqual(full.filter(e=>e.personId===person.id));
+describe("persistent 15-month demo backfill",()=>{
+  const day=(d:Date)=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),
+    String(d.getDate()).padStart(2,"0")].join("-");
+  it("fills all 36 seed employees' 12-month windows without historical gaps",()=>{
+    const store=new Store(),state=store.state();
+    const now=new Date(),start=new Date(now.getFullYear(),now.getMonth()-12,now.getDate());
+    const rows=nineBoxChanges(state,state.people,day(start),day(now));
+    expect(rows).toHaveLength(36);
+    expect(rows.every(r=>r.movement!=="insufficient")).toBe(true);
+    expect(rows.every(r=>r.from?.source==="demo")).toBe(true);
+    expect(rows.every(r=>r.to?.source==="baseline")).toBe(true);
+    expect(new Set(rows.map(r=>r.movement)).size).toBeGreaterThan(1);
+    expect(state.talentHistory.filter(e=>e.source==="demo")).toHaveLength(540);
+    for(const person of state.people){
+      const items=state.talentHistory.filter(e=>e.personId===person.id&&e.source==="demo");
+      expect(items).toHaveLength(15);
+      expect(new Set(items.map(e=>e.id)).size).toBe(15);
     }
   });
-  it("still reports insufficient real history before baseline, regardless of preview",()=>{
-    const s=new Store(),people=s.state().people,today="2026-10-21";
-    const sample=demoNineBoxHistory(people,today);
-    expect(nineBoxChanges(s.state(),people,"2026-07-21",today)[0].movement).toBe("insufficient");
-    expect(nineBoxChanges(s.state(),people,"2026-07-21",today,sample)[0].movement)
-      .toBe("improved");
-    expect(s.state().talentHistory.every(x=>x.source!=="demo")).toBe(true);
+  it("is stable on reload, independent of filters, and idempotent",()=>{
+    const s=new Store(),snapshot=JSON.stringify(s.state());
+    for(const p of s.state().people.slice(2,7)){
+      const anchor=s.state().talentHistory.find(e=>e.personId===p.id&&e.source==="baseline")!;
+      expect(s.state().talentHistory.filter(e=>e.personId===p.id&&e.source==="demo")
+        .map(e=>e.id).sort()).toEqual(monthlyDemoHistory(p,anchor).map(e=>e.id).sort());
+    }
+    seedDemoTalentHistory(s.state());
+    expect(JSON.stringify(s.state())).toBe(snapshot);
+    expect(new Store().state().talentHistory).toEqual(s.state().talentHistory);
+  });
+  it("preserves genuine events and does not backdate newly hired employees",()=>{
+    const s=new Store(),saved=structuredClone(s.state());
+    saved.talentHistory=saved.talentHistory.filter(e=>e.source!=="demo");
+    const real=event("p1",new Date().toISOString(),"high","medium");
+    saved.talentHistory.push(real);
+    const before=structuredClone(saved.talentHistory);
+    seedDemoTalentHistory(saved);
+    expect(saved.talentHistory.filter(e=>e.source!=="demo")).toEqual(before);
+    expect(saved.talentHistory.find(e=>e.id===real.id)).toEqual(real);
+    saved.people.push({...saved.people[0],id:"new-person",code:"NEW"});
+    const length=saved.talentHistory.length;
+    seedDemoTalentHistory(saved);
+    expect(saved.talentHistory).toHaveLength(length);
+    expect(saved.talentHistory.some(e=>e.personId==="new-person")).toBe(false);
+  });
+  it("does not override genuine history older than twelve months",()=>{
+    const s=new Store(),saved=structuredClone(s.state());
+    saved.talentHistory=saved.talentHistory.filter(e=>e.source!=="demo");
+    saved.talentHistory.find(e=>e.personId==="p1")!.at="2020-01-01T12:00:00Z";
+    seedDemoTalentHistory(saved);
+    expect(saved.talentHistory.filter(e=>e.personId==="p1"&&e.source==="demo")).toHaveLength(0);
+    expect(saved.talentHistory.filter(e=>e.personId==="p2"&&e.source==="demo")).toHaveLength(15);
+  });
+  it("continues recording actual Store changes separately from sample history",()=>{
+    const s=new Store(),n=s.state().talentHistory.filter(e=>e.source==="demo").length;
+    s.sync();
+    expect(s.state().talentHistory.filter(e=>e.source==="demo")).toHaveLength(n);
+    expect(s.state().talentHistory.at(-1)?.source).toBe("change");
   });
 });
