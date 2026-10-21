@@ -25,7 +25,7 @@ describe("automatic talent history without manual period/snapshot buttons",()=>{
     const s=new Store();
     expect(s.state().talentHistory).toHaveLength(s.state().people.length*16);
     expect(s.state().talentHistory.filter(e=>e.source==="demo")).toHaveLength(36*15);
-    const baseline=s.state().talentHistory.find(x=>x.personId==="p1")!;
+    const baseline=s.state().talentHistory.find(x=>x.personId==="p1"&&x.source==="baseline")!;
     expect(baseline).toMatchObject({
       source:"baseline",
       performance:s.person("p1").performance,
