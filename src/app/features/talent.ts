@@ -56,7 +56,8 @@ import { ProspectiveReviewDialog } from "./prospective-review-dialog";
         @if (unclassified().length) {
           <div class="info">{{ unclassified().length | fa }} فرد هنوز ارزیابی عملکرد یا پتانسیل لازم برای جانمایی در ماتریس را ندارند؛ نمایش در یک خانه بدون داده معتبر انجام نمی‌شود.</div>
         }
-        <div class="nine-grid" role="group" aria-label="ماتریس ۹ خانه‌ای استعداد">
+        <div class="nine-grid-wrap">
+          <div class="nine-grid" role="group" aria-label="ماتریس ۹ خانه‌ای استعداد">
           @for (y of ys; track y) {
             @for (x of xs; track x) {
               <button mat-button
@@ -78,6 +79,7 @@ import { ProspectiveReviewDialog } from "./prospective-review-dialog";
               </button>
             }
           }
+          </div>
         </div>
       </div>
       <mat-card class="panel">
