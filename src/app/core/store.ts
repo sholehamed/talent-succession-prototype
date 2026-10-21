@@ -99,6 +99,19 @@ export class Store {
     } catch { this.storageWarning.set("نشست در مرورگر قابل نگهداری نیست."); }
   }
   constructor() {
+    // Persist the first observed baseline immediately, even if the user only views
+    // the matrix. Otherwise a future reload would move the baseline forward.
+    if (typeof window !== "undefined") {
+      try {
+        const raw=localStorage.getItem(KEY);
+        const persisted=raw?JSON.parse(raw):null;
+        const saved=Array.isArray(persisted?.talentHistory)?persisted.talentHistory:[];
+        if (saved.length!==this.state().talentHistory.length)
+          localStorage.setItem(KEY,JSON.stringify(this.state()));
+      } catch {
+        this.storageWarning.set("ذخیره نخستین وضعیت تاریخی در مرورگر ممکن نشد.");
+      }
+    }
     // Validate persisted sessions against current grants after the Store is hydrated.
     if (this.actor() && !this.rolesOf(this.actor()).includes(this.role())) {
       const fallback = this.rolesOf(this.actor())[0];
