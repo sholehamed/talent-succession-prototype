@@ -29,7 +29,7 @@ describe("grouped sidebar configuration", () => {
     const all = navigationGroups.flatMap((g) => g.children.map((x) => x.path));
     expect(navigationGroups).toHaveLength(7);
     expect(new Set(all).size).toBe(all.length);
-    expect(all).toHaveLength(30);
+    expect(all).toHaveLength(31);
     expect(all).toEqual(expect.arrayContaining([
       "/dashboard/hr", "/dashboard/development",
       "/people", "/organization/chart", "/organization/units",
@@ -39,7 +39,7 @@ describe("grouped sidebar configuration", () => {
       "/hiring/committee/specialist", "/performance", "/evaluations/campaigns",
       "/evaluations/cycles", "/evaluations/inbox", "/evaluations/questions",
       "/development", "/development/tasks", "/development/templates",
-      "/talent/succession", "/talent/9box",
+      "/talent/succession", "/talent/9box", "/talent/9box/trends",
       "/talent/prospective/indicators", "/talent/prospective/questions", "/knowledge", "/reports",
     ]));
     // Settings stays a single, independent entry at the bottom of the drawer.
