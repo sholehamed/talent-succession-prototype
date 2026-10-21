@@ -19,8 +19,10 @@ describe("job-independent prospective succession evaluation",()=>{
     expect(s.state().prospectiveIndicators).toHaveLength(5);
     expect(s.state().prospectiveQuestions).toHaveLength(10);
     expect(s.state().prospectiveRuns).toHaveLength(0);
-    const old=structuredClone(s.state()) as Partial<typeof s.state extends ()=>infer T?T:never>;
-    delete old.prospectiveIndicators;delete old.prospectiveQuestions;delete old.prospectiveRuns;
+    const old=structuredClone(s.state());
+    delete (old as Partial<typeof old>).prospectiveIndicators;
+    delete (old as Partial<typeof old>).prospectiveQuestions;
+    delete (old as Partial<typeof old>).prospectiveRuns;
     storage.set("royesh.demo.v1",JSON.stringify(old));
     const restored=new Store();
     expect(restored.state().prospectiveIndicators).toHaveLength(5);
