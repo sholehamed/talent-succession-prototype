@@ -5,9 +5,11 @@ import { Band, bands, competencies, Nomination } from "../core/models";
 import { UI } from "../shared/ui";
 import { Chart } from "../shared/chart";
 import { PositionRisk } from "./position-risk";
+import { MatDialog, MatDialogModule } from "@angular/material/dialog";
+import { ProspectiveReviewDialog } from "./prospective-review-dialog";
 @Component({
   standalone: true,
-  imports: [...UI, Chart, PositionRisk],
+  imports: [...UI, Chart, PositionRisk, MatDialogModule],
   template: `<div class="page-header">
       <div>
         <div class="eyebrow">تداوم سازمان، توسعه فرصت‌ها</div>
@@ -129,6 +131,50 @@ import { PositionRisk } from "./position-risk";
       </mat-card>
       @if (position(); as p) {
         <app-position-risk [positionId]="p.id" />
+        <mat-card class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>ارزیابی آینده‌نگر جانشینان</h2>
+              <small>بانک مستقل از شغل؛ فهرست نامزدها و سؤالات در زمان شروع Snapshot می‌شوند.</small>
+            </div>
+            @if (s.canManageProspective(p.id)) {
+              <button mat-button class="primary"
+                [disabled]="!!activeProspectiveRun() || !nominations().length"
+                (click)="startProspective()">شروع ارزیابی آینده‌نگر</button>
+            }
+          </div>
+          @if (runs().length) {
+            <mat-form-field appearance="outline" style="width:100%;max-width:470px">
+              <mat-label>دوره ارزیابی آینده‌نگر</mat-label>
+              <mat-select [ngModel]="run()?.id ?? ''" (ngModelChange)="selectedRunId.set($event)">
+                @for (r of runs(); track r.id) {
+                  <mat-option [value]="r.id">{{ r.startedAt | faDate }} · {{ r.positionTitle }} ·
+                    {{ r.status === 'active' ? 'در جریان' : 'بسته‌شده' }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            @if (run(); as r) {
+              <div class="info">
+                در {{ r.startedAt | faDate }} تعداد {{ r.nominees.length | fa }} نامزد
+                برای «{{ r.positionTitle }}» ثبت شده بودند؛
+                {{ r.results.length | fa }} نفر ارزیابی شده‌اند.
+                تغییر نامزدها و بانک سؤال بعدی، این Snapshot را تغییر نمی‌دهد.
+              </div>
+              @if (r.status === 'active' && s.canManageProspective(p.id)) {
+                <button mat-button [disabled]="r.results.length !== r.nominees.length"
+                  (click)="closeProspective()">بستن دوره ارزیابی</button>
+              }
+            }
+          } @else {
+            <div class="info">هنوز ارزیابی آینده‌نگر آغاز نشده است. پس از تعیین نامزدها، دوره را شروع کنید.</div>
+          }
+          @if (s.role() === 'hr') {
+            <div class="actions">
+              <a mat-button routerLink="/talent/prospective/indicators">مدیریت شاخص‌ها ←</a>
+              <a mat-button routerLink="/talent/prospective/questions">بانک سؤالات ←</a>
+            </div>
+          }
+        </mat-card>
       }
       <div class="grid three">
         @for (n of nominations(); track n.id) {
@@ -158,6 +204,26 @@ import { PositionRisk } from "./position-risk";
               <span class="grow">مجموع شکاف شایستگی</span
               ><b>{{ sumGap(n.personId) | fa }}</b>
             </div>
+            @if (run(); as r) {
+              @if (isProspectiveNominee(n.personId)) {
+                @if (prospectiveResult(n.personId); as result) {
+                  <div class="metric-line">
+                    <span class="grow">امتیاز آینده‌نگر (از ۵)</span>
+                    <strong>{{ result.score | fa }}</strong>
+                  </div>
+                  <small>تکمیل‌شده: {{ result.completedAt | faDate }}</small>
+                } @else {
+                  <div class="info">ارزیابی آینده‌نگر: در انتظار تکمیل</div>
+                  @if (r.status === 'active' && s.canManageProspective(r.positionId)) {
+                    <button mat-button class="primary" (click)="evaluateProspective(n.personId)">
+                      تکمیل ارزیابی آینده‌نگر
+                    </button>
+                  }
+                }
+              } @else {
+                <small>این نامزد پس از شروع دوره انتخاب شده و در Snapshot جاری نیست.</small>
+              }
+            }
             <div class="actions">
               <button
                 mat-button
