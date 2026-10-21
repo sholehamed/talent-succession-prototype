@@ -31,7 +31,7 @@ import {
   Role,
   competencies,
 } from "./models";
-import { defaultProspectiveIndicators, defaultProspectiveQuestions, prospectiveSnapshotError, scoreProspectiveAnswers } from "./prospective";
+import { activeProspectiveBank, defaultProspectiveIndicators, defaultProspectiveQuestions, prospectiveSnapshotError, scoreProspectiveAnswers } from "./prospective";
 import { seed } from "./seed";
 import {
   hydrateOrganization, appointmentOn, positionOf, positionHolder, managerOf,
@@ -1673,8 +1673,131 @@ export class Store {
       if (a) a.done = !a.done;
     });
   }
+  /** Global bank administration is HR-only; never grant managers bank editing. */
+  saveProspectiveIndicator(draft:ProspectiveIndicator):boolean {
+    if(!this.canAccess(["hr"])) return this.fail("مدیریت شاخص‌های آینده‌نگر فقط برای منابع انسانی است.");
+    const title=draft.title?.trim(),description=draft.description?.trim()??"";
+    if(!title||typeof draft.isActive!=="boolean" ||
+      this.state().prospectiveIndicators.some(i=>i.id!==draft.id&&i.title===title))
+      return this.fail("عنوان یکتا و وضعیت معتبر برای شاخص الزامی است.");
+    const existing=this.state().prospectiveIndicators.find(i=>i.id===draft.id);
+    if(draft.id&&!existing)return this.fail("شاخص موردنظر وجود ندارد.");
+    this.commit("شاخص آینده‌نگر ذخیره شد",draft.id||title,state=>{
+      const item={id:existing?.id??crypto.randomUUID(),title,description,
+        order:existing?.order??state.prospectiveIndicators.length,isActive:draft.isActive};
+      const n=state.prospectiveIndicators.findIndex(i=>i.id===item.id);
+      if(n>=0)state.prospectiveIndicators[n]=item;
+      else state.prospectiveIndicators.push(item);
+    });
+    return true;
+  }
+  saveProspectiveQuestion(draft:ProspectiveQuestion):boolean {
+    if(!this.canAccess(["hr"]))return this.fail("مدیریت بانک سؤالات آینده‌نگر فقط برای منابع انسانی است.");
+    const text=draft.text?.trim();
+    if(!text||typeof draft.isActive!=="boolean" ||
+      !this.state().prospectiveIndicators.some(i=>i.id===draft.indicatorId))
+      return this.fail("متن سؤال و شاخص مرتبط الزامی است.");
+    const existing=this.state().prospectiveQuestions.find(q=>q.id===draft.id);
+    if(draft.id&&!existing)return this.fail("سؤال موردنظر وجود ندارد.");
+    this.commit("سؤال آینده‌نگر ذخیره شد",draft.id||draft.indicatorId,state=>{
+      const item={id:existing?.id??crypto.randomUUID(),indicatorId:draft.indicatorId,text,
+        order:existing?.order??state.prospectiveQuestions.filter(q=>q.indicatorId===draft.indicatorId).length,
+        isActive:draft.isActive};
+      const n=state.prospectiveQuestions.findIndex(q=>q.id===item.id);
+      if(n>=0)state.prospectiveQuestions[n]=item;
+      else state.prospectiveQuestions.push(item);
+    });
+    return true;
+  }
+  /** Manager access is limited to their own organizational unit. */
+  canManageProspective(positionId:string):boolean {
+    if(!this.canAccess(["hr","manager"]))return false;
+    const pos=this.positionRecord(positionId);
+    if(!pos||!pos.critical||pos.isActive===false)return false;
+    return this.role()==="hr" || !!pos.unitId && pos.unitId===this.currentUnit(this.actor())?.id;
+  }
+  canViewProspective(positionId:string):boolean {
+    if(!this.canAccess(["hr","manager","executive"]))return false;
+    const pos=this.positionRecord(positionId);
+    return !!pos && (this.role()!=="manager" ||
+      !!pos.unitId && pos.unitId===this.currentUnit(this.actor())?.id);
+  }
+  prospectiveRunsForPosition(positionId:string):ProspectiveEvaluationRun[] {
+    if(!this.canViewProspective(positionId))return [];
+    return this.state().prospectiveRuns.filter(run=>run.positionId===positionId)
+      .sort((a,b)=>b.startedAt.localeCompare(a.startedAt));
+  }
+  /** All snapshot references are copied in one commit; no later bank edit changes a run. */
+  startProspectiveRun(positionId:string):string {
+    if(!this.canManageProspective(positionId)){
+      this.fail("شروع ارزیابی برای این پست و نقش مجاز نیست.");return "";
+    }
+    const state=this.state(),position=this.positionRecord(positionId)!;
+    if(state.prospectiveRuns.some(r=>r.positionId===positionId&&r.status==="active")){
+      this.fail("برای این پست یک دوره آینده‌نگر فعال وجود دارد.");return "";
+    }
+    const nominations=state.nominations.filter(n=>n.positionId===positionId);
+    if(!nominations.length||new Set(nominations.map(n=>n.personId)).size!==nominations.length||
+      nominations.some(n=>!state.people.some(p=>p.id===n.personId)||
+        this.currentPositionHolder(positionId)?.id===n.personId)){
+      this.fail("برای شروع، نامزدهای معتبر و غیرتکراری لازم است.");return "";
+    }
+    const {indicators,questions}=activeProspectiveBank(state.prospectiveIndicators,state.prospectiveQuestions);
+    const error=prospectiveSnapshotError(indicators,questions);
+    if(error){this.fail(error);return "";}
+    const id=crypto.randomUUID(),now=new Date().toISOString(),by=this.actor();
+    const run:ProspectiveEvaluationRun={
+      id,positionId,jobId:position.jobId,positionTitle:position.title,
+      startedAt:now,startedBy:by,status:"active",
+      indicators:structuredClone(indicators),questions:structuredClone(questions),
+      nominees:nominations.map(n=>({
+        nominationId:n.id,personId:n.personId,
+        personName:state.people.find(p=>p.id===n.personId)!.name,
+        readiness:n.readiness,nominationEvidence:n.evidence,nominatedAt:n.at,
+      })),
+      results:[],
+    };
+    this.commit("دوره ارزیابی آینده‌نگر آغاز شد",positionId,s=>{
+      s.prospectiveRuns.push(run);
+    });
+    return id;
+  }
+  submitProspectiveReview(runId:string,personId:string,answers:QuestionAnswer[],evidence:string):boolean{
+    const run=this.state().prospectiveRuns.find(r=>r.id===runId);
+    if(!run||!this.canManageProspective(run.positionId)||run.status!=="active"||
+      !run.nominees.some(n=>n.personId===personId)||
+      run.results.some(r=>r.personId===personId))
+      return this.fail("ثبت ارزیابی این نامزد در دوره جاری مجاز نیست.");
+    if(typeof evidence!=="string"||!evidence.trim())
+      return this.fail("شواهد ارزیابی الزامی است.");
+    const totals=scoreProspectiveAnswers(run.indicators,run.questions,answers);
+    if(!totals)return this.fail("برای تمام سؤالات امتیاز صحیح ۱ تا ۵ ثبت کنید.");
+    const by=this.actor(),now=new Date().toISOString();
+    this.commit("ارزیابی آینده‌نگر نامزد تکمیل شد",personId,state=>{
+      state.prospectiveRuns.find(r=>r.id===runId)!.results.push({
+        personId,answers:answers.map(a=>({...a})),evidence:evidence.trim(),
+        indicatorScores:totals.indicatorScores,score:totals.score,
+        completedAt:now,completedBy:by,
+      });
+    });
+    return true;
+  }
+  closeProspectiveRun(runId:string):boolean{
+    const run=this.state().prospectiveRuns.find(r=>r.id===runId);
+    if(!run||!this.canManageProspective(run.positionId)||run.status!=="active"||
+      !run.nominees.length||run.results.length!==run.nominees.length)
+      return this.fail("بستن دوره فقط پس از تکمیل تمام نامزدها مجاز است.");
+    this.commit("دوره آینده‌نگر بسته شد",runId,state=>{
+      const target=state.prospectiveRuns.find(r=>r.id===runId)!;
+      target.status="closed";target.closedAt=new Date().toISOString();
+    });
+    return true;
+  }
+
   nominate(n: Nomination) {
-    if (!["hr", "manager"].includes(this.role())) return false;
+    if (!this.canManageProspective(n.positionId)) return this.fail("نامزدی فقط برای منابع انسانی یا مدیر همان واحد مجاز است.");
+    if (!this.state().people.some(p=>p.id===n.personId))
+      return this.fail("فرد نامزد معتبر نیست.");
     if (!n.evidence.trim()) return this.fail("شواهد و نظر انسانی الزامی است.");
     if (
       this.currentPositionHolder(n.positionId)?.id === n.personId
