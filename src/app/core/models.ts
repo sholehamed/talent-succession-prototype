@@ -357,6 +357,35 @@ export interface Nomination {
   evidence: string;
   at: string;
 }
+/** Organization-wide forward-looking dimensions; never tied to a job profile. */
+export interface ProspectiveIndicator {
+  id: string; title: string; description: string; order: number; isActive: boolean;
+}
+export interface ProspectiveQuestion {
+  id: string; indicatorId: string; text: string; order: number; isActive: boolean;
+}
+export interface ProspectiveNomineeSnapshot {
+  nominationId: string; personId: string; personName: string;
+  readiness: "A" | "B" | "C"; nominationEvidence: string; nominatedAt: string;
+}
+export interface ProspectiveResult {
+  personId: string;
+  answers: QuestionAnswer[];
+  evidence: string;
+  indicatorScores: {indicatorId: string; score: number}[];
+  score: number;
+  completedAt: string; completedBy: string;
+}
+/** One immutable roster and questionnaire per target POSITION (not job). */
+export interface ProspectiveEvaluationRun {
+  id: string; positionId: string; jobId: string; positionTitle: string;
+  startedAt: string; startedBy: string;
+  status: "active" | "closed"; closedAt?: string;
+  indicators: ProspectiveIndicator[];
+  questions: ProspectiveQuestion[];
+  nominees: ProspectiveNomineeSnapshot[];
+  results: ProspectiveResult[];
+}
 export interface Audit {
   id: string;
   at: string;
@@ -413,6 +442,10 @@ export interface DemoState {
   plans: Plan[];
   knowledge: Knowledge[];
   nominations: Nomination[];
+  /** Optional in old snapshots; keep the existing schema and LocalStorage key. */
+  prospectiveIndicators: ProspectiveIndicator[];
+  prospectiveQuestions: ProspectiveQuestion[];
+  prospectiveRuns: ProspectiveEvaluationRun[];
   paths: { from: string; to: string; criteria: string }[];
   audit: Audit[];
   syncs: { at: string; rows: number; summary: string }[];

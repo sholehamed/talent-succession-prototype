@@ -3,6 +3,7 @@ import { defaultEvaluationQuestions } from "./evaluation-questions";
 import { defaultEntryQuestions, defaultEntryEvaluatorGroups } from "./entry-committees";
 import { defaultDevelopmentTemplates } from "./development-templates";
 import { hydrateOrganization } from "./organization";
+import { defaultProspectiveIndicators, defaultProspectiveQuestions } from "./prospective";
 export function seed(): DemoState {
   const units = [
     "دفتر پروژه‌ها",
@@ -298,6 +299,9 @@ export function seed(): DemoState {
       impact: 3,
       months: 6 + i,
     })),
+    prospectiveIndicators: defaultProspectiveIndicators(),
+    prospectiveQuestions: defaultProspectiveQuestions(),
+    prospectiveRuns: [],
     nominations: Array.from({ length: 10 }, (_, i) => ({
       id: `n${i + 1}`,
       personId: `p${i + 1}`,

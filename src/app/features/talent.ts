@@ -5,9 +5,11 @@ import { Band, bands, competencies, Nomination } from "../core/models";
 import { UI } from "../shared/ui";
 import { Chart } from "../shared/chart";
 import { PositionRisk } from "./position-risk";
+import { MatDialog, MatDialogModule } from "@angular/material/dialog";
+import { ProspectiveReviewDialog } from "./prospective-review-dialog";
 @Component({
   standalone: true,
-  imports: [...UI, Chart, PositionRisk],
+  imports: [...UI, Chart, PositionRisk, MatDialogModule],
   template: `<div class="page-header">
       <div>
         <div class="eyebrow">تداوم سازمان، توسعه فرصت‌ها</div>
@@ -129,18 +131,62 @@ import { PositionRisk } from "./position-risk";
       </mat-card>
       @if (position(); as p) {
         <app-position-risk [positionId]="p.id" />
+        <mat-card class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>ارزیابی آینده‌نگر جانشینان</h2>
+              <small>بانک مستقل از شغل؛ فهرست نامزدها و سؤالات در زمان شروع Snapshot می‌شوند.</small>
+            </div>
+            @if (s.canManageProspective(p.id)) {
+              <button mat-button class="primary"
+                [disabled]="!!activeProspectiveRun() || !nominations().length"
+                (click)="startProspective()">شروع ارزیابی آینده‌نگر</button>
+            }
+          </div>
+          @if (runs().length) {
+            <mat-form-field appearance="outline" style="width:100%;max-width:470px">
+              <mat-label>دوره ارزیابی آینده‌نگر</mat-label>
+              <mat-select [ngModel]="run()?.id ?? ''" (ngModelChange)="selectedRunId.set($event)">
+                @for (r of runs(); track r.id) {
+                  <mat-option [value]="r.id">{{ r.startedAt | faDate }} · {{ r.positionTitle }} ·
+                    {{ r.status === 'active' ? 'در جریان' : 'بسته‌شده' }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            @if (run(); as r) {
+              <div class="info">
+                در {{ r.startedAt | faDate }} تعداد {{ r.nominees.length | fa }} نامزد
+                برای «{{ r.positionTitle }}» ثبت شده بودند؛
+                {{ r.results.length | fa }} نفر ارزیابی شده‌اند.
+                تغییر نامزدها و بانک سؤال بعدی، این Snapshot را تغییر نمی‌دهد.
+              </div>
+              @if (r.status === 'active' && s.canManageProspective(p.id)) {
+                <button mat-button [disabled]="r.results.length !== r.nominees.length"
+                  (click)="closeProspective()">بستن دوره ارزیابی</button>
+              }
+            }
+          } @else {
+            <div class="info">هنوز ارزیابی آینده‌نگر آغاز نشده است. پس از تعیین نامزدها، دوره را شروع کنید.</div>
+          }
+          @if (s.role() === 'hr') {
+            <div class="actions">
+              <a mat-button routerLink="/talent/prospective/indicators">مدیریت شاخص‌ها ←</a>
+              <a mat-button routerLink="/talent/prospective/questions">بانک سؤالات ←</a>
+            </div>
+          }
+        </mat-card>
       }
       <div class="grid three">
-        @for (n of nominations(); track n.id) {
+        @for (n of cardNominations(); track n.id) {
           <mat-card class="panel">
             <div class="panel-head">
               <div class="person-cell">
                 <span class="avatar">{{
-                  s.person(n.personId).name.slice(0, 1)
+                  nomineeName(n.personId).slice(0, 1)
                 }}</span>
                 <h3>
                   <a [routerLink]="['/people', n.personId]">{{
-                    s.person(n.personId).name
+                    nomineeName(n.personId)
                   }}</a>
                 </h3>
               </div>
@@ -158,6 +204,26 @@ import { PositionRisk } from "./position-risk";
               <span class="grow">مجموع شکاف شایستگی</span
               ><b>{{ sumGap(n.personId) | fa }}</b>
             </div>
+            @if (run(); as r) {
+              @if (isProspectiveNominee(n.personId)) {
+                @if (prospectiveResult(n.personId); as result) {
+                  <div class="metric-line">
+                    <span class="grow">امتیاز آینده‌نگر (از ۵)</span>
+                    <strong>{{ result.score | fa }}</strong>
+                  </div>
+                  <small>تکمیل‌شده: {{ result.completedAt | faDate }}</small>
+                } @else {
+                  <div class="info">ارزیابی آینده‌نگر: در انتظار تکمیل</div>
+                  @if (r.status === 'active' && s.canManageProspective(r.positionId)) {
+                    <button mat-button class="primary" (click)="evaluateProspective(n.personId)">
+                      تکمیل ارزیابی آینده‌نگر
+                    </button>
+                  }
+                }
+              } @else {
+                <small>این نامزد پس از شروع دوره انتخاب شده و در Snapshot جاری نیست.</small>
+              }
+            }
             <div class="actions">
               <button
                 mat-button
@@ -170,8 +236,8 @@ import { PositionRisk } from "./position-risk";
                     : "افزودن به مقایسه"
                 }}
               </button>
-              @if (s.editable()) {
-                <button mat-button (click)="edit(n)">ثبت نظر آمادگی</button>
+              @if (s.editable() && currentNomination(n.personId)) {
+                <button mat-button (click)="editCurrentNomination(n.personId)">ثبت نظر آمادگی</button>
               }
             </div>
           </mat-card>
@@ -179,6 +245,41 @@ import { PositionRisk } from "./position-risk";
           <div class="panel empty">برای این پست نامزدی ثبت نشده است.</div>
         }
       </div>
+      @if (run(); as r) {
+        <mat-card class="panel">
+          <div class="panel-head">
+            <h2>مقایسه نتایج آینده‌نگر نامزدهای Snapshot</h2>
+            <small>همه نامزدهای ثبت‌شده در تاریخ شروع، حتی پس از تغییر فهرست فعلی</small>
+          </div>
+          <div class="table-wrap">
+            <table class="royesh-table" style="width:100%">
+              <thead>
+                <tr>
+                  <th>نامزد در زمان شروع</th><th>آمادگی آن تاریخ</th>
+                  @for (indicator of r.indicators; track indicator.id) {
+                    <th>{{ indicator.title }}</th>
+                  }
+                  <th>امتیاز کل / ۵</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (nominee of r.nominees; track nominee.personId) {
+                  <tr>
+                    <td>{{ nominee.personName }}</td>
+                    <td>{{ nominee.readiness }}</td>
+                    @for (indicator of r.indicators; track indicator.id) {
+                      <td>{{ prospectiveIndicatorScore(nominee.personId,indicator.id) | fa }}</td>
+                    }
+                    <td>{{ prospectiveResult(nominee.personId)?.score | fa }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="info">نمرات از میانگین برابر شاخص‌ها محاسبه می‌شوند؛
+            نتیجه آزمون جایگزین قضاوت انسانی درباره آمادگی A/B/C نیست.</div>
+        </mat-card>
+      }
       @if (compare().length) {
         <mat-card class="panel">
           <h2>مقایسه شواهد شایستگی با شغل هدف</h2>
@@ -241,6 +342,7 @@ import { PositionRisk } from "./position-risk";
 })
 export default class Talent {
   s = inject(Store);
+  readonly dialog=inject(MatDialog);
   readonly talentColumns = ["person","unit","performance","potential","evidence"];
   bandLabel(value: string | null) { return bands[value as Band] ?? "—"; }
   route = inject(ActivatedRoute);
@@ -254,6 +356,7 @@ export default class Talent {
     "pos1",
   );
   compare = signal<string[]>(["p1", "p2"]);
+  readonly selectedRunId=signal("");
   draft?: Nomination;
   bands = bands;
   competencies = competencies;
@@ -287,6 +390,7 @@ export default class Talent {
     }[this.s.positionRisk(id).status];
   }
   selectPosition(id: string) {
+    this.selectedRunId.set("");
     this.positionId.set(id);
     this.draft = undefined;
     this.compare.set([]);
@@ -297,6 +401,50 @@ export default class Talent {
       .nominations.filter((n) => !!this.position() && n.positionId === this.position()!.id),
   );
   ready = computed(() => this.nominations().some((n) => n.readiness === "A"));
+  readonly runs=computed(()=>this.position()
+    ? this.s.prospectiveRunsForPosition(this.position()!.id) : []);
+  readonly run=computed(()=>this.runs().find(r=>r.id===this.selectedRunId())??this.runs()[0]);
+  readonly activeProspectiveRun=computed(()=>this.runs().find(r=>r.status==="active"));
+  readonly cardNominations=computed<Nomination[]>(()=>{
+    const run=this.run();
+    if(!run)return this.nominations();
+    return run.nominees.map(n=>({
+      id:n.nominationId,personId:n.personId,positionId:run.positionId,
+      readiness:n.readiness,evidence:n.nominationEvidence,at:n.nominatedAt,
+    }));
+  });
+  nomineeName(personId:string){
+    return this.run()?.nominees.find(n=>n.personId===personId)?.personName ??
+      this.s.state().people.find(p=>p.id===personId)?.name ?? "نامزد تاریخی";
+  }
+  isProspectiveNominee(personId:string){
+    return !!this.run()?.nominees.some(n=>n.personId===personId);
+  }
+  prospectiveResult(personId:string){
+    return this.run()?.results.find(r=>r.personId===personId);
+  }
+  prospectiveIndicatorScore(personId:string,indicatorId:string){
+    return this.prospectiveResult(personId)?.indicatorScores.find(i=>i.indicatorId===indicatorId)?.score;
+  }
+  startProspective(){
+    const pos=this.position();
+    if(!pos)return;
+    const id=this.s.startProspectiveRun(pos.id);
+    if(id){this.selectedRunId.set(id);this.compare.set([]);}
+  }
+  closeProspective(){
+    const r=this.run();
+    if(r)this.s.closeProspectiveRun(r.id);
+  }
+  evaluateProspective(personId:string){
+    const run=this.run();
+    const nominee=run?.nominees.find(n=>n.personId===personId);
+    if(!run||!nominee||run.status!=="active"||!this.s.canManageProspective(run.positionId))return;
+    this.dialog.open(ProspectiveReviewDialog,{
+      width:"740px",maxWidth:"95vw",direction:"rtl",
+      data:{run:structuredClone(run),nominee:structuredClone(nominee)},
+    });
+  }
   people = computed(() =>
     this.s
       .state()
@@ -332,6 +480,13 @@ export default class Talent {
       this.compare.update((v) => v.filter((x) => x !== id));
     else if (this.compare().length < 3) this.compare.update((v) => [...v, id]);
     else this.s.fail("حداکثر سه نفر را هم‌زمان مقایسه کنید.");
+  }
+  currentNomination(personId:string){
+    return this.nominations().find(n=>n.personId===personId);
+  }
+  editCurrentNomination(personId:string){
+    const current=this.currentNomination(personId);
+    if(current)this.edit(current);
   }
   edit(n: Nomination) {
     this.draft = structuredClone(n);
