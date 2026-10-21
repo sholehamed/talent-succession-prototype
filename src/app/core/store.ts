@@ -109,7 +109,9 @@ export class Store {
         if (saved.length!==this.state().talentHistory.length)
           localStorage.setItem(KEY,JSON.stringify(this.state()));
       } catch {
-        this.storageWarning.set("ذخیره نخستین وضعیت تاریخی در مرورگر ممکن نشد.");
+        // Preserve the existing invalid/corrupted-storage diagnostic from restore().
+        if (!this.storageWarning())
+          this.storageWarning.set("ذخیره نخستین وضعیت تاریخی در مرورگر ممکن نشد.");
       }
     }
     // Validate persisted sessions against current grants after the Store is hydrated.
