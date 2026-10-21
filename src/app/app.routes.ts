@@ -169,6 +169,14 @@ export const routes: Routes = [
     canActivate: [permit(management)],
     loadComponent: () => import("./features/talent"),
   },
+  {
+    path: "talent/prospective/indicators", canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/prospective-indicators"),
+  },
+  {
+    path: "talent/prospective/questions", canActivate: [permit(["hr"])],
+    loadComponent: () => import("./features/prospective-questions"),
+  },
   { path: "positions/critical", redirectTo: "talent/succession" },
   { path: "knowledge", canActivate: [permit(["hr","manager","executive","owner","employee"])], loadComponent: () => import("./features/knowledge") },
   {
