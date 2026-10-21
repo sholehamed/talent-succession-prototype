@@ -606,34 +606,121 @@ tr:last-child td {
 .knowledge-card .actions {
   margin-top: auto;
 }
+/* Nine-box visual semantics are presentation-only; classification/filter data is unchanged.
+   The colors and positions follow the supplied reference matrix (high potential on top). */
+.nine-grid-wrap {
+  overflow-x: auto;
+  padding: 3px 3px 7px;
+}
 .nine-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(175px, 1fr));
+  min-width: 555px;
   gap: 12px;
   direction: ltr;
 }
-.nine-cell {
-  padding: 20px;
-  min-height: 120px;
-  border: 1px solid #dfe9e7;
-  background: #f4f8f6;
-  border-radius: 10px;
+.nine-cell.mat-mdc-button {
+  --nine-bg: #f7e3df;
+  --nine-border: #e5cbc7;
+  --nine-ink: #673f43;
+  --nine-counter: #fff7f5;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  min-height: 137px;
+  padding: 17px 16px;
+  border: 1px solid var(--nine-border);
+  border-radius: 13px;
+  background: var(--nine-bg);
+  color: var(--nine-ink);
   direction: rtl;
+  white-space: normal;
   text-align: right;
-  color: #50736a;
+  font-family: inherit;
+  line-height: 1.6;
+  box-shadow: 0 2px 5px rgb(35 54 75 / 5%);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
-.nine-cell:nth-child(3) {
-  background: #e0f3e9;
+.nine-cell--amber.mat-mdc-button {
+  --nine-bg: #fae18a;
+  --nine-border: #e7c964;
+  --nine-ink: #604914;
+  --nine-counter: #fff4c6;
 }
-.nine-cell:nth-child(7) {
-  background: #fcf1e8;
+.nine-cell--rose.mat-mdc-button {
+  --nine-bg: #e9a1a5;
+  --nine-border: #d8838a;
+  --nine-ink: #5e2330;
+  --nine-counter: #fbe2e3;
 }
-.nine-cell strong {
-  display: block;
-  font-size: 25px;
+.nine-cell--blush.mat-mdc-button {
+  --nine-bg: #f5e2e0;
+  --nine-border: #e4c4c1;
+  --nine-ink: #67454b;
+  --nine-counter: #fff7f5;
 }
-.nine-cell.active {
-  outline: 2px solid var(--green);
+.nine-cell.mat-mdc-button .mdc-button__label {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 15px;
+}
+.nine-cell__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.nine-cell__title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.nine-cell__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 36px;
+  height: 36px;
+  padding-inline: 7px;
+  border-radius: 10px;
+  background: var(--nine-counter);
+  color: var(--nine-ink);
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.nine-cell__details {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.8;
+  color: var(--nine-ink);
+  opacity: 0.92;
+}
+.nine-cell.mat-mdc-button:hover {
+  border-color: var(--nine-ink);
+  box-shadow: 0 5px 14px rgb(35 54 75 / 14%);
+  transform: translateY(-1px);
+}
+.nine-cell.mat-mdc-button.active {
+  outline: 3px solid #087864;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px rgb(8 120 100 / 12%);
+}
+.nine-cell.mat-mdc-button:focus-visible {
+  outline: 3px solid #084f45;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nine-cell.mat-mdc-button { transition: none; }
+  .nine-cell.mat-mdc-button:hover { transform: none; }
 }
 .toast {
   position: fixed;
