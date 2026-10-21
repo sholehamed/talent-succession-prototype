@@ -32,7 +32,7 @@ test("unit scope, date validation and matrix filters apply to historical compari
   await page.goto("/talent/9box/trends");
   await page.getByRole("combobox",{name:"واحد سازمانی"}).click();
   await page.getByRole("option",{name:"دفتر پروژه‌ها",exact:true}).click();
-  await page.getByRole("textbox",{name:"جستجوی کارمند"}).fill("EMP-1001");
+  await page.getByRole("textbox",{name:"جستجوی کارمند"}).fill("NO-SUCH-EMPLOYEE");
   await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(0);
   await page.getByRole("textbox",{name:"جستجوی کارمند"}).fill("");
   await page.getByRole("combobox",{name:"واحد سازمانی"}).click();
@@ -45,7 +45,7 @@ test("unit scope, date validation and matrix filters apply to historical compari
   await page.getByRole("button",{name:"پاک‌کردن فیلتر خانه"}).click();
   await expect(selected).toHaveAttribute("aria-pressed","false");
   await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(before);
-  await page.getByRole("textbox",{name:"تاریخ مبنا (میلادی)"}).fill("2030-01-01");
+  await page.getByLabel("تاریخ مبنا (میلادی)").fill("2030-01-01");
   await expect(page.getByRole("alert")).toContainText("تاریخ مبنا");
   await expect(page.locator(".trend-grid")).toHaveCount(0);
 });
