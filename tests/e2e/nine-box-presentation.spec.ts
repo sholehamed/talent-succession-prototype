@@ -60,7 +60,7 @@ test("reference titles/colors enrich all nine cells without changing the existin
   await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(nextCount);
 
   await page.getByRole("button",{name:"نمایش همه افراد"}).click();
-  await expect(cells.locator('[aria-pressed="true"]')).toHaveCount(0);
+  await expect(page.locator('button.nine-cell[aria-pressed="true"]')).toHaveCount(0);
   await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(initialRows);
 });
 
