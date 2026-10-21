@@ -6,9 +6,13 @@ import type { Band, DemoState, Person, TalentPositionEvent } from "./models";
  * fabricated observations at an earlier date.
  */
 export function talentBaseline(people: Person[], at: string): TalentPositionEvent[] {
+  // The current-only baseline is known for THIS observed calendar day, not a
+  // historic exact second. Day granularity also keeps demo seed/reset stable.
+  const instant=new Date(at);
+  const firstObservedDay=new Date(instant.getFullYear(),instant.getMonth(),instant.getDate()).toISOString();
   return people.map(p=>({
     id: "talent-baseline-"+p.id,
-    personId:p.id,at,performance:p.performance,potential:p.potential,
+    personId:p.id,at:firstObservedDay,performance:p.performance,potential:p.potential,
     unit:p.unit,source:"baseline" as const,
   }));
 }
