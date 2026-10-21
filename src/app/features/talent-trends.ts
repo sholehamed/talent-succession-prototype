@@ -147,7 +147,7 @@ const movementNames:Record<NineBoxMovement,string>={
             <thead><tr><th>فرد</th><th>خانه در مبنا</th><th>خانه در پایان</th><th>جهت تغییر</th><th>جزئیات</th></tr></thead>
             <tbody>
               @for (item of visibleRows(); track item.person.id) {
-                <tr [class.trend-person.active]="selectedPersonId() === item.person.id">
+                <tr [class.active]="selectedPersonId() === item.person.id">
                   <td>{{ item.person.name }} <small>{{ item.person.code }}</small></td>
                   <td>{{ cellTitle(item.from) }}</td>
                   <td>{{ cellTitle(item.to) }}</td>
