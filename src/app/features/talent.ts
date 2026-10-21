@@ -177,16 +177,16 @@ import { ProspectiveReviewDialog } from "./prospective-review-dialog";
         </mat-card>
       }
       <div class="grid three">
-        @for (n of nominations(); track n.id) {
+        @for (n of cardNominations(); track n.id) {
           <mat-card class="panel">
             <div class="panel-head">
               <div class="person-cell">
                 <span class="avatar">{{
-                  s.person(n.personId).name.slice(0, 1)
+                  nomineeName(n.personId).slice(0, 1)
                 }}</span>
                 <h3>
                   <a [routerLink]="['/people', n.personId]">{{
-                    s.person(n.personId).name
+                    nomineeName(n.personId)
                   }}</a>
                 </h3>
               </div>
@@ -236,7 +236,7 @@ import { ProspectiveReviewDialog } from "./prospective-review-dialog";
                     : "افزودن به مقایسه"
                 }}
               </button>
-              @if (s.editable()) {
+              @if (s.editable() && !run()) {
                 <button mat-button (click)="edit(n)">ثبت نظر آمادگی</button>
               }
             </div>
@@ -405,6 +405,18 @@ export default class Talent {
     ? this.s.prospectiveRunsForPosition(this.position()!.id) : []);
   readonly run=computed(()=>this.runs().find(r=>r.id===this.selectedRunId())??this.runs()[0]);
   readonly activeProspectiveRun=computed(()=>this.runs().find(r=>r.status==="active"));
+  readonly cardNominations=computed<Nomination[]>(()=>{
+    const run=this.run();
+    if(!run)return this.nominations();
+    return run.nominees.map(n=>({
+      id:n.nominationId,personId:n.personId,positionId:run.positionId,
+      readiness:n.readiness,evidence:n.nominationEvidence,at:n.nominatedAt,
+    }));
+  });
+  nomineeName(personId:string){
+    return this.run()?.nominees.find(n=>n.personId===personId)?.personName ??
+      this.s.state().people.find(p=>p.id===personId)?.name ?? "نامزد تاریخی";
+  }
   isProspectiveNominee(personId:string){
     return !!this.run()?.nominees.some(n=>n.personId===personId);
   }
