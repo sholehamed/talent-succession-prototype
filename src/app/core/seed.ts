@@ -3,6 +3,7 @@ import { defaultEvaluationQuestions } from "./evaluation-questions";
 import { defaultEntryQuestions, defaultEntryEvaluatorGroups } from "./entry-committees";
 import { defaultDevelopmentTemplates } from "./development-templates";
 import { hydrateOrganization } from "./organization";
+import { hydrateTalentHistory } from "./talent-history";
 import { defaultProspectiveIndicators, defaultProspectiveQuestions } from "./prospective";
 export function seed(): DemoState {
   const units = [
@@ -254,7 +255,7 @@ export function seed(): DemoState {
         }
       : {}),
   }));
-  return hydrateOrganization({
+  return hydrateTalentHistory(hydrateOrganization({
     schema: 1,
     jobs,
     people,
@@ -321,5 +322,5 @@ export function seed(): DemoState {
     ],
     audit: [],
     syncs: [],
-  } as unknown as DemoState);
+  } as unknown as DemoState),new Date().toISOString());
 }
