@@ -88,6 +88,9 @@ const movementNames:Record<NineBoxMovement,string>={
             }
           </mat-select>
         </mat-form-field>
+        <button mat-button (click)="unit.set('');query.set('');selectedCell.set('')">
+          پاک‌کردن فیلترهای افراد
+        </button>
         <mat-form-field appearance="outline" class="search">
           <mat-label>جستجوی کارمند</mat-label>
           <input matInput [ngModel]="query()" (ngModelChange)="query.set($event)" />
