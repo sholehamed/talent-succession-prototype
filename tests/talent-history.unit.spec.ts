@@ -147,7 +147,7 @@ describe("read-only demo historical timeline",()=>{
       expect(changed.some(row=>row.movement===movement)).toBe(true);
     }
     expect(changed[0].to?.performance).toBe(people[0].performance);
-    expect(sample[0].at).toBeLessThan(sample[4].at);
+    expect(Date.parse(sample[0].at)).toBeLessThan(Date.parse(sample[4].at));
     expect(JSON.stringify(s.state())).toBe(before);
     expect(s.state().talentHistory.some(e=>e.source==="demo")).toBe(false);
   });
