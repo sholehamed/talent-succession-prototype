@@ -16,6 +16,14 @@ test("nine-box navigation opens automatic comparison without any snapshot action
   await page.getByRole("link",{name:"مشاهده روند تغییرات نقشه استعداد"}).click();
   await expect(page).toHaveURL(/\/talent\/9box\/trends$/);
   await expect(page.getByRole("heading",{name:"تحلیل روند جابه‌جایی استعدادها"})).toBeVisible();
+  const initialHistory=await page.evaluate(()=>{
+    const saved=JSON.parse(localStorage.getItem("royesh.demo.v1")!);
+    return saved.talentHistory;
+  });
+  expect(initialHistory.length).toBeGreaterThan(0);
+  await page.reload();
+  const afterReload=await page.evaluate(()=>JSON.parse(localStorage.getItem("royesh.demo.v1")!).talentHistory);
+  expect(afterReload).toEqual(initialHistory);
   await expect(page.locator(".trend-grid")).toHaveCount(2);
   await expect(page.locator("button.trend-cell")).toHaveCount(18);
   await expect(page.locator("main")).toContainText("سابقه ناکافی");
