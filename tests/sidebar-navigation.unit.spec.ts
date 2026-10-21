@@ -29,7 +29,7 @@ describe("grouped sidebar configuration", () => {
     const all = navigationGroups.flatMap((g) => g.children.map((x) => x.path));
     expect(navigationGroups).toHaveLength(7);
     expect(new Set(all).size).toBe(all.length);
-    expect(all).toHaveLength(28);
+    expect(all).toHaveLength(30);
     expect(all).toEqual(expect.arrayContaining([
       "/dashboard/hr", "/dashboard/development",
       "/people", "/organization/chart", "/organization/units",
@@ -39,7 +39,8 @@ describe("grouped sidebar configuration", () => {
       "/hiring/committee/specialist", "/performance", "/evaluations/campaigns",
       "/evaluations/cycles", "/evaluations/inbox", "/evaluations/questions",
       "/development", "/development/tasks", "/development/templates",
-      "/talent/succession", "/talent/9box", "/knowledge", "/reports",
+      "/talent/succession", "/talent/9box",
+      "/talent/prospective/indicators", "/talent/prospective/questions", "/knowledge", "/reports",
     ]));
     // Settings stays a single, independent entry at the bottom of the drawer.
     expect(all).not.toContain("/settings");
@@ -72,6 +73,14 @@ describe("grouped sidebar configuration", () => {
     for (const role of ["manager","executive","owner","employee","evaluator"] as Role[])
       expect(visibleNavigationGroups(role).flatMap(g => g.children.map(c => c.path)))
         .not.toContain("/access/roles");
+    const hrLinks=visibleNavigationGroups("hr").flatMap(g=>g.children.map(c=>c.path));
+    expect(hrLinks).toContain("/talent/prospective/indicators");
+    expect(hrLinks).toContain("/talent/prospective/questions");
+    for(const role of ["manager","executive","owner","employee","evaluator"] as Role[]){
+      const paths=visibleNavigationGroups(role).flatMap(g=>g.children.map(c=>c.path));
+      expect(paths).not.toContain("/talent/prospective/indicators");
+      expect(paths).not.toContain("/talent/prospective/questions");
+    }
   });
 
   it("routes each management role only to its own dashboard and keeps shared development", () => {
