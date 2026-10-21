@@ -19,8 +19,12 @@ export function demoNineBoxHistory(people: Person[], today: string): TalentPosit
     [-1, -1], [1, 1], [1, -1], [-1, 1], [0, 0], [1, 0],
   ];
 
-  return people.flatMap((person, index) => {
-    const [pOffset, vOffset] = offsets[index % offsets.length];
+  return people.flatMap(person => {
+    // Choose the fixture by stable person ID, not filtered list order.
+    const numbered = /^p(\d+)$/.exec(person.id);
+    const key = numbered ? Number(numbered[1]) - 1 :
+      [...person.id].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0);
+    const [pOffset, vOffset] = offsets[key % offsets.length];
     const priorPerformance = shift(person.performance, pOffset);
     const priorPotential = shift(person.potential, vOffset);
     const steps: [Band | null, Band | null][] = [
