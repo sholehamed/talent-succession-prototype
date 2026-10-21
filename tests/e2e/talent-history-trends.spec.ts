@@ -37,8 +37,8 @@ test("unit scope, date validation and matrix filters apply to historical compari
   await page.getByRole("textbox",{name:"جستجوی کارمند"}).fill("NO-SUCH-EMPLOYEE");
   await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(0);
   await page.getByRole("textbox",{name:"جستجوی کارمند"}).fill("");
-  await page.getByRole("combobox",{name:"واحد سازمانی"}).click();
-  await page.getByRole("option",{name:"همه واحدهای مجاز",exact:true}).click();
+  await page.getByRole("button",{name:"پاک‌کردن فیلترهای افراد"}).click();
+  await expect(page.getByRole("combobox",{name:"واحد سازمانی"})).toContainText("همه واحدهای مجاز");
   await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(before);
   const selected=page.locator("button.trend-cell").nth(11);
   await selected.click();
