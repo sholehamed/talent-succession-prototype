@@ -41,6 +41,7 @@ export interface ProspectiveDialogData {
             </div>
           }
         }
+        @if (error()) { <div class="warning" role="alert">{{ error() }}</div> }
         <mat-form-field appearance="outline" style="width:100%;margin-top:10px">
           <mat-label>شواهد و توضیح ارزیابی آینده‌نگر</mat-label>
           <textarea matInput rows="3" [ngModel]="evidence()"
@@ -61,15 +62,24 @@ export class ProspectiveReviewDialog {
   readonly levels=[1,2,3,4,5];
   readonly answers=signal<Record<string,number>>({});
   readonly evidence=signal("");
+  readonly error=signal("");
   questionsFor(id:string){return this.data.run.questions.filter(q=>q.indicatorId===id);}
   setAnswer(id:string,score:number){
+    this.error.set("");
     this.answers.update(old=>({...old,[id]:score}));
   }
   save(){
     const answers=this.data.run.questions.map(q=>({
       questionId:q.id,score:this.answers()[q.id]??0,
     }));
+    if(answers.some(a=>!Number.isInteger(a.score)||a.score<1||a.score>5)){
+      this.error.set("لطفاً امتیاز تمام سؤالات را بین ۱ تا ۵ تعیین کنید.");return;
+    }
+    if(!this.evidence().trim()){
+      this.error.set("ثبت شواهد ارزیابی الزامی است.");return;
+    }
     if(this.s.submitProspectiveReview(this.data.run.id,this.data.nominee.personId,answers,this.evidence()))
       this.dialog.close(true);
+    else this.error.set(this.s.notice()||"ثبت ارزیابی ناموفق بود.");
   }
 }
