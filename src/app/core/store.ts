@@ -41,6 +41,7 @@ import {
   saveLocation, saveUnit, savePosition, assignPosition, finishAppointment, projectStaffing,
 } from "./organization-actions";
 import { performanceBand, performanceScore } from "./performance";
+import { captureTalentChanges, hydrateTalentHistory } from "./talent-history";
 import { assessPositionRisk, validatePositionRiskInput } from "./position-risk";
 import { campaignCycle, campaignPreview } from "./evaluation-campaigns";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, roleOrder } from "./auth";
@@ -207,8 +208,9 @@ export class Store {
           d.cycles.every((c: any) => Array.isArray(c.assignments)) &&
           d.plans.every((p: any) => Array.isArray(p.actions))
         )
-          return hydrateOrganization({ ...d,
+          return hydrateTalentHistory(hydrateOrganization({ ...d,
             performanceReviews: Array.isArray(d.performanceReviews) ? d.performanceReviews : [],
+            talentHistory: Array.isArray(d.talentHistory) ? d.talentHistory : [],
             campaigns: Array.isArray(d.campaigns) ? d.campaigns : [],
             candidates: Array.isArray(d.candidates) ? d.candidates : [],
             prospectiveIndicators: Array.isArray(d.prospectiveIndicators)
@@ -232,7 +234,7 @@ export class Store {
             developmentTemplates: Array.isArray(d.developmentTemplates)
               ? d.developmentTemplates.map((t: DevelopmentTemplate) => ({ ...t, isActive: t.isActive !== false }))
               : defaultDevelopmentTemplates(),
-          });
+          }),new Date().toISOString());
         this.storageWarning.set(
           "اطلاعات ذخیره‌شده ناسازگار بود؛ وضعیت اولیه بازیابی شد.",
         );
@@ -245,11 +247,14 @@ export class Store {
     return seed();
   }
   commit(action: string, entity: string, mutate: (s: DemoState) => void) {
-    const s = structuredClone(this.state());
+    const before=this.state();
+    const s = structuredClone(before);
     mutate(s);
+    const at=new Date().toISOString();
+    captureTalentChanges(before,s,at,action);
     s.audit.unshift({
       id: crypto.randomUUID(),
-      at: new Date().toISOString(),
+      at,
       role: this.role(),
       action,
       entity,
