@@ -70,6 +70,8 @@ export const navigationGroups: NavigationGroup[] = [
       { path: "/development/tasks", title: "اقدام‌های من", icon: "assignment_turned_in" },
       { path: "/development/templates", title: "الگوهای اقدام توسعه", icon: "description" },
       { path: "/talent/succession", title: "جانشین‌پروری", icon: "groups" },
+      { path: "/talent/prospective/indicators", title: "شاخص‌های ارزیابی آینده‌نگر", icon: "analytics" },
+      { path: "/talent/prospective/questions", title: "سؤالات ارزیابی آینده‌نگر", icon: "description" },
       { path: "/talent/9box", title: "نقشه استعداد ۹ خانه", icon: "dashboard" },
     ],
   },
@@ -85,6 +87,7 @@ export const navigationGroups: NavigationGroup[] = [
 /** Keep existing demo role visibility exactly; routing guards remain authoritative. */
 export function navigationPathVisible(path: string, role: Role): boolean {
   if (path === "/access/roles") return role === "hr";
+  if (path.startsWith("/talent/prospective/")) return role === "hr";
   if (role === "hr") return path !== "/development/tasks";
   if (path === "/organization/appointments") return false;
   if (role === "evaluator") return [
