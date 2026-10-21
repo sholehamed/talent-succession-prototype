@@ -245,6 +245,41 @@ import { ProspectiveReviewDialog } from "./prospective-review-dialog";
           <div class="panel empty">برای این پست نامزدی ثبت نشده است.</div>
         }
       </div>
+      @if (run(); as r) {
+        <mat-card class="panel">
+          <div class="panel-head">
+            <h2>مقایسه نتایج آینده‌نگر نامزدهای Snapshot</h2>
+            <small>همه نامزدهای ثبت‌شده در تاریخ شروع، حتی پس از تغییر فهرست فعلی</small>
+          </div>
+          <div class="table-wrap">
+            <table class="royesh-table" style="width:100%">
+              <thead>
+                <tr>
+                  <th>نامزد در زمان شروع</th><th>آمادگی آن تاریخ</th>
+                  @for (indicator of r.indicators; track indicator.id) {
+                    <th>{{ indicator.title }}</th>
+                  }
+                  <th>امتیاز کل / ۵</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (nominee of r.nominees; track nominee.personId) {
+                  <tr>
+                    <td>{{ nominee.personName }}</td>
+                    <td>{{ nominee.readiness }}</td>
+                    @for (indicator of r.indicators; track indicator.id) {
+                      <td>{{ prospectiveIndicatorScore(nominee.personId,indicator.id) | fa }}</td>
+                    }
+                    <td>{{ prospectiveResult(nominee.personId)?.score | fa }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="info">نمرات از میانگین برابر شاخص‌ها محاسبه می‌شوند؛
+            نتیجه آزمون جایگزین قضاوت انسانی درباره آمادگی A/B/C نیست.</div>
+        </mat-card>
+      }
       @if (compare().length) {
         <mat-card class="panel">
           <h2>مقایسه شواهد شایستگی با شغل هدف</h2>
@@ -307,6 +342,7 @@ import { ProspectiveReviewDialog } from "./prospective-review-dialog";
 })
 export default class Talent {
   s = inject(Store);
+  readonly dialog=inject(MatDialog);
   readonly talentColumns = ["person","unit","performance","potential","evidence"];
   bandLabel(value: string | null) { return bands[value as Band] ?? "—"; }
   route = inject(ActivatedRoute);
@@ -320,6 +356,7 @@ export default class Talent {
     "pos1",
   );
   compare = signal<string[]>(["p1", "p2"]);
+  readonly selectedRunId=signal("");
   draft?: Nomination;
   bands = bands;
   competencies = competencies;
@@ -353,6 +390,7 @@ export default class Talent {
     }[this.s.positionRisk(id).status];
   }
   selectPosition(id: string) {
+    this.selectedRunId.set("");
     this.positionId.set(id);
     this.draft = undefined;
     this.compare.set([]);
@@ -363,6 +401,38 @@ export default class Talent {
       .nominations.filter((n) => !!this.position() && n.positionId === this.position()!.id),
   );
   ready = computed(() => this.nominations().some((n) => n.readiness === "A"));
+  readonly runs=computed(()=>this.position()
+    ? this.s.prospectiveRunsForPosition(this.position()!.id) : []);
+  readonly run=computed(()=>this.runs().find(r=>r.id===this.selectedRunId())??this.runs()[0]);
+  readonly activeProspectiveRun=computed(()=>this.runs().find(r=>r.status==="active"));
+  isProspectiveNominee(personId:string){
+    return !!this.run()?.nominees.some(n=>n.personId===personId);
+  }
+  prospectiveResult(personId:string){
+    return this.run()?.results.find(r=>r.personId===personId);
+  }
+  prospectiveIndicatorScore(personId:string,indicatorId:string){
+    return this.prospectiveResult(personId)?.indicatorScores.find(i=>i.indicatorId===indicatorId)?.score;
+  }
+  startProspective(){
+    const pos=this.position();
+    if(!pos)return;
+    const id=this.s.startProspectiveRun(pos.id);
+    if(id){this.selectedRunId.set(id);this.compare.set([]);}
+  }
+  closeProspective(){
+    const r=this.run();
+    if(r)this.s.closeProspectiveRun(r.id);
+  }
+  evaluateProspective(personId:string){
+    const run=this.run();
+    const nominee=run?.nominees.find(n=>n.personId===personId);
+    if(!run||!nominee||run.status!=="active"||!this.s.canManageProspective(run.positionId))return;
+    this.dialog.open(ProspectiveReviewDialog,{
+      width:"740px",maxWidth:"95vw",direction:"rtl",
+      data:{run:structuredClone(run),nominee:structuredClone(nominee)},
+    });
+  }
   people = computed(() =>
     this.s
       .state()
