@@ -42,6 +42,7 @@ import {
 } from "./organization-actions";
 import { performanceBand, performanceScore } from "./performance";
 import { captureTalentChanges, hydrateTalentHistory } from "./talent-history";
+import { seedDemoTalentHistory } from "./demo-talent-history";
 import { assessPositionRisk, validatePositionRiskInput } from "./position-risk";
 import { campaignCycle, campaignPreview } from "./evaluation-campaigns";
 import { DEFAULT_PASSWORD, SESSION_KEY, homeForRole, roleOrder } from "./auth";
@@ -99,8 +100,8 @@ export class Store {
     } catch { this.storageWarning.set("نشست در مرورگر قابل نگهداری نیست."); }
   }
   constructor() {
-    // Persist the first observed baseline immediately, even if the user only views
-    // the matrix. Otherwise a future reload would move the baseline forward.
+    // Persist first-observed baselines and any one-time synthetic demo migration.
+    // Reopening the app must not move dates or silently regenerate saved events.
     if (typeof window !== "undefined") {
       try {
         const raw=localStorage.getItem(KEY);
@@ -223,7 +224,7 @@ export class Store {
           d.cycles.every((c: any) => Array.isArray(c.assignments)) &&
           d.plans.every((p: any) => Array.isArray(p.actions))
         )
-          return hydrateTalentHistory(hydrateOrganization({ ...d,
+          return seedDemoTalentHistory(hydrateTalentHistory(hydrateOrganization({ ...d,
             performanceReviews: Array.isArray(d.performanceReviews) ? d.performanceReviews : [],
             talentHistory: Array.isArray(d.talentHistory) ? d.talentHistory : [],
             campaigns: Array.isArray(d.campaigns) ? d.campaigns : [],
@@ -249,7 +250,7 @@ export class Store {
             developmentTemplates: Array.isArray(d.developmentTemplates)
               ? d.developmentTemplates.map((t: DevelopmentTemplate) => ({ ...t, isActive: t.isActive !== false }))
               : defaultDevelopmentTemplates(),
-          }),new Date().toISOString());
+          }),new Date().toISOString()));
         this.storageWarning.set(
           "اطلاعات ذخیره‌شده ناسازگار بود؛ وضعیت اولیه بازیابی شد.",
         );

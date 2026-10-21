@@ -4,6 +4,7 @@ import { defaultEntryQuestions, defaultEntryEvaluatorGroups } from "./entry-comm
 import { defaultDevelopmentTemplates } from "./development-templates";
 import { hydrateOrganization } from "./organization";
 import { hydrateTalentHistory } from "./talent-history";
+import { seedDemoTalentHistory } from "./demo-talent-history";
 import { defaultProspectiveIndicators, defaultProspectiveQuestions } from "./prospective";
 export function seed(): DemoState {
   const units = [
@@ -255,7 +256,7 @@ export function seed(): DemoState {
         }
       : {}),
   }));
-  return hydrateTalentHistory(hydrateOrganization({
+  return seedDemoTalentHistory(hydrateTalentHistory(hydrateOrganization({
     schema: 1,
     jobs,
     people,
@@ -322,5 +323,5 @@ export function seed(): DemoState {
     ],
     audit: [],
     syncs: [],
-  } as unknown as DemoState),new Date().toISOString());
+  } as unknown as DemoState),new Date().toISOString()));
 }
