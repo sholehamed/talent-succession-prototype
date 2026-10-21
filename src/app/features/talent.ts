@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import { Store } from "../core/store";
 import { Band, bands, competencies, Nomination } from "../core/models";
+import { nineBoxProfile } from "../core/nine-box";
 import { UI } from "../shared/ui";
 import { Chart } from "../shared/chart";
 import { PositionRisk } from "./position-risk";
@@ -55,16 +56,25 @@ import { ProspectiveReviewDialog } from "./prospective-review-dialog";
         @if (unclassified().length) {
           <div class="info">{{ unclassified().length | fa }} فرد هنوز ارزیابی عملکرد یا پتانسیل لازم برای جانمایی در ماتریس را ندارند؛ نمایش در یک خانه بدون داده معتبر انجام نمی‌شود.</div>
         }
-        <div class="nine-grid">
+        <div class="nine-grid" role="group" aria-label="ماتریس ۹ خانه‌ای استعداد">
           @for (y of ys; track y) {
             @for (x of xs; track x) {
               <button mat-button
                 class="nine-cell"
+                [ngClass]="'nine-cell--' + nineBoxProfile(x, y).tone"
                 [class.active]="cell() === x + '-' + y"
+                [attr.aria-pressed]="cell() === x + '-' + y"
+                [attr.aria-label]="nineBoxProfile(x, y).title + '، عملکرد ' + bands[x]
+                  + '، پتانسیل ' + bands[y] + '، ' + members(x, y).length + ' نفر'"
                 (click)="cell.set(x + '-' + y)"
               >
-                <strong>{{ members(x, y).length | fa }}</strong
-                >عملکرد {{ bands[x] }} / پتانسیل {{ bands[y] }}
+                <span class="nine-cell__heading">
+                  <span class="nine-cell__title">{{ nineBoxProfile(x, y).title }}</span>
+                  <strong class="nine-cell__count">{{ members(x, y).length | fa }}</strong>
+                </span>
+                <span class="nine-cell__details">
+                  عملکرد {{ bands[x] }} / پتانسیل {{ bands[y] }}
+                </span>
               </button>
             }
           }
@@ -345,6 +355,7 @@ export default class Talent {
   readonly dialog=inject(MatDialog);
   readonly talentColumns = ["person","unit","performance","potential","evidence"];
   bandLabel(value: string | null) { return bands[value as Band] ?? "—"; }
+  readonly nineBoxProfile = nineBoxProfile;
   route = inject(ActivatedRoute);
   nine = !!this.route.snapshot.data["nine"];
   unit = signal("");
