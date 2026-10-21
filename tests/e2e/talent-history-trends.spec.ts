@@ -54,7 +54,13 @@ test("unit scope, date validation and matrix filters apply to historical compari
   await page.getByRole("button",{name:"پاک‌کردن فیلتر خانه"}).click();
   await expect(selected).toHaveAttribute("aria-pressed","false");
   await expect(page.locator("table.royesh-table tbody tr")).toHaveCount(before);
-  await page.getByLabel("تاریخ مبنا (میلادی)").fill("2030-01-01");
+  const dateInput=page.getByRole("textbox",{name:"تاریخ مبنا (شمسی)"});
+  await expect(dateInput).toBeVisible();
+  await page.locator("app-date-field").first().locator("button").click();
+  await expect(page.locator(".mat-calendar")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await dateInput.fill("1409/01/01");
+  await dateInput.press("Tab");
   await expect(page.getByRole("alert")).toContainText("تاریخ مبنا");
   await expect(page.locator(".trend-grid")).toHaveCount(0);
 });
@@ -69,4 +75,22 @@ test("manager can see scoped movements, employee cannot open the comparison rout
   await signIn(page,"p3","کارمند");
   await page.goto("/talent/9box/trends");
   await expect(page).not.toHaveURL(/\/talent\/9box\/trends$/);
+});
+
+test("Jalali dates and isolated demo movements never overwrite the stored history",async({page})=>{
+  await signIn(page);
+  await page.goto("/talent/9box/trends");
+  const original=await page.evaluate(()=>localStorage.getItem("royesh.demo.v1"));
+  await expect(page.getByRole("textbox",{name:"تاریخ پایان (شمسی)"})).toBeVisible();
+  await page.getByRole("button",{name:"نمایش سناریوی نمونه"}).click();
+  await expect(page.getByTestId("talent-demo-banner")).toContainText("حالت نمایشی فعال است");
+  const totals=await page.locator(".trend-stat strong").allTextContents();
+  const ascii=(t:string)=>t.replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+  expect(totals.slice(0,3).some(t=>Number(ascii(t))>0)).toBe(true);
+  expect(await page.evaluate(()=>localStorage.getItem("royesh.demo.v1"))).toBe(original);
+  await page.getByRole("button",{name:"بازگشت به تاریخچه ثبت‌شده"}).click();
+  await expect(page.getByTestId("talent-demo-banner")).not.toContainText("حالت نمایشی فعال است");
+  expect(await page.evaluate(()=>localStorage.getItem("royesh.demo.v1"))).toBe(original);
+  await page.reload();
+  await expect(page.getByRole("button",{name:"نمایش سناریوی نمونه"})).toBeVisible();
 });

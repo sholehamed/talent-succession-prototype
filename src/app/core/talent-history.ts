@@ -69,10 +69,11 @@ export function nineBoxMovement(from?:TalentPositionEvent,to?:TalentPositionEven
   if(performance<=0&&potential<=0)return "declined";
   return "mixed";
 }
-export function nineBoxChanges(state:DemoState,people:Person[],fromDay:string,toDay:string):NineBoxChange[]{
+export function nineBoxChanges(state:DemoState,people:Person[],fromDay:string,toDay:string,
+  events:TalentPositionEvent[]=state.talentHistory):NineBoxChange[]{
   return people.map(person=>{
-    const from=nineBoxAt(state.talentHistory,person.id,fromDay);
-    const to=nineBoxAt(state.talentHistory,person.id,toDay);
+    const from=nineBoxAt(events,person.id,fromDay);
+    const to=nineBoxAt(events,person.id,toDay);
     return {person,from,to,movement:nineBoxMovement(from,to)};
   });
 }

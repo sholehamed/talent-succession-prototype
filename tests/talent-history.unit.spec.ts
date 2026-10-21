@@ -1,6 +1,7 @@
 import "@angular/compiler";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Store } from "../src/app/core/store";
+import { demoNineBoxHistory } from "../src/app/core/demo-talent-history";
 import {
   captureTalentChanges, hydrateTalentHistory, nineBoxAt, nineBoxChanges,
   nineBoxMovement, talentBaseline,
@@ -130,5 +131,41 @@ describe("automatic talent history without manual period/snapshot buttons",()=>{
     expect(comparison[2].movement).toBe("insufficient");
     expect(comparison[0].from?.performance).toBe("medium");
     expect(comparison[0].to?.performance).toBe("high");
+  });
+});
+
+describe("read-only demo historical timeline",()=>{
+  it("creates stable past/current records, all movement classes, and does not mutate the state",()=>{
+    const s=new Store(),people=s.state().people;
+    const before=JSON.stringify(s.state());
+    const today="2026-10-21",sample=demoNineBoxHistory(people,today);
+    expect(sample).toHaveLength(people.length*5);
+    expect(sample.every(e=>e.source==="demo")).toBe(true);
+    expect(demoNineBoxHistory(people,today)).toEqual(sample);
+    const changed=nineBoxChanges(s.state(),people,"2026-07-21",today,sample);
+    for(const movement of ["improved","declined","mixed","unchanged"]){
+      expect(changed.some(row=>row.movement===movement)).toBe(true);
+    }
+    expect(changed[0].to?.performance).toBe(people[0].performance);
+    expect(Date.parse(sample[0].at)).toBeLessThan(Date.parse(sample[4].at));
+    expect(JSON.stringify(s.state())).toBe(before);
+    expect(s.state().talentHistory.some(e=>e.source==="demo")).toBe(false);
+  });
+  it("keeps the same synthetic position across unit and person filters",()=>{
+    const store=new Store(),all=store.state().people,today="2026-10-21";
+    const full=demoNineBoxHistory(all,today);
+    const subset=demoNineBoxHistory(all.slice(2,7),today);
+    for(const person of all.slice(2,7)){
+      expect(subset.filter(e=>e.personId===person.id))
+        .toEqual(full.filter(e=>e.personId===person.id));
+    }
+  });
+  it("still reports insufficient real history before baseline, regardless of preview",()=>{
+    const s=new Store(),people=s.state().people,today="2026-10-21";
+    const sample=demoNineBoxHistory(people,today);
+    expect(nineBoxChanges(s.state(),people,"2026-07-21",today)[0].movement).toBe("insufficient");
+    expect(nineBoxChanges(s.state(),people,"2026-07-21",today,sample)[0].movement)
+      .toBe("improved");
+    expect(s.state().talentHistory.every(x=>x.source!=="demo")).toBe(true);
   });
 });

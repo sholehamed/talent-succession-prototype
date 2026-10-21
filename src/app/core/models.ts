@@ -58,7 +58,7 @@ export interface TalentPositionEvent {
   performance:Band|null;
   potential:Band|null;
   unit:string;
-  source:"baseline"|"change";
+  source:"baseline"|"change"|"demo";
   action?:string;
 }
 /** A period's documented results are separate from 360/540 competency assessments. */
