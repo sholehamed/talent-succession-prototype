@@ -82,7 +82,7 @@ docs/                 محدوده، راهنمای داخلی ارائه و ر�
 ## اسناد پروژه
 
 - [مدیریت نقش‌های افراد، اعتبار نشست و سازگاری داده‌های قبلی](docs/ROLE_ACCESS_MANAGEMENT_FA.md)
-- [ارزیابی آینده‌نگر جانشینان؛ شاخص‌ها، بانک سؤالات، Snapshot و مقایسه](docs/PROSPECTIVE_EVALUATION_FA.md) — قابلیت جدید در Branch ویژگی `feat/prospective-succession-evaluation`، در انتظار تست نهایی و Merge
+- [ارزیابی آینده‌نگر جانشینان؛ شاخص‌ها، بانک سؤالات، Snapshot و مقایسه](docs/PROSPECTIVE_EVALUATION_FA.md) — در PR #30 پیاده‌سازی، تست و در `main` ادغام‌شده
 - [راهنمای پیاده‌سازی و استفاده از ارزیابی ریسک پست حیاتی](docs/CRITICAL_POSITION_RISK_ASSESSMENT_FA.md) — قرارداد داده، فرم، مجوزها، گزارش‌ها و سناریوهای تست (پیاده‌سازی‌شده در `main`)
 - [راهنمای گروه‌بندی سایدبار، رفتار Accordion و دسترسی نقش‌ها](docs/SIDEBAR_NAVIGATION_FA.md)
 - [راهنمای داشبوردهای مستقل و نقش‌محور](docs/ROLE_DASHBOARD_NAVIGATION_FA.md)
